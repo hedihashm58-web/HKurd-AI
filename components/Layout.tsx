@@ -30,13 +30,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden bg-[#010409] text-slate-200" dir="rtl">
-      {/* Immersive Background */}
+      {/* Immersive Background Effect */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-1000">
         {backgroundImage && (
           <img 
             src={backgroundImage} 
             alt="Context" 
-            className="w-full h-full object-cover blur-[100px] scale-125"
+            className="w-full h-full object-cover blur-[120px] scale-150"
           />
         )}
       </div>
@@ -48,9 +48,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         <div className="flex-1 bg-green-800"></div>
       </div>
 
-      <header className="glass-header sticky top-1 z-50 px-6 lg:px-12 py-6 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2rem] shadow-2xl">
+      <header className="glass-header sticky top-1 z-50 px-6 lg:px-12 py-6 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2.5rem] shadow-2xl">
         <div className="flex items-center gap-4 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.CHAT)}>
-          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl sun-emblem flex items-center justify-center text-2xl lg:text-3xl transition-all duration-500 group-hover:shadow-[0_0_40px_rgba(234,179,8,0.5)] group-hover:rotate-12">
+          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl sun-emblem flex items-center justify-center text-2xl lg:text-3xl transition-all duration-500 group-hover:shadow-[0_0_50px_rgba(234,179,8,0.5)] group-hover:rotate-12">
             ☀️
           </div>
           <div className="flex flex-col text-right">
@@ -59,19 +59,19 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             </h1>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 status-pulse"></div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-['Noto_Sans_Arabic']">System Online | نیشتمانی</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-['Noto_Sans_Arabic']">سێرڤەر کارایە | نیشتمانی</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center">
           <button
             onClick={() => setIsVaultOpen(true)}
             className="group flex items-center gap-4 lg:gap-8 px-6 lg:px-10 py-3 lg:py-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl hover:bg-white/[0.06] hover:border-yellow-500/40 transition-all shadow-xl active:scale-95"
           >
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-xs font-black text-white font-['Noto_Sans_Arabic'] uppercase tracking-widest">خزمەتگوزارییەکان</span>
-              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">Universal AI Portal</span>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">Universal Portal</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl group-hover:bg-yellow-500 group-hover:text-black transition-all duration-300">
               ⚡
@@ -87,9 +87,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
           
           <div className="relative w-full max-w-7xl animate-in zoom-in-95 duration-500">
             <div className="text-center mb-20 space-y-6">
-              <div className="text-[10px] font-black text-yellow-500 uppercase tracking-[1em] font-['Noto_Sans_Arabic']">بەرەو ئاسۆیەکی زیرەکتر</div>
-              <h2 className="text-5xl lg:text-8xl font-black text-white tracking-tighter font-['Noto_Sans_Arabic']">خزمەتگوزارییە <span className="text-yellow-500">نیشتمانییەکان</span></h2>
-              <div className="h-0.5 w-48 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent mx-auto mt-8"></div>
+              <div className="text-[10px] font-black text-yellow-500 uppercase tracking-[1em] font-['Noto_Sans_Arabic']">داهاتوویەکی زیرەکتر</div>
+              <h2 className="text-5xl lg:text-8xl font-black text-white tracking-tighter font-['Noto_Sans_Arabic']">خزمەتگوزارییە <span className="text-yellow-500">زیرەکەکان</span></h2>
+              <div className="h-0.5 w-48 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent mx-auto mt-8"></div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
@@ -129,49 +129,52 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         {children}
       </main>
 
-      {/* Production Footer */}
-      <footer className="relative z-10 bg-black/40 border-t border-white/[0.03] py-12 px-10 mt-20 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+      {/* Production Footer Section */}
+      <footer className="relative z-10 bg-black/50 border-t border-white/[0.04] py-16 px-10 mt-24 backdrop-blur-2xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
           <div className="flex flex-col items-center md:items-start text-center md:text-right">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg sun-emblem flex items-center justify-center text-sm">☀️</div>
-              <span className="text-xl font-black text-white font-['Noto_Sans_Arabic'] uppercase tracking-tight">KurdAI Pro</span>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 rounded-xl sun-emblem flex items-center justify-center text-lg">☀️</div>
+              <span className="text-2xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight">KurdAI Pro</span>
             </div>
-            <p className="text-slate-500 text-[11px] font-medium font-['Noto_Sans_Arabic'] leading-relaxed max-w-sm">
-              پلاتفۆرمێکی نیشتمانییە بۆ گەشەپێدانی تواناکانی مرۆیی لە ڕێگەی ژیریی دەستکردەوە. هەموو مافەکان پارێزراون.
+            <p className="text-slate-500 text-xs font-medium font-['Noto_Sans_Arabic'] leading-relaxed max-w-sm">
+              گەورەترین پلاتفۆرمی نیشتمانی بۆ گەشەپێدانی تواناکانی مرۆیی و زانیارییە کولتوورییەکان لە ڕێگەی ژیریی دەستکردەوە. هەموو مافەکان پارێزراون بۆ گەشەپێدەر.
             </p>
           </div>
 
-          <div className="flex gap-16">
+          <div className="flex gap-20">
             <div className="flex flex-col items-center md:items-end">
               <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-4 font-['Noto_Sans_Arabic']">گەشەپێدەر</span>
-              <span className="text-sm font-bold text-white font-['Noto_Sans_Arabic'] tracking-wide">هێدی هاشم فەتاح</span>
+              <span className="text-base font-bold text-white font-['Noto_Sans_Arabic'] tracking-wide">هێدی هاشم فەتاح</span>
             </div>
             <div className="flex flex-col items-center md:items-end">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 font-['Noto_Sans_Arabic']">وەشان</span>
-              <span className="text-sm font-mono font-bold text-white">V3.5.0-STABLE</span>
+              <span className="text-base font-mono font-bold text-white">V3.5.0-PRO</span>
             </div>
           </div>
 
-          <div className="flex flex-col items-center md:items-end gap-3">
-             <div className="flex gap-4">
-                <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg hover:bg-white/10 cursor-pointer transition-all border border-white/5">⚖️</span>
-                <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg hover:bg-white/10 cursor-pointer transition-all border border-white/5">🛡️</span>
-                <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg hover:bg-white/10 cursor-pointer transition-all border border-white/5">🌐</span>
+          <div className="flex flex-col items-center md:items-end gap-4">
+             <div className="flex gap-5">
+                <span className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 cursor-pointer transition-all border border-white/5" title="Security">🛡️</span>
+                <span className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 cursor-pointer transition-all border border-white/5" title="Privacy">⚖️</span>
+                <span className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 cursor-pointer transition-all border border-white/5" title="Network">🌐</span>
              </div>
-             <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em] font-['Noto_Sans_Arabic']">Kurdish Intelligence Network</p>
+             <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em] font-['Noto_Sans_Arabic']">Kurdistan AI Research Lab</p>
           </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/[0.02] text-center">
+           <p className="text-[8px] font-black text-slate-700 uppercase tracking-[0.8em]">Powered by Gemini 3 Neural Engines & VEO 3.1 Multimedia</p>
         </div>
       </footer>
 
-      {/* Mobile Service Bar */}
-      <div className="lg:hidden fixed bottom-8 left-0 right-0 z-50 flex justify-center px-8">
+      {/* Mobile Service Bar - Enhanced for Production */}
+      <div className="lg:hidden fixed bottom-10 left-0 right-0 z-50 flex justify-center px-8">
         <button
           onClick={() => setIsVaultOpen(true)}
-          className="w-full max-w-sm py-5 bg-slate-900/90 border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center gap-4 active:scale-95 transition-all backdrop-blur-2xl"
+          className="w-full max-w-sm py-5 bg-[#0a0a0c]/90 border border-white/10 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] flex items-center justify-center gap-4 active:scale-95 transition-all backdrop-blur-3xl"
         >
-          <span className="text-[11px] font-black text-white uppercase tracking-widest font-['Noto_Sans_Arabic']">لیستی خزمەتگوزارییەکان</span>
-          <div className="w-8 h-8 rounded-lg bg-yellow-500 text-black flex items-center justify-center text-lg shadow-lg">⚡</div>
+          <span className="text-[11px] font-black text-white uppercase tracking-widest font-['Noto_Sans_Arabic']">پێڕستی خزمەتگوزارییەکان</span>
+          <div className="w-9 h-9 rounded-xl bg-yellow-500 text-black flex items-center justify-center text-xl shadow-lg">⚡</div>
         </button>
       </div>
     </div>
