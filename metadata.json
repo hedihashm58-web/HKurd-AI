@@ -1,0 +1,8 @@
+{
+  "name": "KurdAI: The Intelligence of Kurdistan",
+  "description": "A specialized AI application dedicated to the Iraqi Kurdistan Region, featuring cultural knowledge, language support for Sorani and Kurmanji, and local tourism insights.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
