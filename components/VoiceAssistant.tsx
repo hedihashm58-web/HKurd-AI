@@ -72,7 +72,7 @@ const VoiceAssistant: React.FC = () => {
   const startSession = async () => {
     try {
       setTranscripts([]);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
       const inputCtx = new AudioContext({ sampleRate: 16000 });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

@@ -7,7 +7,7 @@ export const generateKurdishVideo = async (
   config: { resolution: '720p' | '1080p', aspectRatio: '16:9' | '9:16' },
   onStatusUpdate: (status: string, progress: number) => void
 ) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   const enhancedPrompt = `
     Hyper-realistic cinematic footage, 8k resolution, professional lighting, 
@@ -56,7 +56,7 @@ export const generateKurdishVideo = async (
   
   onStatusUpdate('لۆدکردنی ڤیدیۆ لە سێرڤەرەوە...', 99);
 
-  const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+  const response = await fetch(`${downloadLink}&key=${process.env.GEMINI_API_KEY}`);
   if (!response.ok) throw new Error("Failed to download generated video");
   
   const blob = await response.blob();
@@ -73,7 +73,7 @@ export const generateKurdishArt = async (
   base64Image?: string | null,
   mimeType: string = 'image/jpeg'
 ) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const modelToUse = quality === '2K' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
   
   const finalPrompt = base64Image 
@@ -113,7 +113,7 @@ export const generateKurdishArt = async (
 };
 
 export const getLandmarks = async (city: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `باسی مێژوو و تەواوی شوێنەوارە گەشتیاری و مێژووییە گرنگەکانی شاری ${city} و دەوروبەری بکە...`,
@@ -123,21 +123,21 @@ export const getLandmarks = async (city: string) => {
 };
 
 export const analyzeHealthImageStream = async (base64Image: string | null, mimeType: string, userQuestion: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const parts: any[] = [{ text: `تۆ KurdAI Medicalیت... پرسیار: ${userQuestion}` }];
   if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
   return await ai.models.generateContentStream({ model: 'gemini-3-flash-preview', contents: { parts } });
 };
 
 export const analyzeMathStream = async (query: string, base64Image: string | null, mimeType: string = 'image/jpeg') => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const parts: any[] = [{ text: query }];
   if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
   return await ai.models.generateContentStream({ model: 'gemini-3-pro-preview', contents: { parts } });
 };
 
 export const translateKurdishStream = async (text: string, source: string, target: string, tone: string, base64Image?: string | null, mimeType: string = 'image/jpeg') => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const prompt = `Translate to ${target} in ${tone} tone: ${text || "Translate this image"}`;
   const parts: any[] = [{ text: prompt }];
   if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
@@ -145,7 +145,7 @@ export const translateKurdishStream = async (text: string, source: string, targe
 };
 
 export const chatWithKurdAIStream = async (message: string, history: any[] = [], imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   const contents: Content[] = history.map(h => ({
     role: h.role,
