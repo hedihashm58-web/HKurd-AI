@@ -125,14 +125,14 @@ export const getLandmarks = async (city: string) => {
 export const analyzeHealthImageStream = async (base64Image: string | null, mimeType: string, userQuestion: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [{ text: `تۆ KurdAI Medicalیت... پرسیار: ${userQuestion}` }];
-  if (base64Image) parts.unshift({ inlineData: { data: base64Image.split(',')[1], mimeType } });
+  if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
   return await ai.models.generateContentStream({ model: 'gemini-3-flash-preview', contents: { parts } });
 };
 
 export const analyzeMathStream = async (query: string, base64Image: string | null, mimeType: string = 'image/jpeg') => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [{ text: query }];
-  if (base64Image) parts.unshift({ inlineData: { data: base64Image.split(',')[1], mimeType } });
+  if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
   return await ai.models.generateContentStream({ model: 'gemini-3-pro-preview', contents: { parts } });
 };
 
@@ -140,7 +140,7 @@ export const translateKurdishStream = async (text: string, source: string, targe
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Translate to ${target} in ${tone} tone: ${text || "Translate this image"}`;
   const parts: any[] = [{ text: prompt }];
-  if (base64Image) parts.unshift({ inlineData: { data: base64Image.split(',')[1], mimeType } });
+  if (base64Image) parts.unshift({ inlineData: { data: base64Image.includes(',') ? base64Image.split(',')[1] : base64Image, mimeType } });
   return await ai.models.generateContentStream({ model: 'gemini-3-flash-preview', contents: [{ parts }] });
 };
 
@@ -156,7 +156,7 @@ export const chatWithKurdAIStream = async (message: string, history: any[] = [],
   if (imageBase64) {
     userParts.push({
       inlineData: {
-        data: imageBase64.split(',')[1],
+        data: imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64,
         mimeType
       }
     });
