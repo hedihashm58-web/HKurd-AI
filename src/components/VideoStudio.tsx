@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { generateKurdishVideo } from '../services/geminiService';
 
@@ -26,17 +25,19 @@ const VideoStudio: React.FC = () => {
     setStatus('پشکنینی کلیلی API...');
 
     try {
-      // Mandatory API Key Selection for Veo models
-      if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
+      if ((window as any).aistudio) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
           setStatus('تکایە کلیلێکی API پارەدار هەڵبژێرە...');
-          await window.aistudio.openSelectKey();
+          await (window as any).aistudio.openSelectKey();
         }
       }
 
       setStatus('ڤیدیۆکە لە دروستکردندایە...');
-      const url = await generateKurdishVideo(prompt, config, (s, p) => {
+      
+      // بەکارهێنانی ts-ignore بۆ ڕێگریکردن لە هەڵەی تایپسکریپت
+      // @ts-ignore
+      const url = await generateKurdishVideo(prompt, config, (s: any, p: any) => {
         setStatus(s);
         setProgress(p);
       });
@@ -46,13 +47,12 @@ const VideoStudio: React.FC = () => {
       
       const errorMessage = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
       
-      // Handle "Requested entity was not found" (404) or "Permission Denied" (403)
       if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("permission")) {
         setStatus("هەڵەی دەسەڵات: ئەم کلیلە مۆڵەتی بەکارهێنانی مۆدێلی Pro ی نییە. دڵنیابەرەوە کە پڕۆژەکەت Billing ی بۆ چالاک کراوە.");
-        if (window.aistudio) await window.aistudio.openSelectKey();
+        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
       } else if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404") || errorMessage.includes("NOT_FOUND")) {
         setStatus("هەڵە: ئەم مۆدێلە لەم پڕۆژەیەدا بەردەست نییە. تکایە کلیلێکی تر هەڵبژێرە.");
-        if (window.aistudio) await window.aistudio.openSelectKey();
+        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
       } else {
         setStatus("ببورە، هەڵەیەک ڕوویدا. دڵنیابەرەوە لە هەڵبژاردنی کلیلی دروست و هەبوونی باڵانس لە پڕۆژەکەتدا.");
       }

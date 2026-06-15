@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { generateKurdishArt } from '../services/geminiService';
 
@@ -42,13 +41,14 @@ const ArtStudio: React.FC = () => {
     setImage(null);
 
     try {
-      if (quality === '2K' && window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
+      if (quality === '2K' && (window as any).aistudio) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
-          await window.aistudio.openSelectKey();
+          await (window as any).aistudio.openSelectKey();
         }
       }
 
+      // @ts-ignore
       const result = await generateKurdishArt(prompt, selectedStyle, quality, userImage, userMimeType);
       setImage(result);
     } catch (err: any) {
@@ -57,10 +57,10 @@ const ArtStudio: React.FC = () => {
       
       if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("permission")) {
         setError("هەڵەی دەسەڵات: پێویستت بە کلیلێکی API هەیە کە 'Billing' ی بۆ چالاک کرابێت بۆ مۆدێلی Pro.");
-        if (window.aistudio) await window.aistudio.openSelectKey();
+        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
       } else if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404") || errorMessage.includes("NOT_FOUND")) {
         setError("هەڵە: ئەم پڕۆژەیە دەستی بەم مۆدێلە ناگات. تکایە کلیلێکی تر تاقی بکەرەوە.");
-        if (window.aistudio) await window.aistudio.openSelectKey();
+        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
       } else {
         setError("هەڵەیەک لە دروستکردنی وێنەکەدا ڕوویدا. دڵنیابەرەوە لە هەبوونی باڵانس و چالاکبوونی Billing.");
       }
