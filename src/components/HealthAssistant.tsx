@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { analyzeHealthImageStream } from '../services/geminiService';
 
@@ -33,10 +32,15 @@ const HealthAssistant: React.FC = () => {
     setResult("");
     
     try {
-      const stream = await analyzeHealthImageStream(image, mimeType, question);
+      // ئەگەر پرسیاری نەنووسیبوو، پرسیارێکی دیفاڵتی بۆ دەنێرین
+      const promptText = question.trim() !== "" ? question : "تکایە شیکاری بۆ ئەم وێنەیە پزیشکییە یان پشکنینە بکە و زانیاری پێویستم پێ بدە بە زمانی کوردی.";
+      
+      // ڕیزبەندییەکە ڕاست کرایەوە: (پرسیار، وێنە، جۆری وێنە)
+      const response = await analyzeHealthImageStream(promptText, image, mimeType);
+      
       let fullResult = "";
-      for await (const chunk of stream) {
-        fullResult += chunk.text;
+      for await (const chunk of response.stream) {
+        fullResult += chunk.text();
         setResult(fullResult);
       }
     } catch (error) {
@@ -66,7 +70,7 @@ const HealthAssistant: React.FC = () => {
               <textarea 
                 value={question} 
                 onChange={e => setQuestion(e.target.value)}
-                className="w-full h-48 bg-white/[0.02] p-8 rounded-[2.5rem] text-white text-xl border border-white/5 font-['Noto_Sans_Arabic'] focus:border-red-500/30 outline-none transition-all resize-none shadow-inner placeholder:opacity-20"
+                className="w-full h-48 bg-white/[0.02] p-8 rounded-[2.5rem] text-white text-xl border border-white/5 font-['Noto_Sans_Arabic'] focus:border-red-500/30 outline-none transition-all resize-none shadow-inner placeholder:opacity-20 custom-scrollbar"
                 placeholder="بۆ نموونە: ئەنجامی ئەم پشکنینەم بۆ ڕوون بکەرەوە، یان باسی ئازارەکەت بکە..."
               />
             </div>

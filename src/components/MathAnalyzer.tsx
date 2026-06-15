@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { analyzeMathStream } from '../services/geminiService';
 
@@ -27,9 +26,12 @@ const MathAnalyzer: React.FC = () => {
     setLoading(true);
     setResult("");
     try {
-      const stream = await analyzeMathStream(query, image, mimeType);
-      for await (const chunk of stream) {
-        setResult(prev => (prev || "") + chunk.text);
+      // لێرەدا کێشەکە چارەسەر کراوە: ئەنجامەکە دەخەینە ناو response
+      const response = await analyzeMathStream(query, image, mimeType);
+      
+      // پاشان response.stream بەکاردەهێنین
+      for await (const chunk of response.stream) {
+        setResult(prev => (prev || "") + chunk.text()); // دەبێت text() وەک فەنکشن بانگ بکرێت
       }
     } catch (error) {
       console.error(error);

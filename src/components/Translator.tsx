@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { translateKurdishStream } from '../services/geminiService';
 
@@ -41,7 +40,6 @@ const Translator: React.FC = () => {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
-    // Faster debounce for "real-time" feel
     debounceTimerRef.current = setTimeout(() => {
       performTranslation();
     }, 600); 
@@ -56,11 +54,12 @@ const Translator: React.FC = () => {
     setResult("");
     
     try {
-      const stream = await translateKurdishStream(text, sourceLang, targetLang, selectedTone, image, mimeType);
+      // چارەسەری کێشەکە لێرەدایە
+      const response = await translateKurdishStream(text, sourceLang, targetLang, selectedTone, image, mimeType);
       
       let fullResult = "";
-      for await (const chunk of stream) {
-        fullResult += chunk.text;
+      for await (const chunk of response.stream) {
+        fullResult += chunk.text();
         setResult(fullResult);
       }
     } catch (error) {
