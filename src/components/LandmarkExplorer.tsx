@@ -1,106 +1,85 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { getLandmarks } from '../services/geminiService';
+import React, { useState } from 'react';
 
-// پێناسەی تایپ بۆ ئەو کۆمپۆنێنتەی کە onCityChange وەردەگرێت
+// داتاکەمان لێرە ڕێک دەخەین
+const citiesData = {
+  slemani: {
+    name: "سلێمانی",
+    description: "شاری هەڵم و قوربانی، بە پایتەختی ڕۆشنبیری ناسراوە.",
+    image: "https://images.unsplash.com/photo-1596701062351-314227915570?q=80&w=2000",
+    neighborhoods: [
+      { name: "سەرچنار", info: "ناوچەیەکی گەشتیاری و دڵگیرە" },
+      { name: "بەکرهۆ", info: "لە گەڕەکە کۆن و ناسراوەکانە" },
+      { name: "شێخ عەباس", info: "ناوچەیەکی بازرگانی و چالاکە" },
+      { name: "کارێزە وشک", info: "گەڕەکێکی گەورە و ئاوەدانە" },
+      { name: "بەکرەجۆ", info: "دەروازەی ڕۆژئاوای شارەکەیە" }
+    ]
+  },
+  hawler: {
+    name: "هەولێر",
+    description: "پایتەختی هەرێمی کوردستان، خاوەن قەڵایەکی مێژوویی دێرین.",
+    image: "https://images.unsplash.com/photo-1596701062351-314227915570?q=80&w=2000",
+    neighborhoods: [
+      { name: "عەنکاوە", info: "ناوچەیەکی نێودەوڵەتی و گەشتیاری" },
+      { name: "ئیسکان", info: "لە گەڕەکە زیندووەکانی ناوەڕاستی شارە" },
+      { name: "باداوە", info: "ناوچەیەکی فراوان و بازرگانی" }
+    ]
+  }
+};
+
 interface LandmarkExplorerProps {
   onCityChange: (url: string) => void;
 }
 
-const REGIONS = [
-  { id: 'Erbil', label: 'هەولێر', type: 'prov', catchy: 'هەولێر؛ پایتەختی مێژوویی و ئاوەدانی.' },
-  { id: 'Sulaymaniyah', label: 'سلێمانی', type: 'prov', catchy: 'سلێمانی؛ مەڵبەندی ڕۆشنبیری و هونەر.' },
-  { id: 'Duhok', label: 'دهۆک', type: 'prov', catchy: 'دهۆک؛ بووکی کوردستان و دەروازەی چیاکان.' },
-  { id: 'Kirkuk', label: 'کەرکووک', type: 'prov', catchy: 'کەرکووک؛ شاری بابەگوڕگوڕ و قەڵای دێرین.' },
-  { id: 'Halabja', label: 'هەڵەبجە', type: 'prov', catchy: 'هەڵەبجە؛ پایتەختی ئاشتی و سروشتی هەورامان.' },
-];
-
-const MASTER_ASSETS: Record<string, string> = {
-  'Erbil': 'https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop',
-  'Sulaymaniyah': 'https://images.unsplash.com/photo-1628163539063-8828b0303b71?q=80&w=2000&auto=format&fit=crop', 
-  'Duhok': 'https://images.unsplash.com/photo-1548685913-fe6574346a23?q=80&w=2500&auto=format&fit=crop',
-  'Kirkuk': 'https://images.unsplash.com/photo-1621252327702-0aa0e698165e?q=80&w=2000&auto=format&fit=crop',
-  'Halabja': 'https://images.unsplash.com/photo-1601058497548-f247dfe349d6?q=80&w=2000&auto=format&fit=crop',
-};
-
-const optimizeUrl = (url: string, width: number = 800) => {
-  if (url && url.includes('unsplash.com')) {
-    try {
-      const u = new URL(url);
-      u.searchParams.set('w', width.toString());
-      u.searchParams.set('q', '75');
-      return u.toString();
-    } catch (e) { return url; }
-  }
-  return url;
-};
-
 const LandmarkExplorer: React.FC<LandmarkExplorerProps> = ({ onCityChange }) => {
-  const [selectedRegion, setSelectedRegion] = useState(REGIONS[0]);
-  const [cityNarrative, setCityNarrative] = useState('');
-  const [landmarks, setLandmarks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [activeBackground, setActiveBackground] = useState<string>(MASTER_ASSETS[REGIONS[0].id]);
-  
-  const cache = useRef<Record<string, any>>({});
+  const [selectedCity, setSelectedCity] = useState<keyof typeof citiesData | null>(null);
 
-  const fetchLandmarks = async (regionLabel: string) => {
-    const foundRegion = REGIONS.find(r => r.label === regionLabel);
-    if (foundRegion) {
-      setSelectedRegion(foundRegion);
-      const cityImg = MASTER_ASSETS[foundRegion.id] || MASTER_ASSETS['Erbil'];
-      setActiveBackground(cityImg);
-      // لێرەدا بانگی فەنکشنەکە دەکەین
-      if (onCityChange) onCityChange(cityImg);
-    }
-
-    if (cache.current[regionLabel]) {
-      setCityNarrative(cache.current[regionLabel].cityNarrative);
-      setLandmarks(cache.current[regionLabel].landmarks);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const rawData = await getLandmarks(regionLabel);
-      const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-      cache.current[regionLabel] = data;
-      setCityNarrative(data.cityNarrative);
-      setLandmarks(data.landmarks);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleCityClick = (cityKey: keyof typeof citiesData) => {
+    setSelectedCity(cityKey);
+    onCityChange(citiesData[cityKey].image);
   };
 
-  useEffect(() => {
-    fetchLandmarks(selectedRegion.label);
-  }, []);
-
   return (
-    <div className="space-y-20 pb-20" dir="rtl">
-      {/* Region Selector */}
-      <div className="flex justify-center gap-3">
-        {REGIONS.map(region => (
-          <button
-            key={region.id}
-            onClick={() => fetchLandmarks(region.label)}
-            className={`px-6 py-2 rounded-full ${selectedRegion.id === region.id ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white'}`}
-          >
-            {region.label}
+    <div className="p-4 md:p-8 max-w-6xl mx-auto text-right" dir="rtl">
+      {!selectedCity ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Object.entries(citiesData).map(([key, city]) => (
+            <button 
+              key={key}
+              onClick={() => handleCityClick(key as keyof typeof citiesData)}
+              className="bg-slate-900/60 p-6 rounded-3xl border border-slate-700 hover:border-indigo-500 transition-all text-right group shadow-lg"
+            >
+              <h3 className="text-2xl font-black text-white mb-2">{city.name}</h3>
+              <p className="text-slate-400 text-sm line-clamp-2">{city.description}</p>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-slate-900/80 p-6 md:p-8 rounded-3xl border border-slate-700 animate-in fade-in zoom-in duration-300">
+          <button onClick={() => setSelectedCity(null)} className="text-indigo-400 mb-6 font-black flex items-center gap-2 hover:translate-x-2 transition-transform">
+            ← گەڕانەوە بۆ شارەکان
           </button>
-        ))}
-      </div>
-
-      {/* Hero Image */}
-      <div className="relative h-[400px] w-full rounded-3xl overflow-hidden">
-        <img src={optimizeUrl(activeBackground, 1200)} className="w-full h-full object-cover" alt="Region" />
-      </div>
-
-      {/* Content */}
-      <div className="max-w-4xl mx-auto text-white">
-        <p className="text-xl leading-loose">{cityNarrative}</p>
-      </div>
+          
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1">
+              <h2 className="text-4xl font-black text-white mb-4">{citiesData[selectedCity].name}</h2>
+              <p className="text-slate-300 leading-relaxed text-lg">{citiesData[selectedCity].description}</p>
+            </div>
+            <img src={citiesData[selectedCity].image} alt={citiesData[selectedCity].name} className="w-full md:w-1/2 h-64 object-cover rounded-2xl shadow-2xl" />
+          </div>
+          
+          <div className="mt-10">
+            <h4 className="text-white font-black text-xl mb-6 border-r-4 border-indigo-500 pr-4">گەڕەکەکانی شار</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {citiesData[selectedCity].neighborhoods.map((n, i) => (
+                <div key={i} className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 hover:bg-slate-700 transition-all">
+                  <h5 className="text-indigo-400 font-bold mb-1">{n.name}</h5>
+                  <p className="text-slate-500 text-xs">{n.info}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
