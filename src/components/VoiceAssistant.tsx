@@ -101,7 +101,7 @@ const VoiceAssistant: React.FC = () => {
           },
           onmessage: async (msg: LiveServerMessage) => {
             // Process Audio Stream
-            const audioData = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (audioData && audioContextRef.current) {
               const buffer = await decodeAudioData(decode(audioData), audioContextRef.current, 24000, 1);
               const source = audioContextRef.current.createBufferSource();

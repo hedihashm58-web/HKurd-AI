@@ -1,106 +1,114 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SYSTEM_PROMPT } from "../constants";
 
-// وەرگرتنی کلیلەکە لە Vercel یان فایلەکانی ژینگە
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
+// وەرگرتنی کلیلەکە لە .env
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
+const genAI = new GoogleGenerativeAI(apiKey);
 
-// لیستی مۆدێلەکان بۆ سیستەمی "هەرگیز نەوەستان"
-const FALLBACK_MODELS = [
-  "gemini-1.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-pro"
-];
+// دانانی مۆدێلەکە لەسەر ئەوەی خۆت داوات کردووە
+const MODEL_NAME = 'gemini-2.0-flash';
 
-/**
- * فەنکشنی سەرەکی یەدەگ (Fallback Mechanism):
- * ئەمە بۆ هەر پرسیارێک بەکاردێت و گەر مۆدێلێک باڵانسی نەبوو، یەکسەر دەچێتە سەر ئەوی تر
- */
-export async function fetchWithFallback(prompt: string) {
-  if (!API_KEY) {
-    throw new Error("کلیلی API نەدۆزرایەوە! تکایە VITE_GOOGLE_API_KEY زیاد بکە.");
-  }
+// ١. چاتی سەرەکی کوردی بە شێوازی ستریم
+export const chatWithKurdAIStream = async (message: string, history: any[] = [], imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME, systemInstruction: SYSTEM_PROMPT });
+  
+  // پاککردنەوە و ڕێکخستنی مێژووەکە بە شێوەیەکی زۆر توند بۆ ئەوەی گووگڵ کێشە دروست نەکات
+  let rawHistory = history.map(h => ({ role: h.role === 'model' ? 'model' : 'user', parts: [{ text: h.text }] }));
+  let safeHistory: any[] = [];
+  let nextExpectedRole = 'user';
 
-  let lastError: any = null;
-
-  for (const modelName of FALLBACK_MODELS) {
-    try {
-      console.log(`[سیستەمی یەدەگ]: پەیوەندیکردن بە مۆدێلی -> ${modelName}`);
-      
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      
-      return response.text();
-    } catch (error: any) {
-      console.warn(`[سیستەمی یەدەگ]: مۆدێلی ${modelName} کێشەی هەیە: ${error?.message}`);
-      lastError = error;
-      continue; // گەڕان بۆ مۆدێلەکەی خوارەوەی لیستەکە
+  for (const msg of rawHistory) {
+    if (msg.role === nextExpectedRole && msg.parts[0].text.trim() !== "") {
+      safeHistory.push(msg);
+      nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
     }
   }
 
-  console.error("سەرجەم مۆدێلەکان وەستاون:", lastError);
-  throw new Error("ببورە، هەموو مۆدێلەکان سەرقاڵن یان باڵانست نەماوە. تکایە کەمێکی تر هەوڵ بدەرەوە.");
-}
-
-// ------------------------------------------------------------------
-// فەنکشنەکانی تایبەت بە پڕۆژەکەت کە پشتبەستن بە سیستەمە یەدەگەکە
-// ------------------------------------------------------------------
-
-// 1. بۆ بەشی ڤیدیۆ ستۆدیۆ (VideoStudio.tsx)
-export async function generateKurdishVideo(
-  prompt: string, 
-  config: any, 
-  onProgress: (status: string, progress: number) => void
-) {
-  onProgress('پشکنینی مۆدێلەکان و پەیوەندیکردن...', 20);
-  
-  // لێرەدا ستایلە سینەماییەکە و مەرجی جوڵەی کامێراکە بەردەوام جێبەجێ دەکرێت
-  const enhancedPrompt = `تکایە وەسفێکی پڕۆفیشناڵ، ڕۆیاڵ و سینەمایی بۆ ڤیدیۆ بنووسە بەپێی ئەم دیمەنە: ${prompt}.
-مەرجەکان:
-- ڕوونی: ${config.resolution} بە قەبارەی ${config.aspectRatio}.
-- جوڵەی کامێرا: کامێراکە با بێتە خوارەوە بەسەر سەری کەسەکەدا/بابەتەکەدا و پاشان بچێتە بەردەمی. بە هیچ شێوەیەک ڕاستەوخۆ مەچۆ بۆ وێنەی دووەم.`;
-  
-  // بەکارهێنانی سیستەمە یەدەگەکە
-  const aiResponse = await fetchWithFallback(enhancedPrompt);
-  
-  onProgress('وەڵام وەرگیرا، خەریکی ڕێندەرکردنە...', 60);
-  
-  // وەرگرتنی کات بۆ ئەنیمەیشنی لۆدینگ
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  
-  onProgress('ڤیدیۆکە ئامادەیە!', 100);
-  
-  // لێرەدا دەتوانیت لینکی ڤیدیۆیەک بگەڕێنیتەوە ئەگەر هەتە، یان ڕاستەوخۆ null بنێریت
-  return null; 
-}
-
-// 2. بۆ بەشی شوێنەوارەکان (LandmarkExplorer.tsx)
-export async function getLandmarks(regionLabel: string) {
-  const prompt = `
-    زانیاری تەواو پێ بدە لەسەر شاری ${regionLabel} لە کوردستان.
-    تەنها بە فۆرماتی JSON وەڵام بدەرەوە بەم شێوەیە:
-    {
-      "cityNarrative": "وەسفێکی کورتی شارەکە بە کوردی",
-      "landmarks": ["ناوی شوێنەوارەکان بە ئارەی بنووسە"]
-    }
-    هیچ شتێکی تر جگە لە JSON مەنووسە.
-  `;
-
-  try {
-    const responseText = await fetchWithFallback(prompt);
-    // خاوێنکردنەوەی وەڵامەکە بۆ دڵنیابوون کە JSONـێکی ڕاستەقینەیە
-    const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanJson);
-  } catch (error) {
-    console.error("هەڵە لە خوێندنەوەی JSON:", error);
-    return {
-      cityNarrative: `ببورە، زانیارییەکان بۆ شاری ${regionLabel} لە ئێستادا بەردەست نین.`,
-      landmarks: []
-    };
+  // ئەگەر کۆتا نامە هی بەکارهێنەر بوو و وەڵام نەدرابووەوە، لای دەبەین بۆ ئەوەی مێژووەکە تێک نەچێت
+  if (safeHistory.length > 0 && safeHistory[safeHistory.length - 1].role === 'user') {
+    safeHistory.pop();
   }
-}
 
-// 3. فەنکشنی چات و هاوکاری گشتی (ChatInterface.tsx)
-export async function generateChatResponse(prompt: string) {
-  return await fetchWithFallback(prompt);
-}
+  const chat = model.startChat({ history: safeHistory });
+  
+  const userParts: any[] = [{ text: message }];
+  if (imageBase64) {
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    userParts.push({ inlineData: { data: base64Data, mimeType } });
+  }
+  
+  return await chat.sendMessageStream(userParts);
+};
+
+// ٢. دروستکردنی ئارت و وێنە (پڕۆمپت)
+export const generateKurdishArt = async (prompt: string, style: string = 'Photorealistic') => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const result = await model.generateContent(`A ${style} professional artwork showing ${prompt}.`);
+  return result.response.text();
+};
+
+// ٣. شیکاری ماتماتیکی (Math Analyzer)
+export const analyzeMathStream = async (problemDescription: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const parts: any[] = [{ text: `تکایە ئەم کێشە ماتماتیکییە شیکار بکە و هەنگاو بە هەنگاو بە زمانی کوردی ڕوونی بکەرەوە:\n${problemDescription}` }];
+  
+  // ئەگەر بەکارهێنەر وێنەی کێشە بیرکارییەکەی ناردبوو
+  if (imageBase64) {
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    parts.push({ inlineData: { data: base64Data, mimeType } });
+  }
+  
+  const result = await model.generateContentStream(parts);
+  return result;
+};
+
+// ٤. وەرگێڕانی کوردی (Translator)
+export const translateKurdishStream = async (text: string, sourceLang: string, targetLanguage: string, tone: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  
+  let promptText = `ئەم دەقە وەربگێڕە لە زمانی (${sourceLang}) بۆ زمانی (${targetLanguage}). پێویستە تۆنی وەرگێڕانەکە بە شێوازی (${tone}) بێت.\n`;
+  if (text.trim()) promptText += `دەقەکە ئەمەیە:\n"${text}"`;
+  else promptText += `تکایە ئەو دەقە وەربگێڕە کە لە وێنەکەدا دەردەکەوێت.`;
+
+  const parts: any[] = [{ text: promptText }];
+  
+  if (imageBase64) {
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    parts.push({ inlineData: { data: base64Data, mimeType } });
+  }
+
+  const result = await model.generateContentStream(parts);
+  return result;
+};
+
+// ٥. زانیاری شوێنەوارەکانی کوردستان (Landmark Explorer)
+export const getLandmarks = async (cityName: string) => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const result = await model.generateContent(`زانیاری مێژوویی و گەشتیاری و ناساندنی تەواو بۆ شاری (${cityName}) لە کوردستان بە زمانی کوردی پێشکەش بکە.`);
+  return result.response.text();
+};
+
+// ٦. یاریدەدەری تەندروستی (Health Assistant)
+export const analyzeHealthImageStream = async (prompt: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  
+  // لێرەدا بە توندی ناچاری دەکەین کە تەنها بە کوردی وەڵام بداتەوە
+  const enforcedPrompt = `تکایە وەڵامی ئەم پرسیارە یان شیکاری ئەم وێنە پزیشکییە تەنها بە زمانی کوردی (سۆرانی) بدەرەوە و زاراوە پزیشکییەکان بە سادەیی ڕوون بکەرەوە:\n\n${prompt}`;
+  
+  const parts: any[] = [{ text: enforcedPrompt }];
+  
+  if (imageBase64) {
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    parts.push({ inlineData: { data: base64Data, mimeType } });
+  }
+  
+  const result = await model.generateContentStream(parts);
+  return result;
+};
+
+// ٧. دروستکردنی سیناریۆی ڤیدیۆ (Video Studio)
+export const generateKurdishVideo = async (prompt: string) => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const result = await model.generateContent(`بۆ ئەم وەسفەی خوارەوە، سیناریۆ (Script) و دیمەن بە دیمەنی ڕیکلامی بە زمانی کوردی شاهانە دروست بکە بۆ ئەوەی بیدەم بە ئای ئەی دروستکردنی ڤیدیۆ:\n"${prompt}"`);
+  return result.response.text();
+};
