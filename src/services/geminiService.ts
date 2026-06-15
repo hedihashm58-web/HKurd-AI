@@ -6,7 +6,7 @@ const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // دانانی مۆدێلەکە لەسەر ئەوەی خۆت داوات کردووە
-const MODEL_NAME = 'gemini-3.5-flash';
+const MODEL_NAME = 'gemini-2.0-flash';
 
 // ١. چاتی سەرەکی کوردی بە شێوازی ستریم
 export const chatWithKurdAIStream = async (message: string, history: any[] = [], imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
