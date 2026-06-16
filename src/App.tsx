@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import Layout from './components/Layout';
 import ChatInterface from './components/ChatInterface';
 import LandmarkExplorer from './components/LandmarkExplorer';
+import Login from './components/Login'; // هێنانی پەڕە نوێیەکە
 
-// هێنانی پێکهاتە (کۆمپۆنێنتە)کانی تر - تکایە دڵنیابە لە ناوەکانیان
 import ArtInterface from './components/ArtStudio';
 import VideoInterface from './components/VideoStudio';
 import MathInterface from './components/MathAnalyzer';
@@ -16,6 +16,9 @@ import { View } from './types';
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.CHAT);
   const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop');
+  
+  // لێرەدا دەوڵەتی بەکارهێنەر (User State) هەڵدەگرین
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const renderView = () => {
     switch (activeView) {
@@ -30,6 +33,11 @@ const App: React.FC = () => {
       default: return <ChatInterface />;
     }
   };
+
+  // ئەگەر بەکارهێنەر لۆگینی نەکردبێت، تەنها پەڕەی لۆگینی پێ نیشان دەدەین
+  if (!userEmail) {
+    return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
+  }
 
   return (
     <Layout activeView={activeView} onViewChange={setActiveView} backgroundImage={bgImage}>
