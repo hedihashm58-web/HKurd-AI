@@ -3,8 +3,8 @@ import { auth, googleProvider } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signInWithRedirect 
-} from 'firebase/auth';
+  signInWithPopup 
+} from 'firebase/auth'; // لێرەدا گۆڕیمانەوە بۆ Popup
 
 interface LoginProps {
   onLoginSuccess: (userEmail: string) => void;
@@ -44,12 +44,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
     setIsLoading(true);
     try {
-      // لێرەدا ڕێدایرێکت بەکاردەهێنین کە بۆ مۆبایل سەد لە سەد کار دەکات
-      await signInWithRedirect(auth, googleProvider);
-      // پێویست بە onLoginSuccess ناکات لێرە، چونکە App.tsx خۆی دەیزانێت دوای گەڕانەوە
+      // بەکارهێنانەوەی پۆپ‌ئەپ کە خێراترە و جێگیرترە
+      const result = await signInWithPopup(auth, googleProvider);
+      onLoginSuccess(result.user.email || '');
     } catch (err: any) {
       console.error(err);
-      setError('نەتوانرا لە ڕێگەی گووگڵەوە لۆگین بکرێت');
+      // ئێستا ئەگەر کێشەیەک هەبێت، ڕێک پێمان دەڵێت هۆکارەکەی چییە
+      if (err.code === 'auth/popup-blocked') {
+        setError('تکایە ڕێگە بە کردنەوەی پەنجەرەی گووگڵ بدە لە وێبگەڕەکەتدا');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('کێشە لە ناسینەوەی دۆمەینەکە هەیە لە فایەربەیس');
+      } else {
+        setError('نەتوانرا پەیوەندی بە گووگڵەوە بکرێت. تکایە دووبارە هەوڵ بدەرەوە.');
+      }
       setIsLoading(false);
     }
   };
