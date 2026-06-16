@@ -76,7 +76,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             KurdAI <span className="text-yellow-500 italic text-sm ml-1">PRO</span>
           </h2>
           <p className="text-slate-400 text-xs mt-2 font-medium">
-            {isSignUp ? 'دروستکردنی هەژماری نوێ بۆ چوونە ناو پلاتفۆرم' : 'کوردین و بێ پەرواین ، دایم لەسەر پێین'}
+            {isSignUp ? 'دروستکردنی هەژماری نوێ بۆ چوونە ناو پلاتفۆرم' : 'بۆ بەکارهێنانی خزمەتگوزارییەکان لۆگین بکە'}
           </p>
         </div>
 
