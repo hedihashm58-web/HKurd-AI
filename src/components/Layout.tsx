@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             </h1>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]"> ٢+٢=١</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]"> 2+2=1</p>
             </div>
           </div>
         </div>
@@ -132,11 +132,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
            <div className="text-center md:text-right">
              <h4 className="text-xl font-black text-white">KurdAI</h4>
-             <p className="text-slate-500 text-xs mt-2"> خزمەتکردن بە هەموو تاکێکی کورد </p>
+             <p className="text-slate-500 text-xs mt-2"> بۆ خزمەتکردن بە هەموو تاکێکی کورد </p>
            </div>
            <div className="text-center md:text-right">
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">گەشەپێدەر</span>
-             <p className="text-sm font-bold text-white">هێدی</p>
+             <p className="text-sm font-bold text-white">هێدی-ڕوانین</p>
            </div>
         </div>
       </footer>

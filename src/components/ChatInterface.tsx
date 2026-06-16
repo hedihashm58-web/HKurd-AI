@@ -4,7 +4,7 @@ import { chatWithKurdAIStream } from '../services/geminiService';
 
 const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "سڵاوێکی گەرمت لێ بێت!\n\nمن KurdAI م، پێشکەوتووترین و وردترین سیستەمی ژیریی نیشتمانی بۆ هەرێمی کوردستان.کە لە لایەن (هێدی) پەرەم پێ دراوە، چۆن دەتوانم هاوکاریت بکەم؟", timestamp: new Date() }
+    { role: 'model', text: "سڵاوێکی گەرمت لێ بێت!\n\nمن KurdAI م، پێشکەوتووترین و وردترین سیستەمی ژیریی نیشتمانی بۆ هەرێمی کوردستان.کە لە لایەن (هێدی-ڕوانین) پەرەم پێ دراوە، چۆن دەتوانم هاوکاریت بکەم؟", timestamp: new Date() }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
