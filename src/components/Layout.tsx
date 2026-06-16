@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             </h1>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]"> 2+2=1</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]"> کورد زیندووە </p>
             </div>
           </div>
         </div>
