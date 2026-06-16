@@ -3,7 +3,7 @@ import { auth, googleProvider } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signInWithPopup 
+  signInWithRedirect 
 } from 'firebase/auth';
 
 interface LoginProps {
@@ -17,7 +17,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // فەنکشنی لۆگین بە ئیمەیڵ و پاسۆرد
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -25,33 +24,29 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isSignUp) {
-        // دروستکردنی هەژماری نوێ
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         onLoginSuccess(userCredential.user.email || '');
       } else {
-        // چوونەژوورەوە بە هەژماری پێشوو
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         onLoginSuccess(userCredential.user.email || '');
       }
     } catch (err: any) {
       console.error(err);
-      // گۆڕینی نامەی هەڵەکانی فایەربەیس بۆ کوردی
       if (err.code === 'auth/email-already-in-use') setError('ئەم ئیمەیڵە پێشتر بەکارهاتووە');
       else if (err.code === 'auth/invalid-credential') setError('ئیمەیڵ یان وشەی تێپەڕ هەڵەیە');
       else if (err.code === 'auth/weak-password') setError('وشەی تێپەڕ دەبێت لانی کەم ٦ پیت/ژمارە بێت');
       else setError('هەڵەیەک ڕوویدا، تکایە دووبارە هەوڵ بدەرەوە');
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // فەنکشنی لۆگین بە گووگڵ
   const handleGoogleLogin = async () => {
     setError(null);
     setIsLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      onLoginSuccess(result.user.email || '');
+      // لێرەدا ڕێدایرێکت بەکاردەهێنین کە بۆ مۆبایل سەد لە سەد کار دەکات
+      await signInWithRedirect(auth, googleProvider);
+      // پێویست بە onLoginSuccess ناکات لێرە، چونکە App.tsx خۆی دەیزانێت دوای گەڕانەوە
     } catch (err: any) {
       console.error(err);
       setError('نەتوانرا لە ڕێگەی گووگڵەوە لۆگین بکرێت');
@@ -61,13 +56,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#020617] text-slate-200 px-4 relative overflow-hidden touch-manipulation" dir="rtl">
-      {/* ڕووناکی پاشبنەما */}
       <div className="absolute w-[500px] h-[500px] bg-indigo-500/10 blur-[150px] rounded-full -top-40 -right-40 pointer-events-none"></div>
       <div className="absolute w-[500px] h-[500px] bg-emerald-500/5 blur-[150px] rounded-full -bottom-40 -left-40 pointer-events-none"></div>
 
       <div className="w-full max-w-md bg-slate-900/60 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-xl z-10 animate-in fade-in zoom-in-95 duration-500">
         
-        {/* سەردێڕ */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-3xl mx-auto mb-4 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
             ☀️
@@ -80,14 +73,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </p>
         </div>
 
-        {/* پیشاندانی هەڵەکان (ئەگەر هەبێت) */}
         {error && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
             {error}
           </div>
         )}
 
-        {/* فۆڕم */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-2 mr-2">ئیمەیڵەکەت</label>
@@ -130,7 +121,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <span className="relative bg-[#0d1117] px-3 text-xs text-slate-500 font-bold">یان</span>
         </div>
 
-        {/* دوگمەی گووگڵ */}
         <button 
           type="button"
           onClick={handleGoogleLogin}
