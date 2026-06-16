@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import Layout from './components/Layout';
 import ChatInterface from './components/ChatInterface';
 import LandmarkExplorer from './components/LandmarkExplorer';
-import { View } from './types';
 
-// پێناسەی تایپ بۆ ئەو کۆمپۆنێنتەی onCityChange وەردەگرێت
-interface LandmarkExplorerProps {
-  onCityChange: (url: string) => void;
-}
+// هێنانی پێکهاتە (کۆمپۆنێنتە)کانی تر - تکایە دڵنیابە لە ناوەکانیان
+import ArtInterface from './components/ArtStudio';
+import VideoInterface from './components/VideoStudio';
+import MathInterface from './components/MathAnalyzer';
+import TranslateInterface from './components/Translator';
+import VoiceInterface from './components/VoiceAssistant';
+import HealthInterface from './components/HealthAssistant';
+
+import { View } from './types';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.CHAT);
@@ -17,7 +21,12 @@ const App: React.FC = () => {
     switch (activeView) {
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} />;
-      // پڕۆژەکانی تریش لێرە زیاد بکە...
+      case View.ART: return <ArtInterface />;
+      case View.VIDEO: return <VideoInterface />;
+      case View.MATH: return <MathInterface />;
+      case View.TRANSLATE: return <TranslateInterface />;
+      case View.VOICE: return <VoiceInterface />;
+      case View.HEALTH: return <HealthInterface />;
       default: return <ChatInterface />;
     }
   };
