@@ -51,9 +51,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
 
       <header className="glass-header sticky top-1 z-50 px-6 lg:px-12 py-6 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-4 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.CHAT)}>
-          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl sun-emblem flex items-center justify-center text-2xl lg:text-3xl transition-all duration-500 bg-yellow-500/10 border border-yellow-500/20">
-            ☀️
+          
+          {/* گۆڕانکارییەکە لێرەیە: خۆرەکە لادرا و لۆگۆکەت دانرا */}
+          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50">
+             <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
           </div>
+
           <div className="flex flex-col text-right">
             <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-none">
               KurdAI <span className="text-yellow-500 italic text-sm ml-1">PRO</span>

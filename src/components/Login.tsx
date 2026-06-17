@@ -4,7 +4,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInWithPopup 
-} from 'firebase/auth'; // لێرەدا گۆڕیمانەوە بۆ Popup
+} from 'firebase/auth';
 
 interface LoginProps {
   onLoginSuccess: (userEmail: string) => void;
@@ -44,12 +44,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
     setIsLoading(true);
     try {
-      // بەکارهێنانەوەی پۆپ‌ئەپ کە خێراترە و جێگیرترە
       const result = await signInWithPopup(auth, googleProvider);
       onLoginSuccess(result.user.email || '');
     } catch (err: any) {
       console.error(err);
-      // ئێستا ئەگەر کێشەیەک هەبێت، ڕێک پێمان دەڵێت هۆکارەکەی چییە
       if (err.code === 'auth/popup-blocked') {
         setError('تکایە ڕێگە بە کردنەوەی پەنجەرەی گووگڵ بدە لە وێبگەڕەکەتدا');
       } else if (err.code === 'auth/unauthorized-domain') {
@@ -69,8 +67,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <div className="w-full max-w-md bg-slate-900/60 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-xl z-10 animate-in fade-in zoom-in-95 duration-500">
         
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-3xl mx-auto mb-4 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-            ☀️
+          {/* گۆڕانکاری لێرەدایە: object-cover بەکار هاتووە بۆ پڕکردنەوەی لۆگۆکە */}
+          <div className="w-28 h-28 rounded-full overflow-hidden mx-auto mb-4 border border-slate-700 bg-slate-950/50 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+            <img 
+              src="/logo.jpg" 
+              alt="KurdAI Logo" 
+              className="w-full h-full object-cover" 
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           <h2 className="text-3xl font-black text-white tracking-tight">
             KurdAI <span className="text-yellow-500 italic text-sm ml-1">PRO</span>
