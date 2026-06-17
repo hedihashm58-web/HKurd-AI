@@ -3,7 +3,6 @@ import { Message } from '../types';
 import { chatWithKurdAIStream } from '../services/geminiService';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
-// هێنانی getDocs بۆ خوێندنەوەی نامە کۆنەکان
 import { collection, addDoc, doc, setDoc, updateDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const ChatInterface: React.FC = () => {
@@ -37,17 +36,15 @@ const ChatInterface: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
-  // فەرمانی نوێ: کاتێک کلیک لە چاتێکی پێشوو دەکەیت لە لیستەکە
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
-    setIsSidebarOpen(false); // داخستنی لیستەکە
-    setMessages([]); // خاوێنکردنەوەی کاتی شاشەکە
+    setIsSidebarOpen(false);
+    setMessages([]); 
 
     const user = auth.currentUser;
     if (!user?.email) return;
 
     try {
-      // چوونە ناو ژوورە تایبەتەکە و هێنانەوەی نامەکان بە ڕیز
       const q = query(
         collection(db, 'users', user.email, 'chats', chatId, 'messages'),
         orderBy('timestamp', 'asc')
@@ -82,6 +79,7 @@ const ChatInterface: React.FC = () => {
     const user = auth.currentUser;
     let activeChatId = currentChatId;
 
+    // ١. خەزنکردنی پرسیارەکە لە داتابەیس
     if (user?.email) {
       try {
         if (!activeChatId) {
@@ -113,9 +111,33 @@ const ChatInterface: React.FC = () => {
       }
     }
 
+    // ٢. ڕێکخستنی مێژووی نامەکان بە شێوەیەکی زۆر توند بۆ ئەوەی API هەڵە نەدات
     try {
-      const history = messages.map(m => ({ role: m.role, text: m.text }));
-      const result = await chatWithKurdAIStream(currentInput, history);
+      const rawHistory = messages.filter((m, idx) => !(idx === 0 && m.role === 'model')); // لابردنی نامەی یەکەم
+      let formattedHistory: {role: string, text: string}[] = [];
+      
+      // دڵنیابوونەوە لەوەی کە تەنها نامە یەک لە دوای یەکەکان دەنێرین (user -> model -> user)
+      let lastRole: string | null = null;
+      for (const msg of rawHistory) {
+        if (msg.role !== lastRole && msg.text.trim() !== "") {
+          formattedHistory.push({ role: msg.role, text: msg.text });
+          lastRole = msg.role;
+        }
+      }
+
+      // دڵنیابوونەوەی ئەوەی مێژووەکە بە model کۆتایی دێت پێش ئەوەی user پرسیاری نوێ بکات
+      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
+        formattedHistory.pop();
+      }
+
+      // ناردنی تەنها ١٠ نامەی کۆتایی و دڵنیابوونەوە لەوەی بە user دەست پێدەکات
+      formattedHistory = formattedHistory.slice(-10);
+      if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+        formattedHistory.shift(); 
+      }
+
+      // ٣. ناردن بۆ ژیری دەستکرد
+      const result = await chatWithKurdAIStream(currentInput, formattedHistory);
       
       let fullText = "";
       setMessages(prev => [...prev, { role: 'model', text: "", timestamp: new Date() }]);
@@ -130,6 +152,7 @@ const ChatInterface: React.FC = () => {
         });
       }
 
+      // ٤. خەزنکردنی وەڵامەکە لە داتابەیس
       if (user?.email && activeChatId) {
         await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
           role: 'model',
@@ -140,6 +163,8 @@ const ChatInterface: React.FC = () => {
 
     } catch (error) {
       console.error("هەڵە لە چاتدا:", error);
+      // ئەگەر کێشەیەک ڕوویدا، پێشان دەدرێت بۆ ئەوەی پەیجەکە جام نەکات
+      setMessages(prev => [...prev, { role: 'model', text: "ببورە، کێشەیەک لە پەیوەندیکردن بە سێرڤەرەوە هەیە یان ئینتەرنێتەکەت خاوە. تکایە دووبارە هەوڵ بدەرەوە.", timestamp: new Date() }]);
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +176,7 @@ const ChatInterface: React.FC = () => {
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
         onNewChat={handleNewChat} 
-        onSelectChat={handleSelectChat} // بەستنەوەی فەرمانەکە
+        onSelectChat={handleSelectChat}
       />
       
       <div className="flex flex-col h-[82vh] bg-slate-900/50 backdrop-blur-2xl rounded-3xl border border-slate-800 p-4 md:p-6 shadow-2xl relative z-10" dir="rtl">
