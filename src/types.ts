@@ -1,13 +1,13 @@
-
 export enum View {
   CHAT = 'CHAT',
+  EXPLORE = 'EXPLORE',
   ART = 'ART',
   VIDEO = 'VIDEO',
   MATH = 'MATH',
   TRANSLATE = 'TRANSLATE',
   VOICE = 'VOICE',
   HEALTH = 'HEALTH',
-  EXPLORE = 'EXPLORE'
+  PERSONALITIES = 'PERSONALITIES' 
 }
 
 export interface Message {

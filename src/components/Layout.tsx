@@ -11,9 +11,11 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage }) => {
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
+  // لیستی خزمەتگوزارییەکان بە پێڕستی نوێوە
   const navItems = [
     { id: View.CHAT, label: 'خزمەتگوزاری گفتوگۆ', icon: '🏛️', desc: 'ژیریی شیکاری و ڕاوێژکاری ئەکادیمی', meta: 'Consultation AI' },
     { id: View.EXPLORE, label: 'نەخشەی کوردستان', icon: '🗺️', desc: 'گەڕان بەدوای پارێزگاکان و شوێنەوارەکان', meta: 'Spatial AI' },
+    { id: View.PERSONALITIES, label: 'کەسایەتییەکانی کورد', icon: '👥', desc: 'ئاشنابوون بە مێژوو و کەسایەتییە ناودارەکان', meta: 'Historical AI' }, 
     { id: View.MATH, label: 'خزمەتگوزاری زانستی', icon: '📐', desc: 'شیکاریی داتا و هاوکێشە ئاڵۆزەکان', meta: 'Analytical AI' },
     { id: View.TRANSLATE, label: 'خزمەتگوزاری زمان', icon: '📜', desc: 'وەرگێڕانی فەرمی و پسپۆڕی دیالەکتەکان', meta: 'Linguistic AI' },
     { id: View.HEALTH, label: 'خزمەتگوزاری تەندروستی', icon: '🩺', desc: 'شیکاریی نیشانەکان و زانیاریی دەرمان', meta: 'Medical AI' },
@@ -92,7 +94,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 overflow-y-auto px-2 pb-6 shrink">
-              {navItems.map((item, idx) => (
+              {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleToolSelect(item.id)}
@@ -140,17 +142,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
            </div>
         </div>
       </footer>
-
-      {/* Mobile Service Bar */}
-      <div className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-6">
-        <button
-          onClick={() => setIsVaultOpen(true)}
-          className="w-full max-w-sm py-4 bg-slate-900 border border-slate-700 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center justify-center gap-4 active:scale-[0.98] transition-all"
-        >
-          <span className="text-sm font-bold text-white">پێڕستی خزمەتگوزارییەکان</span>
-          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg">⚡</div>
-        </button>
-      </div>
     </div>
   );
 };

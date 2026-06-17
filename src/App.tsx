@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase'; // هێنانی فایەربەیس
+import { auth } from './firebase';
 
 import Layout from './components/Layout';
 import ChatInterface from './components/ChatInterface';
@@ -13,6 +13,7 @@ import MathInterface from './components/MathAnalyzer';
 import TranslateInterface from './components/Translator';
 import VoiceInterface from './components/VoiceAssistant';
 import HealthInterface from './components/HealthAssistant';
+import KurdishPersonalities from './components/KurdishPersonalities'; // زیادکراوە
 
 import { View } from './types';
 
@@ -21,19 +22,16 @@ const App: React.FC = () => {
   const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop');
   
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  // دۆخێکی نوێ بۆ کاتی چاوەڕوانی پشکنینی لۆگین
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // ئەم بەشە بەرپرسە لە مانەوەی لۆگینەکە
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // ئەگەر پێشتر لۆگینی کردبوو، ڕاستەوخۆ ئیمەیڵەکەی وەربگرە
         setUserEmail(user.email);
       } else {
         setUserEmail(null);
       }
-      setIsCheckingAuth(false); // پشکنین تەواو بوو
+      setIsCheckingAuth(false);
     });
 
     return () => unsubscribe();
@@ -49,11 +47,11 @@ const App: React.FC = () => {
       case View.TRANSLATE: return <TranslateInterface />;
       case View.VOICE: return <VoiceInterface />;
       case View.HEALTH: return <HealthInterface />;
+      case View.PERSONALITIES: return <KurdishPersonalities />; // زیادکراوە
       default: return <ChatInterface />;
     }
   };
 
-  // کاتێک خەریکی پشکنینە، لۆدینگێکی جوانی پێ نیشان بدە
   if (isCheckingAuth) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-[#020617]" dir="rtl">
