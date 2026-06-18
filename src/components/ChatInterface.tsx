@@ -79,64 +79,54 @@ const ChatInterface: React.FC = () => {
     const user = auth.currentUser;
     let activeChatId = currentChatId;
 
-    // ١. خەزنکردنی پرسیارەکە لە داتابەیس
-    if (user?.email) {
-      try {
-        if (!activeChatId) {
-          const newChatRef = doc(collection(db, 'users', user.email, 'chats'));
-          activeChatId = newChatRef.id;
-          setCurrentChatId(activeChatId);
+    // ١. خەزنکردنی پرسیارەکە لە باکگراوند (بۆ ئەوەی پڕۆژەکە خێرا بێت)
+    const saveUserMessageToDB = async () => {
+      if (user?.email) {
+        try {
+          if (!activeChatId) {
+            const newChatRef = doc(collection(db, 'users', user.email, 'chats'));
+            activeChatId = newChatRef.id;
+            setCurrentChatId(activeChatId);
 
-          const chatTitle = currentInput.length > 30 ? currentInput.substring(0, 30) + '...' : currentInput;
-          
-          await setDoc(newChatRef, {
-            title: chatTitle,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            const chatTitle = currentInput.length > 30 ? currentInput.substring(0, 30) + '...' : currentInput;
+            await setDoc(newChatRef, { title: chatTitle, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+          } else {
+            const chatRef = doc(db, 'users', user.email, 'chats', activeChatId);
+            await updateDoc(chatRef, { updatedAt: serverTimestamp() });
+          }
+          await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
+            role: 'user', text: currentInput, timestamp: serverTimestamp()
           });
-        } else {
-          const chatRef = doc(db, 'users', user.email, 'chats', activeChatId);
-          await updateDoc(chatRef, {
-            updatedAt: serverTimestamp()
-          });
+        } catch (e) {
+          console.error("کێشە لە خەزنکردنی پرسیارەکەدا", e);
         }
-
-        await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
-          role: 'user',
-          text: currentInput,
-          timestamp: serverTimestamp()
-        });
-      } catch (e) {
-        console.error("کێشە لە خەزنکردنی پرسیارەکەدا", e);
       }
-    }
+    };
+    saveUserMessageToDB();
 
-    // ٢. ڕێکخستنی مێژووی نامەکان بە شێوەیەکی زۆر توند بۆ ئەوەی API هەڵە نەدات
+    // ٢. ناردنی مێژووەکە بە شێوازێکی ئۆپتیمایز کراو
     try {
-      const rawHistory = messages.filter((m, idx) => !(idx === 0 && m.role === 'model')); // لابردنی نامەی یەکەم
+      const rawHistory = messages.filter((m, idx) => !(idx === 0 && m.role === 'model')); 
       let formattedHistory: {role: string, text: string}[] = [];
       
-      // دڵنیابوونەوە لەوەی کە تەنها نامە یەک لە دوای یەکەکان دەنێرین (user -> model -> user)
       let lastRole: string | null = null;
       for (const msg of rawHistory) {
         if (msg.role !== lastRole && msg.text.trim() !== "") {
-          formattedHistory.push({ role: msg.role, text: msg.text });
+          const truncatedText = msg.text.length > 600 ? msg.text.substring(0, 600) + '... (کورتکرایەوە)' : msg.text;
+          formattedHistory.push({ role: msg.role, text: truncatedText });
           lastRole = msg.role;
         }
       }
 
-      // دڵنیابوونەوەی ئەوەی مێژووەکە بە model کۆتایی دێت پێش ئەوەی user پرسیاری نوێ بکات
       if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
         formattedHistory.pop();
       }
 
-      // ناردنی تەنها ١٠ نامەی کۆتایی و دڵنیابوونەوە لەوەی بە user دەست پێدەکات
-      formattedHistory = formattedHistory.slice(-10);
+      formattedHistory = formattedHistory.slice(-4);
       if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
         formattedHistory.shift(); 
       }
 
-      // ٣. ناردن بۆ ژیری دەستکرد
       const result = await chatWithKurdAIStream(currentInput, formattedHistory);
       
       let fullText = "";
@@ -152,19 +142,24 @@ const ChatInterface: React.FC = () => {
         });
       }
 
-      // ٤. خەزنکردنی وەڵامەکە لە داتابەیس
+      // ٣. خەزنکردنی وەڵامەکە لە باکگراوند
       if (user?.email && activeChatId) {
-        await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
-          role: 'model',
-          text: fullText,
-          timestamp: serverTimestamp()
-        });
+        addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
+          role: 'model', text: fullText, timestamp: serverTimestamp()
+        }).catch(e => console.error("کێشە لە خەزنکردنی وەڵامەکە", e));
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("هەڵە لە چاتدا:", error);
-      // ئەگەر کێشەیەک ڕوویدا، پێشان دەدرێت بۆ ئەوەی پەیجەکە جام نەکات
-      setMessages(prev => [...prev, { role: 'model', text: "ببورە، کێشەیەک لە پەیوەندیکردن بە سێرڤەرەوە هەیە یان ئینتەرنێتەکەت خاوە. تکایە دووبارە هەوڵ بدەرەوە.", timestamp: new Date() }]);
+      
+      // لێرەدا کۆدە نوێیەکە هەڵە ڕاستەقینەکەمان لەسەر شاشە پێ دەڵێت
+      const actualError = error?.message || error?.toString() || "هەڵەیەکی نەزانراو";
+      
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: `ببورە، کێشەیەک لە پەیوەندیکردن بە سێرڤەرەوە هەیە. تکایە ئەم کێشەیە بنوسە بۆ پشتگیری:\n\n❌ ${actualError}`, 
+        timestamp: new Date() 
+      }]);
     } finally {
       setIsLoading(false);
     }
