@@ -52,7 +52,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
       <header className="glass-header sticky top-1 z-50 px-6 lg:px-12 py-6 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-4 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.CHAT)}>
           
-          {/* گۆڕانکارییەکە لێرەیە: خۆرەکە لادرا و لۆگۆکەت دانرا */}
           <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50">
              <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
           </div>
@@ -129,22 +128,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         </div>
       )}
 
+      {/* بەشی سەرەکی ناوەڕۆک */}
       <main className="flex-1 container mx-auto max-w-[1500px] p-4 lg:p-8 relative z-10">
         {children}
       </main>
 
-      <footer className="relative z-10 bg-black/40 border-t border-white/[0.04] py-16 px-10 mt-24">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
-           <div className="text-center md:text-right">
-             <h4 className="text-xl font-black text-white">KurdAI</h4>
-             <p className="text-slate-500 text-xs mt-2"> بۆ خزمەتکردن بە هەموو تاکێکی کورد </p>
-           </div>
-           <div className="text-center md:text-right">
-             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">گەشەپێدەر</span>
-             <p className="text-sm font-bold text-white">هێدی-ڕوانین</p>
-           </div>
-        </div>
-      </footer>
+      {/* ❌ بەشی فووتەر لێرەوە بە تەواوی سڕدراوەتەوە */}
     </div>
   );
 };

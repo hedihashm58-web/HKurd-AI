@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message } from '../types';
-import { chatWithKurdAIStream } from '../services/geminiService';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
 import { collection, addDoc, doc, setDoc, updateDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -79,7 +78,7 @@ const ChatInterface: React.FC = () => {
     const user = auth.currentUser;
     let activeChatId = currentChatId;
 
-    // ١. خەزنکردنی پرسیارەکە لە باکگراوند (بۆ ئەوەی پڕۆژەکە خێرا بێت)
+    // ١. خەزنکردنی پرسیارەکە لە باکگراوندی فایەربەیس
     const saveUserMessageToDB = async () => {
       if (user?.email) {
         try {
@@ -104,60 +103,43 @@ const ChatInterface: React.FC = () => {
     };
     saveUserMessageToDB();
 
-    // ٢. ناردنی مێژووەکە بە شێوازێکی ئۆپتیمایز کراو
+    // 🧠 ٢. ناردنی پرسیارەکە بۆ مێشکە فێربوخوازەکەی پایتۆن لەسەر Hugging Face
     try {
-      const rawHistory = messages.filter((m, idx) => !(idx === 0 && m.role === 'model')); 
-      let formattedHistory: {role: string, text: string}[] = [];
-      
-      let lastRole: string | null = null;
-      for (const msg of rawHistory) {
-        if (msg.role !== lastRole && msg.text.trim() !== "") {
-          const truncatedText = msg.text.length > 600 ? msg.text.substring(0, 600) + '... (کورتکرایەوە)' : msg.text;
-          formattedHistory.push({ role: msg.role, text: truncatedText });
-          lastRole = msg.role;
-        }
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: currentInput }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`سێرڤەری مێشک وەڵامی نەدایەوە: ${response.status}`);
       }
 
-      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
-        formattedHistory.pop();
-      }
+      const data = await response.json();
+      const aiAnswer = data.answer;
 
-      formattedHistory = formattedHistory.slice(-4);
-      if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-        formattedHistory.shift(); 
-      }
+      // پیشاندانی وەڵامی مێشکەکە لەسەر شاشەکە
+      setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
-      const result = await chatWithKurdAIStream(currentInput, formattedHistory);
-      
-      let fullText = "";
-      setMessages(prev => [...prev, { role: 'model', text: "", timestamp: new Date() }]);
+      // پیشاندانی سەرچاوەی وەڵام لە کۆنسۆڵ (داتابەیس یان API)
+      console.log("سەرچاوەی وەڵامی مێشکەکە:", data.source);
 
-      for await (const chunk of result.stream) {
-        fullText += chunk.text();
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastIndex = updated.length - 1;
-          updated[lastIndex] = { ...updated[lastIndex], text: fullText };
-          return updated;
-        });
-      }
-
-      // ٣. خەزنکردنی وەڵامەکە لە باکگراوند
+      // ٣. خەزنکردنی وەڵامەکە لە باکگراوندی فایەربەیسدا
       if (user?.email && activeChatId) {
         addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), {
-          role: 'model', text: fullText, timestamp: serverTimestamp()
-        }).catch(e => console.error("کێشە لە خەزنکردنی وەڵامەکە", e));
+          role: 'model', text: aiAnswer, timestamp: serverTimestamp()
+        }).catch(e => console.error("کێشە لە خەزنکردنی وەڵامەکە لە فایەربەیس", e));
       }
 
     } catch (error: any) {
       console.error("هەڵە لە چاتدا:", error);
-      
-      // لێرەدا کۆدە نوێیەکە هەڵە ڕاستەقینەکەمان لەسەر شاشە پێ دەڵێت
       const actualError = error?.message || error?.toString() || "هەڵەیەکی نەزانراو";
       
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: `ببورە، کێشەیەک لە پەیوەندیکردن بە سێرڤەرەوە هەیە. تکایە ئەم کێشەیە بنوسە بۆ پشتگیری:\n\n❌ ${actualError}`, 
+        text: `ببورە، کێشەیەک لە پەیوەندیکردن بە مێشکی سەرەکییەوە هەیە. دڵنیا بەرەوە سێرڤەری مێشک هەمیشەییەکەت چالاکە.\n\n❌ ${actualError}`, 
         timestamp: new Date() 
       }]);
     } finally {

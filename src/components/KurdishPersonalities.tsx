@@ -144,7 +144,7 @@ const KurdishPersonalities: React.FC = () => {
               <input
                 type="text"
                 className="w-full bg-slate-950/40 border border-slate-800/80 rounded-2xl py-3 pr-12 pl-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
-                placeholder="...گەڕان بەدوای کەسایەتی "
+                placeholder="گەڕان بەدوای کەسایەتی..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
