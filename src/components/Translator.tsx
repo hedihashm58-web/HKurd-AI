@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { translateKurdishStream } from '../services/geminiService';
+import { db } from '../firebase'; // 🔥 هێنانە ناوەوەی فایەربەیس
+import { doc, getDoc, setDoc } from 'firebase/firestore'; // 🗂️ ئامرازەکانی فایەربەیس
 
 const Translator: React.FC = () => {
   const [text, setText] = useState('');
@@ -49,12 +51,36 @@ const Translator: React.FC = () => {
     };
   }, [text, sourceLang, targetLang, selectedTone, image]);
 
+  // 🔑 🧠 دروستکردنی ناسنامەیەکی جێگیر بۆ هەر دەق و زمانێک بۆ گەڕانی خێرا
+  const generateCacheKey = (srcText: string, srcLang: string, trgLang: string, tone: string) => {
+    const cleanedText = srcText.trim().toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+    const combinedString = `${cleanedText}_${srcLang}_${trgLang}_${tone}`;
+    
+    // دروستکردنی کلیلێکی پارێزراو بۆ فایەربەیس
+    return btoa(unescape(encodeURIComponent(combinedString))).replace(/[/+=]/g, '_');
+  };
+
   const performTranslation = async () => {
     setLoading(true);
     setResult("");
     
+    const cacheKey = generateCacheKey(text, sourceLang, targetLang, selectedTone);
+
     try {
-      // چارەسەری کێشەکە لێرەدایە
+      // 🔍 هەنگاوی یەکەم: پشکنینی فایەربەیس ئەگەر پێشتر ئەم دەقە وەرگێڕدرا بێت (تەنها ئەگەر وێنە نەبوو)
+      if (!image) {
+        const docRef = doc(db, 'global_translations', cacheKey);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          console.log("⚡ وەرگێڕانەکە لە مێشکی خێرای فایەربەیسەوە هێنرا!");
+          setResult(docSnap.data().translatedText);
+          setLoading(false);
+          return; // کۆتایی بە فەنکشنەکە دەهێنێت و ناچێتە سەر کلیلەکە
+        }
+      }
+
+      // 🤖 ئەگەر وەرگێڕانەکە بوونی نەبوو، داواکاری بۆ Gemini دەنێرێت
       const response = await translateKurdishStream(text, sourceLang, targetLang, selectedTone, image, mimeType);
       
       let fullResult = "";
@@ -62,6 +88,21 @@ const Translator: React.FC = () => {
         fullResult += chunk.text();
         setResult(fullResult);
       }
+
+      // 💾 پاشەکەوتکردنی ئەنجامە نوێیەکە لە فایەربەیس بۆ داهاتوو (تەنها ئەگەر وێنە نەبوو)
+      if (!image && fullResult.trim()) {
+        const docRef = doc(db, 'global_translations', cacheKey);
+        await setDoc(docRef, {
+          originalText: text,
+          sourceLanguage: sourceLang,
+          targetLanguage: targetLang,
+          tone: selectedTone,
+          translatedText: fullResult,
+          createdAt: new Date()
+        });
+        console.log("💾 وەرگێڕانی نوێ لە فایەربەیسدا پاشەکەوت کرا.");
+      }
+
     } catch (error) {
       console.error(error);
       setResult("هەڵەیەک ڕوویدا...");
