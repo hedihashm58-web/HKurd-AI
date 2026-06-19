@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { translateKurdishStream } from '../services/geminiService';
-import { db } from '../firebase'; // 🔥 هێنانە ناوەوەی فایەربەیس
-import { doc, getDoc, setDoc } from 'firebase/firestore'; // 🗂️ ئامرازەکانی فایەربەیس
+import { db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const Translator: React.FC = () => {
   const [text, setText] = useState('');
@@ -51,13 +51,17 @@ const Translator: React.FC = () => {
     };
   }, [text, sourceLang, targetLang, selectedTone, image]);
 
-  // 🔑 🧠 دروستکردنی ناسنامەیەکی جێگیر بۆ هەر دەق و زمانێک بۆ گەڕانی خێرا
   const generateCacheKey = (srcText: string, srcLang: string, trgLang: string, tone: string) => {
-    const cleanedText = srcText.trim().toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
-    const combinedString = `${cleanedText}_${srcLang}_${trgLang}_${tone}`;
+    const cleanedText = srcText
+      .trim()
+      .toLowerCase()
+      .replace(/ي/g, 'ی')
+      .replace(/ك/g, 'ک')
+      .replace(/[.#$[\]]/g, '_'); 
+
+    const shortText = cleanedText.length > 50 ? cleanedText.substring(0, 50) + "_" + cleanedText.length : cleanedText;
     
-    // دروستکردنی کلیلێکی پارێزراو بۆ فایەربەیس
-    return btoa(unescape(encodeURIComponent(combinedString))).replace(/[/+=]/g, '_');
+    return `${shortText}__[${srcLang}]_[${trgLang}]_[${tone}]`;
   };
 
   const performTranslation = async () => {
@@ -66,21 +70,22 @@ const Translator: React.FC = () => {
     
     const cacheKey = generateCacheKey(text, sourceLang, targetLang, selectedTone);
 
-    try {
-      // 🔍 هەنگاوی یەکەم: پشکنینی فایەربەیس ئەگەر پێشتر ئەم دەقە وەرگێڕدرا بێت (تەنها ئەگەر وێنە نەبوو)
-      if (!image) {
+    if (!image) {
+      try {
         const docRef = doc(db, 'global_translations', cacheKey);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          console.log("⚡ وەرگێڕانەکە لە مێشکی خێرای فایەربەیسەوە هێنرا!");
           setResult(docSnap.data().translatedText);
           setLoading(false);
-          return; // کۆتایی بە فەنکشنەکە دەهێنێت و ناچێتە سەر کلیلەکە
+          return;
         }
+      } catch (cacheError) {
+        console.error("Firebase Cache Read Error:", cacheError);
       }
+    }
 
-      // 🤖 ئەگەر وەرگێڕانەکە بوونی نەبوو، داواکاری بۆ Gemini دەنێرێت
+    try {
       const response = await translateKurdishStream(text, sourceLang, targetLang, selectedTone, image, mimeType);
       
       let fullResult = "";
@@ -89,20 +94,21 @@ const Translator: React.FC = () => {
         setResult(fullResult);
       }
 
-      // 💾 پاشەکەوتکردنی ئەنجامە نوێیەکە لە فایەربەیس بۆ داهاتوو (تەنها ئەگەر وێنە نەبوو)
       if (!image && fullResult.trim()) {
-        const docRef = doc(db, 'global_translations', cacheKey);
-        await setDoc(docRef, {
-          originalText: text,
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang,
-          tone: selectedTone,
-          translatedText: fullResult,
-          createdAt: new Date()
-        });
-        console.log("💾 وەرگێڕانی نوێ لە فایەربەیسدا پاشەکەوت کرا.");
+        try {
+          const docRef = doc(db, 'global_translations', cacheKey);
+          await setDoc(docRef, {
+            originalText: text,
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang,
+            tone: selectedTone,
+            translatedText: fullResult,
+            createdAt: new Date()
+          });
+        } catch (saveError) {
+          console.error("Firebase Cache Save Error:", saveError);
+        }
       }
-
     } catch (error) {
       console.error(error);
       setResult("هەڵەیەک ڕوویدا...");
@@ -141,7 +147,6 @@ const Translator: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20" dir="rtl">
-      {/* Professional Header */}
       <div className="text-center space-y-6">
         <div className="flex items-center justify-center gap-4">
            <div className="h-[1px] w-12 bg-white/10"></div>
@@ -153,7 +158,6 @@ const Translator: React.FC = () => {
       </div>
 
       <div className="glass-panel p-2 rounded-[4rem] border border-white/5 shadow-3xl overflow-hidden bg-[#050507]">
-        {/* Language Selection Bar */}
         <div className="bg-white/[0.02] border-b border-white/5 p-8 lg:p-12 flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex-1 w-full space-y-3">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right block px-4 font-['Noto_Sans_Arabic']">لە زمانی</span>
@@ -189,7 +193,6 @@ const Translator: React.FC = () => {
           </div>
         </div>
 
-        {/* Tone Selection Bar */}
         <div className="px-8 lg:px-12 py-6 bg-white/[0.01] border-b border-white/5 flex flex-wrap justify-center gap-4">
            {tones.map(tone => (
              <button
@@ -207,9 +210,7 @@ const Translator: React.FC = () => {
            ))}
         </div>
 
-        {/* Translation Work Area */}
         <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-white/5">
-          {/* Source Area */}
           <div className="p-10 lg:p-16 space-y-8 bg-black/20">
              <div className="flex justify-between items-center px-4">
                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">دەقی سەرەکی</span>
@@ -239,7 +240,6 @@ const Translator: React.FC = () => {
                 onChange={e => setText(e.target.value)}
               />
               
-              {/* Floating Image Preview */}
               {image && (
                 <div className="absolute top-0 right-0 w-48 h-48 rounded-[2rem] border-2 border-yellow-500 shadow-2xl overflow-hidden animate-in zoom-in-95 group">
                    <img src={image} className="w-full h-full object-cover brightness-50 group-hover:brightness-100 transition-all" alt="Preview" />
@@ -252,7 +252,6 @@ const Translator: React.FC = () => {
              </div>
           </div>
 
-          {/* Target Area */}
           <div className="p-10 lg:p-16 bg-white/[0.01] space-y-8 relative">
             <div className="flex justify-between items-center px-4">
                 <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">ئەنجامی وەرگێڕان</span>
