@@ -5,11 +5,11 @@ import { SYSTEM_PROMPT } from "../constants";
 const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// هەم مۆدێلی سەرەکی و هەم جێگرەوەکەمان کرد بە زنجیرەی ٢.٥
+// گەڕانەوە بۆ مۆدێلەکانی ٢.٥ بۆ هەموو بەشەکان
 const PRIMARY_MODEL = 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.5-pro';
 
-// ١. چاتی سەرەکی کوردی بە شێوازی ستریم (لەگەڵ مۆدێلی جێگرەوەی ٢.٥)
+// ١. چاتی سەرەکی کوردی بە شێوازی ستریم
 export const chatWithKurdAIStream = async (message: string, history: any[] = [], imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
   
   let rawHistory = history.map(h => ({ role: h.role === 'model' ? 'model' : 'user', parts: [{ text: h.text }] }));
@@ -17,7 +17,7 @@ export const chatWithKurdAIStream = async (message: string, history: any[] = [],
   let nextExpectedRole = 'user';
 
   for (const msg of rawHistory) {
-    if (msg.role === nextExpectedRole && msg.parts[0].text.trim() !== "") {
+    if (msg.role === nextExpectedRole && msg.parts[0].text && msg.parts[0].text.trim() !== "") {
       safeHistory.push(msg);
       nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
     }
@@ -27,10 +27,18 @@ export const chatWithKurdAIStream = async (message: string, history: any[] = [],
     safeHistory.pop();
   }
 
-  const userParts: any[] = [{ text: message }];
+  const userParts: any[] = [];
+  if (message && message.trim() !== "") {
+    userParts.push({ text: message });
+  }
+  
   if (imageBase64) {
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
     userParts.push({ inlineData: { data: base64Data, mimeType } });
+  }
+
+  if (userParts.length === 0) {
+    userParts.push({ text: "سڵاو" });
   }
 
   try {
@@ -38,7 +46,7 @@ export const chatWithKurdAIStream = async (message: string, history: any[] = [],
     const chat = model.startChat({ history: safeHistory });
     return await chat.sendMessageStream(userParts);
   } catch (error) {
-    console.warn("⚠️ مۆدێلی ٢.٥ فلاش وەڵامی نەدا، گۆڕدرا بۆ مۆدێلی ٢.٥ پرۆ...");
+    console.warn("⚠️ مۆدێلی چاتی سەرەکی وەڵامی نەدا، گۆڕدرا بۆ مۆدێلی جێگرەوە...", error);
     try {
       const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL, systemInstruction: SYSTEM_PROMPT });
       const fallbackChat = fallbackModel.startChat({ history: safeHistory });
@@ -64,7 +72,7 @@ export const generateKurdishArt = async (prompt: string, style: string = 'Photor
 
 // ٣. شیکاری ماتماتیکی (Math Analyzer)
 export const analyzeMathStream = async (problemDescription: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
-  const parts: any[] = [{ text: `تکایە ئەم کێشە ماتماتیکییە شیکار بکە و هەنگاو بە هەنگاو بە زمانی کوردی ڕوونی بکەرەوە:\n${problemDescription}` }];
+  const parts: any[] = [{ text: `تکایە ئەم کێشە ماتماتیکییە شیکار بکە و هەنگاو بە هەنگاو بە زمانی کوردی ڕوونی بکەرەوە:\n${problemDescription || ''}` }];
   if (imageBase64) {
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
     parts.push({ inlineData: { data: base64Data, mimeType } });
@@ -82,8 +90,12 @@ export const analyzeMathStream = async (problemDescription: string, imageBase64?
 // ٤. وەرگێڕانی کوردی (Translator)
 export const translateKurdishStream = async (text: string, sourceLang: string, targetLanguage: string, tone: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
   let promptText = `ئەم دەقە وەربگێڕە لە زمانی (${sourceLang}) بۆ زمانی (${targetLanguage}). پێویستە تۆنی وەرگێڕانەکە بە شێوازی (${tone}) بێت.\n`;
-  if (text.trim()) promptText += `دەقەکە ئەمەیە:\n"${text}"`;
-  else promptText += `تکایە ئەو دەقە وەربگێڕە کە لە وێنەکەدا دەردەکەوێت.`;
+  
+  if (text && typeof text === 'string' && text.trim()) {
+    promptText += `دەقەکە ئەمەیە:\n"${text}"`;
+  } else {
+    promptText += `تکایە ئەو دەقە وەربگێڕە کە لە وێنەکەدا دەردەکەوێت.`;
+  }
 
   const parts: any[] = [{ text: promptText }];
   if (imageBase64) {
@@ -95,8 +107,13 @@ export const translateKurdishStream = async (text: string, sourceLang: string, t
     const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
     return await model.generateContentStream(parts);
   } catch (error) {
-    const model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
-    return await model.generateContentStream(parts);
+    console.warn("⚠️ مۆدێلی وەرگێڕانی سەرەکی وەڵامی نەدا، تاقیکردنەوەی مۆدێلی جێگرەوە...", error);
+    try {
+      const model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+      return await model.generateContentStream(parts);
+    } catch (fallbackError) {
+      throw fallbackError;
+    }
   }
 };
 
@@ -115,7 +132,7 @@ export const getLandmarks = async (cityName: string) => {
 
 // ٦. یاریدەدەری تەندروستی (Health Assistant)
 export const analyzeHealthImageStream = async (prompt: string, imageBase64?: string | null, mimeType: string = 'image/jpeg') => {
-  const enforcedPrompt = `تکایە وەڵامی ئەم پرسیارە یان شیکاری ئەم وێنە پزیشکییە تەنها بە زمانی کوردی (سۆرانی) بدەرەوە و زاراوە پزیشکییەکان بە سادەیی ڕوون بکەرەوە:\n\n${prompt}`;
+  const enforcedPrompt = `تکایە وەڵامی ئەم پرسیارە یان شیکاری ئەم وێنە پزیشکییە تەنها بە زمانی کوردی (سۆرانی) بدەرەوە و زاراوە پزیشکییەکان بە سادەیی ڕوون بکەرەوە:\n\n${prompt || ''}`;
   const parts: any[] = [{ text: enforcedPrompt }];
   if (imageBase64) {
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;

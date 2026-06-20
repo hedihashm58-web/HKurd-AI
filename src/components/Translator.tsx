@@ -7,12 +7,9 @@ const Translator: React.FC = () => {
   const [text, setText] = useState('');
   const [targetLang, setTargetLang] = useState('Sorani Kurdish');
   const [sourceLang, setSourceLang] = useState('English');
-  const [selectedTone, setSelectedTone] = useState('Formal');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string>('image/jpeg');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const languages = [
@@ -26,265 +23,172 @@ const Translator: React.FC = () => {
     { id: 'Persian', label: 'فارسی', icon: '🇮🇷' }
   ];
 
-  const tones = [
-    { id: 'Formal', label: 'فەرمی', icon: '👔' },
-    { id: 'Academic', label: 'ئەکادیمی', icon: '🎓' },
-    { id: 'Literary', label: 'ئەدەبی', icon: '✍️' },
-    { id: 'General', label: 'گشتی', icon: '💬' }
-  ];
-
   useEffect(() => {
-    if (!text.trim() && !image) {
+    // ئەگەر دەقەکە بەتاڵ بوو، ئەنجامەکە پاك دەکرێتەوە
+    if (!text.trim()) {
       setResult('');
       setLoading(false);
       return;
     }
-
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => { performTranslation(); }, 1500); 
+    return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
+  }, [text, sourceLang, targetLang]);
 
-    debounceTimerRef.current = setTimeout(() => {
-      performTranslation();
-    }, 600); 
-
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, [text, sourceLang, targetLang, selectedTone, image]);
-
-  const generateCacheKey = (srcText: string, srcLang: string, trgLang: string, tone: string) => {
-    const cleanedText = srcText
-      .trim()
-      .toLowerCase()
-      .replace(/ي/g, 'ی')
-      .replace(/ك/g, 'ک')
-      .replace(/[.#$[\]]/g, '_'); 
-
-    const shortText = cleanedText.length > 50 ? cleanedText.substring(0, 50) + "_" + cleanedText.length : cleanedText;
-    
-    return `${shortText}__[${srcLang}]_[${trgLang}]_[${tone}]`;
+  // دروستکردنی کلیلێکی پارێزراو بۆ فایەربەیس
+  const generateCacheKey = (srcText: string, srcLang: string, trgLang: string) => {
+    const safeText = srcText.trim().substring(0, 30).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_');
+    return `${safeText}_${srcLang}_${trgLang}_General`;
   };
 
   const performTranslation = async () => {
     setLoading(true);
-    setResult("");
-    
-    const cacheKey = generateCacheKey(text, sourceLang, targetLang, selectedTone);
+    const cacheKey = generateCacheKey(text, sourceLang, targetLang);
 
-    if (!image) {
+    // پشکنینی کاش لە فایەربەیس
+    if (db) {
       try {
-        const docRef = doc(db, 'global_translations', cacheKey);
-        const docSnap = await getDoc(docRef);
-
+        const docSnap = await getDoc(doc(db, 'global_translations', cacheKey));
         if (docSnap.exists()) {
           setResult(docSnap.data().translatedText);
           setLoading(false);
           return;
         }
-      } catch (cacheError) {
-        console.error("Firebase Cache Read Error:", cacheError);
+      } catch (e) {
+        console.error("Cache Read Error:", e);
       }
     }
 
     try {
-      const response = await translateKurdishStream(text, sourceLang, targetLang, selectedTone, image, mimeType);
+      // ناردنی 'General' وەک تۆنی پێشوەچووی گشتی بۆ ئەوەی بەکارهێنەر پێویستی بە دوگمە نەبێت
+      const response = await translateKurdishStream(text, sourceLang, targetLang, 'General');
       
+      if (!response || !response.stream) {
+        throw new Error("وەڵامی ستریم بەردەست نییە");
+      }
+
       let fullResult = "";
       for await (const chunk of response.stream) {
         fullResult += chunk.text();
         setResult(fullResult);
       }
 
-      if (!image && fullResult.trim()) {
-        try {
-          const docRef = doc(db, 'global_translations', cacheKey);
-          await setDoc(docRef, {
-            originalText: text,
-            sourceLanguage: sourceLang,
-            targetLanguage: targetLang,
-            tone: selectedTone,
+      // پاشەکەوتکردن لە فایەربەیس
+      if (db && fullResult.trim()) {
+        try { 
+          await setDoc(doc(db, 'global_translations', cacheKey), { 
             translatedText: fullResult,
             createdAt: new Date()
-          });
-        } catch (saveError) {
-          console.error("Firebase Cache Save Error:", saveError);
+          }); 
+        } catch (e) { 
+          console.error("Save Error:", e); 
         }
       }
-    } catch (error) {
-      console.error(error);
-      setResult("هەڵەیەک ڕوویدا...");
+    } catch (error: any) {
+      console.error("Translation Error:", error);
+      setResult(error?.status === 429 ? "تکایە کەمێک چاوەڕێ بکە..." : "هەڵەیەک ڕوویدا...");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setMimeType(file.type);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const swapLanguages = () => {
-    const temp = sourceLang;
-    setSourceLang(targetLang);
+    const temp = sourceLang; 
+    setSourceLang(targetLang); 
     setTargetLang(temp);
-    if (result) {
-      const prevResult = result;
-      setResult("");
-      setText(prevResult);
+    if (result) { 
+      const prev = result; 
+      setResult(""); 
+      setText(prev); 
     }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20" dir="rtl">
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center gap-4">
-           <div className="h-[1px] w-12 bg-white/10"></div>
-           <span className="text-[9px] font-black text-yellow-500 uppercase tracking-[0.8em] font-['Noto_Sans_Arabic']">KurdAI Linguistic V3.5</span>
-           <div className="h-[1px] w-12 bg-white/10"></div>
-        </div>
-        <h2 className="text-5xl lg:text-7xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">وەرگێڕی <span className="text-yellow-500">خێرا</span></h2>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] font-['Noto_Sans_Arabic']">وەرگێڕانی تەنها دەق بەبێ چاوەڕوانی - ژیریی KurdAI</p>
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-12 space-y-6 md:space-y-10 animate-in fade-in duration-700 pb-24" dir="rtl">
+      {/* ناونیشان */}
+      <div className="text-center space-y-3">
+        <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">
+          وەرگێڕی <span className="text-yellow-500">خێرا</span>
+        </h2>
+        <p className="text-xs md:text-sm text-slate-400">وەرگێڕانی خێرا و گشتی بەهۆی ژیری دەستکرد</p>
       </div>
 
-      <div className="glass-panel p-2 rounded-[4rem] border border-white/5 shadow-3xl overflow-hidden bg-[#050507]">
-        <div className="bg-white/[0.02] border-b border-white/5 p-8 lg:p-12 flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex-1 w-full space-y-3">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right block px-4 font-['Noto_Sans_Arabic']">لە زمانی</span>
+      <div className="glass-panel rounded-2xl md:rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden bg-[#050507] backdrop-blur-md">
+        {/* هەڵبژاردنی زمانەکان - بە تەواوی گونجاوە بۆ مۆبایل */}
+        <div className="bg-white/[0.02] border-b border-white/5 p-4 md:p-6 lg:p-8 flex items-center justify-between gap-2 md:gap-6">
+          <div className="flex-1">
             <select 
-              value={sourceLang}
-              onChange={(e) => setSourceLang(e.target.value)}
-              className="bg-white/5 border border-white/10 text-white px-8 py-6 rounded-[2.5rem] w-full font-['Noto_Sans_Arabic'] appearance-none focus:border-yellow-500/50 outline-none transition-all shadow-inner text-lg cursor-pointer"
+              value={sourceLang} 
+              onChange={(e) => setSourceLang(e.target.value)} 
+              className="bg-white/5 border border-white/10 text-white text-xs md:text-base px-3 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl w-full cursor-pointer focus:outline-none focus:border-yellow-500 transition-all"
             >
-              {languages.map(l => (
-                <option key={l.id} value={l.id} className="bg-[#0f172a]">{l.icon} {l.label}</option>
-              ))}
+              {languages.map(l => <option key={l.id} value={l.id} className="bg-[#050507] text-white text-xs md:text-base">{l.icon} {l.label}</option>)}
             </select>
           </div>
 
           <button 
-            onClick={swapLanguages}
-            className="w-16 h-16 bg-white/5 border border-white/10 text-yellow-500 rounded-full flex items-center justify-center text-2xl hover:bg-yellow-500 hover:text-black transition-all active:scale-90 shadow-2xl"
+            onClick={swapLanguages} 
+            className="w-10 h-10 md:w-12 md:h-12 bg-white/5 border border-white/10 text-yellow-500 rounded-full hover:bg-yellow-500 hover:text-black flex items-center justify-center transition-all duration-300 font-bold shrink-0 text-sm md:text-base"
+            aria-label="گۆڕینەوەی زمانەکان"
           >
             ⇄
           </button>
 
-          <div className="flex-1 w-full space-y-3">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right block px-4 font-['Noto_Sans_Arabic']">بۆ زمانی</span>
+          <div className="flex-1">
             <select 
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-              className="bg-white/5 border border-white/10 text-white px-8 py-6 rounded-[2.5rem] w-full font-['Noto_Sans_Arabic'] appearance-none focus:border-yellow-500/50 outline-none transition-all shadow-inner text-lg cursor-pointer"
+              value={targetLang} 
+              onChange={(e) => setTargetLang(e.target.value)} 
+              className="bg-white/5 border border-white/10 text-white text-xs md:text-base px-3 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl w-full cursor-pointer focus:outline-none focus:border-yellow-500 transition-all"
             >
-              {languages.map(l => (
-                <option key={l.id} value={l.id} className="bg-[#0f172a]">{l.icon} {l.label}</option>
-              ))}
+              {languages.map(l => <option key={l.id} value={l.id} className="bg-[#050507] text-white text-xs md:text-base">{l.icon} {l.label}</option>)}
             </select>
           </div>
         </div>
 
-        <div className="px-8 lg:px-12 py-6 bg-white/[0.01] border-b border-white/5 flex flex-wrap justify-center gap-4">
-           {tones.map(tone => (
-             <button
-              key={tone.id}
-              onClick={() => setSelectedTone(tone.id)}
-              className={`px-8 py-3 rounded-2xl flex items-center gap-3 transition-all border ${
-                selectedTone === tone.id 
-                ? 'bg-yellow-500 text-black border-yellow-400 font-black' 
-                : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'
-              } text-[10px] uppercase tracking-widest font-['Noto_Sans_Arabic']`}
-             >
-               <span>{tone.icon}</span>
-               <span>{tone.label}</span>
-             </button>
-           ))}
-        </div>
-
-        <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-white/5">
-          <div className="p-10 lg:p-16 space-y-8 bg-black/20">
-             <div className="flex justify-between items-center px-4">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">دەقی سەرەکی</span>
-                <div className="flex gap-2">
-                   <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleImageChange} 
-                   />
-                   <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-3 rounded-xl border transition-all ${image ? 'bg-yellow-500 text-black border-yellow-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
-                    title="وەرگێڕانی وێنە"
-                   >
-                     📸
-                   </button>
-                </div>
-             </div>
-             
-             <div className="relative group">
-               <textarea 
-                className="w-full h-[450px] bg-transparent text-white text-xl lg:text-4xl font-medium text-right focus:outline-none font-['Noto_Sans_Arabic'] resize-none placeholder:opacity-10 leading-[1.8] custom-scrollbar" 
-                placeholder="دەقەکە لێرە بنووسە..."
-                value={text}
-                onChange={e => setText(e.target.value)}
-              />
-              
-              {image && (
-                <div className="absolute top-0 right-0 w-48 h-48 rounded-[2rem] border-2 border-yellow-500 shadow-2xl overflow-hidden animate-in zoom-in-95 group">
-                   <img src={image} className="w-full h-full object-cover brightness-50 group-hover:brightness-100 transition-all" alt="Preview" />
-                   <button 
-                    onClick={removeImage}
-                    className="absolute top-3 left-3 w-8 h-8 bg-black/60 backdrop-blur-md rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
-                   >✕</button>
-                </div>
-              )}
-             </div>
+        {/* ناوچەی دەق و ئەنجام - لەسەر یەک دادەنرێن لە مۆبایل و لە دەسکتۆپ دەبن بە دوو ستوون */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-white/5">
+          {/* سندوقی داخڵکردنی دەق */}
+          <div className="relative flex flex-col h-[200px] md:h-[280px] lg:h-[380px]">
+            <textarea 
+              className="p-4 md:p-8 w-full h-full bg-transparent text-white text-sm md:text-lg lg:text-2xl focus:outline-none resize-none placeholder-slate-500" 
+              placeholder="دەقەکە لێرە بنووسە..." 
+              value={text} 
+              onChange={e => setText(e.target.value)}
+            />
+            {text && (
+              <button 
+                onClick={() => setText('')} 
+                className="absolute top-2 left-2 p-1.5 md:p-2 text-slate-400 hover:text-white text-xs md:text-sm bg-white/5 hover:bg-white/10 rounded-full transition-all"
+                title="پاککردنەوە"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="p-10 lg:p-16 bg-white/[0.01] space-y-8 relative">
-            <div className="flex justify-between items-center px-4">
-                <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest font-['Noto_Sans_Arabic']">ئەنجامی وەرگێڕان</span>
-                {loading && (
-                   <div className="flex gap-1.5 items-center">
-                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
-                      <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest animate-pulse">وەرگێڕانی خێرا...</span>
-                   </div>
-                )}
-            </div>
-
-            <div className={`w-full h-[450px] text-yellow-500 text-xl lg:text-4xl font-medium text-right overflow-y-auto font-['Noto_Sans_Arabic'] custom-scrollbar leading-[1.8] ${loading && !result ? 'opacity-20' : ''}`}>
-              {result || (loading ? (
-                <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30">
-                   <div className="flex gap-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                   </div>
-                   <span className="text-sm font-black uppercase tracking-widest">سیستەم ئامادەیە...</span>
-                </div>
-              ) : <span className="opacity-5">وەرگێڕانی تەنها دەق لێرە دەبێت...</span>) }
-            </div>
-            
-            {result && (
-              <div className="flex justify-end gap-3 pt-8 border-t border-white/5">
-                 <button 
-                   onClick={() => navigator.clipboard.writeText(result)}
-                   className="px-10 py-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white text-black transition-all text-[11px] font-black font-['Noto_Sans_Arabic'] uppercase tracking-widest"
-                 >
-                   📋 کۆپیکردن
-                 </button>
+          {/* سندوقی پیشاندانی وەرگێڕان */}
+          <div className="relative p-4 md:p-8 text-yellow-500 text-sm md:text-lg lg:text-2xl overflow-y-auto h-[200px] md:h-[280px] lg:h-[380px] whitespace-pre-wrap bg-white/[0.01]">
+            {loading ? (
+              <div className="flex items-center gap-2 text-slate-400 text-xs md:text-base">
+                <span className="animate-pulse">⏳ وەرگێڕانی گشتی بە ئەی ئای...</span>
               </div>
+            ) : (
+              result || <span className="text-slate-500 text-xs md:text-base">ئەنجامی وەرگێڕانەکە لێرە دەردەکەوێت...</span>
+            )}
+            
+            {result && !loading && (
+              <button 
+                onClick={copyToClipboard} 
+                className="absolute bottom-2 left-2 px-3 py-1.5 text-[10px] md:text-xs bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg flex items-center gap-1.5 transition-all border border-white/5 font-semibold"
+              >
+                {copied ? "✓ کۆپی کرا" : "📋 کۆپی بکە"}
+              </button>
             )}
           </div>
         </div>
@@ -292,5 +196,4 @@ const Translator: React.FC = () => {
     </div>
   );
 };
-
 export default Translator;
