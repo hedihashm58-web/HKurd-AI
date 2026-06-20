@@ -30,7 +30,7 @@ const ChatInterface: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleNewChat = () => {
     setMessages([defaultMessage]);
@@ -102,7 +102,8 @@ const ChatInterface: React.FC = () => {
     const currentInput = input; 
     const userMsg: Message = { role: 'user', text: currentInput, timestamp: new Date() }; 
     
-    setMessages(prev => [...prev, userMsg]); 
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages); 
     setInput(''); 
     setIsLoading(true); 
 
@@ -133,33 +134,44 @@ const ChatInterface: React.FC = () => {
     
     await saveUserMessageToDB(); 
 
-    setMessages(prev => [...prev, { role: 'model', text: '', timestamp: new Date() }]);
+    // 👑 ڕێکخستنی خاوێنی مێژووی چات بەبێ دووبارەکردنەوەی ناوی مۆدێلەکە تا باکێندەکە تێکنەچێت
+    const lastFewMessages = updatedMessages.slice(-6);
+    let conversationHistory = "";
+    
+    lastFewMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        conversationHistory += `بەکارهێنەر: ${msg.text}\n`;
+      } else {
+        conversationHistory += `${msg.text}\n`;
+      }
+    });
 
     try {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: currentInput }), 
+        body: JSON.stringify({ 
+          message: conversationHistory.trim()
+        }), 
       });
 
-      if (!response.ok) throw new Error(`سێرڤەری مێشک وەڵامی نەدایەوە: ${response.status}`); 
+      const data = await response.json();
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let aiAnswer = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          aiAnswer += decoder.decode(value, { stream: true });
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1].text = aiAnswer;
-            return newMessages;
-          });
-        }
+      if (!response.ok) {
+        throw new Error(data.detail || `سێرڤەری مێشک وەڵامی نەدایەوە: ${response.status}`);
       }
+
+      setIsLoading(false);
+
+      // 👑 لێرەدا تەنها بەهای وەڵامی دەقەکە (.response) دەخوێنرێتەوە بۆ ئەوەی کەوانەی JSON نیشان نەدات
+      let aiAnswer = "";
+      if (data.response) {
+        aiAnswer = data.response;
+      } else {
+        aiAnswer = "هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.";
+      }
+
+      setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
       if (user?.email && activeChatId) { 
         await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
@@ -167,13 +179,12 @@ const ChatInterface: React.FC = () => {
         }); 
       }
     } catch (error: any) { 
-      setMessages(prev => {
-        const newMessages = [...prev];
-        newMessages[newMessages.length - 1].text = `❌ کێشەیەک لە پەیوەندیکردن بە مێشکی سەرەکییەوە هەیە: ${error.message}`;
-        return newMessages;
-      });
-    } finally {
       setIsLoading(false); 
+      setMessages(prev => [...prev, {
+        role: 'model',
+        text: `❌ کێشەیەک لە پەیوەندیکردن بە مێشکی سەرەکییەوە هەیە: ${error.message}`,
+        timestamp: new Date()
+      }]);
     }
   };
 
@@ -204,14 +215,25 @@ const ChatInterface: React.FC = () => {
         <div className="flex-1 overflow-y-auto space-y-6 px-2 pb-4 scroll-smooth" ref={scrollRef}>
           {messages.map((msg, idx) => ( 
             <div key={idx} className={`flex w-full flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[85%] p-4 shadow-md rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-bl-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-br-sm'}`}>
-                <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                <div className="flex justify-end mt-2 pt-1.5 border-t border-white/10">
-                  <button onClick={() => handleCopy(msg.text, idx)} className="text-[11px] font-medium">{copiedIndex === idx ? "کۆپی کرا! ✓" : "کۆپیکردن 📋"}</button>
+              {msg.text && (
+                <div className={`max-w-[85%] p-4 shadow-md rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-bl-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-br-sm'}`}>
+                  <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  <div className="flex justify-end mt-2 pt-1.5 border-t border-white/10">
+                    <button onClick={() => handleCopy(msg.text, idx)} className="text-[11px] font-medium">{copiedIndex === idx ? "کۆپی کرا! ✓" : "کۆپیکردن 📋"}</button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
+
+          {isLoading && (
+            <div className="flex w-full flex-col items-start animate-pulse">
+              <div className={`w-[150px] p-4 rounded-3xl rounded-br-sm flex flex-col gap-2 ${isDarkMode ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
+                <div className={`h-2.5 w-3/4 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
+                <div className={`h-2.5 w-1/2 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={`pt-4 mt-2 border-t flex flex-col gap-2 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>

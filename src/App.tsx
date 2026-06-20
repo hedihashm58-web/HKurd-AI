@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import ChatInterface from './components/ChatInterface';
 import LandmarkExplorer from './components/LandmarkExplorer';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 
 import ArtInterface from './components/ArtStudio';
 import VideoInterface from './components/VideoStudio';
@@ -13,7 +14,7 @@ import MathInterface from './components/MathAnalyzer';
 import TranslateInterface from './components/Translator';
 import VoiceInterface from './components/VoiceAssistant';
 import HealthInterface from './components/HealthAssistant';
-import KurdishPersonalities from './components/KurdishPersonalities'; // زیادکراوە
+import KurdishPersonalities from './components/KurdishPersonalities';
 
 import { View } from './types';
 
@@ -23,6 +24,11 @@ const App: React.FC = () => {
   
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // پشکنینی ئەوەی ئایا پێشتر دوگمەی دەستپێکردنی لێداوە لە لاندینگ پەیج
+  const [hasStarted, setHasStarted] = useState<boolean>(() => {
+    return localStorage.getItem('kurdai_landing_started') === 'true';
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -37,19 +43,9 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const renderView = () => {
-    switch (activeView) {
-      case View.CHAT: return <ChatInterface />;
-      case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} />;
-      case View.ART: return <ArtInterface />;
-      case View.VIDEO: return <VideoInterface />;
-      case View.MATH: return <MathInterface />;
-      case View.TRANSLATE: return <TranslateInterface />;
-      case View.VOICE: return <VoiceInterface />;
-      case View.HEALTH: return <HealthInterface />;
-      case View.PERSONALITIES: return <KurdishPersonalities />; // زیادکراوە
-      default: return <ChatInterface />;
-    }
+  const handleStartChat = () => {
+    localStorage.setItem('kurdai_landing_started', 'true');
+    setHasStarted(true);
   };
 
   if (isCheckingAuth) {
@@ -60,15 +56,37 @@ const App: React.FC = () => {
     );
   }
 
+  // 👑 ١. یەکەم هەنگاو: ئەگەر بەکارهێنەر لۆگین نەبووبوو، ڕاستەوخۆ لاپەڕەی لۆگینی پێشان بدە
   if (!userEmail) {
     return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
   }
 
+  // 👑 ٢. دووەم هەنگاو: ئەگەر لۆگین بوو بەڵام هێشتا لاندینگ پەیجەکەی تێنەپەڕاندبوو، لاندینگەکەی پێشان بدە
+  if (!hasStarted) {
+    return <LandingPage onStartChat={handleStartChat} />;
+  }
+
+  // ٣. سێیەم هەنگاو: ئەگەر هەم لۆگین بوو و هەم لاندینگەکەی تێپەڕاندبوو، ڕاستەوخۆ دەچێتە ناو ئەپەکە
   return (
     <Layout activeView={activeView} onViewChange={setActiveView} backgroundImage={bgImage}>
       {renderView()}
     </Layout>
   );
+
+  function renderView() {
+    switch (activeView) {
+      case View.CHAT: return <ChatInterface />;
+      case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} />;
+      case View.ART: return <ArtInterface />;
+      case View.VIDEO: return <VideoInterface />;
+      case View.MATH: return <MathInterface />;
+      case View.TRANSLATE: return <TranslateInterface />;
+      case View.VOICE: return <VoiceInterface />;
+      case View.HEALTH: return <HealthInterface />;
+      case View.PERSONALITIES: return <KurdishPersonalities />;
+      default: return <ChatInterface />;
+    }
+  }
 };
 
 export default App;

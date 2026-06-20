@@ -1,16 +1,25 @@
 import os
-import sqlite3
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from google import genai
-from google.genai import types
-from difflib import SequenceMatcher
+import google.generativeai as genai
+from dotenv import load_dotenv
+import time
+from collections import defaultdict
 
-app = FastAPI(title="KurdAI Pro Chat Brain")
+# ١. لۆدکردنی کلیلەکان لە ژینگەی هۆستەکەدا
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# 🔓 ڕێگەدان بە پەیوەندی
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY لە ناو Environment Variables نەدۆزرایەوە!")
+
+# ٢. کۆنفhandlingی سیستەمی فەرمی ژیریی دەستکردی گوگل
+genai.configure(api_key=GOOGLE_API_KEY)
+
+app = FastAPI()
+
+# ٣. ڕێگەپێدانی CORS بۆ ئەوەی فرۆنتێندەکەت (React) بێ کێشە پەیوەندی بکات
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,122 +28,84 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
-client = genai.Client(api_key=GEMINI_API_KEY)
-
-# 🛑 لیستی وشە قەدەغەکراوەکان (دەتوانیت ئارەزووی خۆت وشەی تری بۆ زیاد بکەیت)
-BAD_WORDS = [
-    "سێکسی", "قوز", "کێر", "گاندن", "حیز", "سۆزانی", "قەحپە", 
-    "porn", "sex", "fuck", "bitch", "shit"
+# 🛑 ٤. لیستی وشە نەشیاو و قەدەغەکراوەکان بۆ پاراستنی کلیلەکەت
+FORBIDDEN_WORDS = [
+    "سکس", "سێکسی", "قوز", "کێر", "گان", "حیز", "قوندەر", "مایین","گاندەر","سوارتبم","سواریبم","سواری بم"
+    "پۆڕن", "porn", "sex", "xhamster", "xnxx", "قەحپە", "بێشەرەف","Xvideo","xvideo","سووک","سوک","ماین","سایتە شینەکە"
 ]
 
-def contains_bad_words(text: str) -> bool:
+# فەنکشنی پشکنینی وشە نەشیاوەکان
+def validate_content(text: str):
     text_lower = text.lower()
-    for word in BAD_WORDS:
+    for word in FORBIDDEN_WORDS:
         if word in text_lower:
-            return True
-    return False
-
-def init_chat_db():
-    with sqlite3.connect('kurdai_chat_brain.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS chat_memory (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                question TEXT UNIQUE,
-                answer TEXT
+            raise HTTPException(
+                status_code=400, 
+                detail="داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاو یان قەدەغەکراوی تێدایە کە لەگەڵ بەهاکانی KurdAI Pro ناگونجێت."
             )
-        ''')
-        conn.commit()
 
-init_chat_db()
+# ⏳ ٥. سیستەمی سنووردارکردنی خێرایی (Rate Limiter) - تەنها ٣ پرسیار لە خولەکێکدا
+user_requests = defaultdict(list)
 
+def check_rate_limit(client_ip: str):
+    current_time = time.time()
+    # پاککردنەوەی داواکارییە کۆنەکان (زیاتر لە ٦٠ چرکە)
+    user_requests[client_ip] = [t for t in user_requests[client_ip] if current_time - t < 60]
+    
+    if len(user_requests[client_ip]) >= 3:
+        raise HTTPException(
+            status_code=429, 
+            detail="زۆر خێرا پرسیار دەکەیت! تکایە کەمێک چاوەڕوان بە (یاسای ٣ پرسیار لە خولەکێکدا بۆ پاراستنی سێرڤەر)."
+        )
+    
+    user_requests[client_ip].append(current_time)
+
+# 📦 ٦. مۆدێلەکانی پێناسەکردنی داتا (Pydantic Models)
 class ChatRequest(BaseModel):
     message: str
+    history: list = []
 
-def get_similarity_ratio(str1, str2):
-    return SequenceMatcher(None, str1.strip().lower(), str2.strip().lower()).ratio()
+class ArtRequest(BaseModel):
+    prompt: str
 
-SYSTEM_PROMPT = """تۆ زیرەکی دەستکردی 'KurdAI Pro'یت.
-یاساکانی وەڵامدانەوەت:
-١. بە کوردییەکی (سۆرانی) ڕەوان و ڕاستەوخۆ وەڵام بدەرەوە.
-٢. زۆر پوخت بە: تەنها وەڵامی داواکارییەکە بدەرەوە بێ پێشەکی و ڕوونکردنەوەی بێزارکەر و درێژ.
-٣. کۆدنووسین: ئەگەر داوای کۆد کرا، *تەنها* کۆدەکە لەناو بلۆکی کۆد (Markdown) بنووسە. بە هیچ شێوەیەک دێڕ بە دێڕ شیکردنەوە مەنووسە خوار کۆدەکە، تەنها کۆدەکە بدە بە بەکارهێنەر."""
-
+# 💬 ٧. ئیندپۆینتی چاتکردنی ئاسایی (Gemini 2.5 Flash)
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
-    user_message = request.message.strip()
+    # پشکنینی وشە نەشیاوەکان
+    validate_content(request.message)
     
-    if not user_message:
-        raise HTTPException(status_code=400, detail="نامەکە ناتوانێت بەتاڵ بێت")
+    try:
+        # بەکارهێنانی مۆدێلی فلاش بۆ خێرایی و کەمی تێچوو
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(request.message)
+        return {"response": response.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    def stream_generator():
-        # 🛑 قۆناغی سفر: پشکنینی سانسۆر پێش هەموو شتێک
-        if contains_bad_words(user_message):
-            yield "ببورە، داواکارییەکەت وشەی نەشیاو یان قەدەغەکراوی تێدایە. من وەک KurdAI Pro ڕێگەپێدراو نیم وەڵامی ئەم جۆرە پرسیارانە بدەمەوە. 🚫"
-            return
+# 🎨 ٨. ئیندپۆینتی خزمەتگوزاری داهێنان و وێنە (Gemini 2.5 Pro)
+@app.post("/api/art-studio")
+async def art_studio_endpoint(request: ArtRequest):
+    # پشکنینی وشە نەشیاوەکان لە ناو وەسفی وێنەکەدا
+    validate_content(request.prompt)
+    
+    try:
+        # بەکارهێنانی مۆدێلی بەهێزی پڕۆ بۆ شیکاری قووڵ و داڕشتنی پڕۆمپت
+        model = genai.GenerativeModel("gemini-2.5-pro")
+        
+        system_instruction = (
+            "تۆ ئەندازیارێکی پسپۆڕی داهێنانی وێنە و گرافیکیت. "
+            "ئەم پڕۆمپتەی خوارەوە بە جوانترین شێواز شیکار بکە و پڕۆمپتێکی پڕۆفیشناڵی ئینگلیزی "
+            "بۆ دروستکردنی وێنە (Image Generation Prompt) دابڕێژە: "
+        )
+        
+        full_prompt = f"{system_instruction}\n{request.prompt}"
+        response = model.generate_content(full_prompt)
+        
+        return {"art_response": response.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        # ١. پشکنینی ناوخۆیی داتابەیس
-        with sqlite3.connect('kurdai_chat_brain.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT question, answer FROM chat_memory")
-            saved_chats = cursor.fetchall()
-            
-            best_match_answer = None
-            highest_ratio = 0.0
-            
-            for saved_q, saved_a in saved_chats:
-                ratio = get_similarity_ratio(user_message, saved_q)
-                if ratio > highest_ratio:
-                    highest_ratio = ratio
-                    best_match_answer = saved_a
-                    
-            if highest_ratio >= 0.95 and best_match_answer:
-                # ئەگەر لە داتابەیس هەبوو، وشە بە وشە دەینێرێت
-                words = best_match_answer.split(' ')
-                for word in words:
-                    yield word + ' '
-                return
-
-        # ٢. پەیوەندی بە مێشکی سەرەکییەوە بە شێوازی Stream
-        try:
-            config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.4, 
-            )
-            
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model='gemini-2.5-flash',
-                    contents=user_message,
-                    config=config
-                )
-            except Exception as flash_error:
-                print(f"Fallback: {flash_error}")
-                response_stream = client.models.generate_content_stream(
-                    model='gemini-2.5-pro',
-                    contents=user_message,
-                    config=config
-                )
-            
-            full_text = ""
-            for chunk in response_stream:
-                if chunk.text:
-                    full_text += chunk.text
-                    yield chunk.text 
-                    
-            # ٣. خەزنکردن دوای تەواوبوونی ستریمەکە
-            if len(full_text) < 800 and "```" not in full_text:
-                with sqlite3.connect('kurdai_chat_brain.db') as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("INSERT OR IGNORE INTO chat_memory (question, answer) VALUES (?, ?)", (user_message, full_text))
-                    conn.commit()
-                    
-        except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg or "Quota" in error_msg:
-                yield "ببورە، لە ئێستادا لۆدێکی زۆر لەسەر سێرڤەرە یان سنوور تەواو بووە. تکایە کەمێکی تر تاقی بکەرەوە."
-            else:
-                yield f"کێشەیەک لە سێرڤەر ڕوویدا: {error_msg}"
-
-    return StreamingResponse(stream_generator(), media_type="text/plain")
+# 🌐 ٩. پشکنینی ڕەنی سێرڤەر
+@app.get("/")
+def read_root():
+    return {"status": "KurdAI Pro API Running Successfully with Flash & Pro Models"}

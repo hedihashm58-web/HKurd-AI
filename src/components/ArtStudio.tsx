@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { generateKurdishArt } from '../services/geminiService';
 
 const ArtStudio: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -41,29 +40,39 @@ const ArtStudio: React.FC = () => {
     setImage(null);
 
     try {
-      if (quality === '2K' && (window as any).aistudio) {
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await (window as any).aistudio.openSelectKey();
-        }
+      // 🔗 💡 بەستنەوەی ڕاستەوخۆ بە ئیندپۆینتی باکێندەکەت لەسەر Hugging Face
+      // تەنها لەجیاتی ئەم لینکەی خوارەوە، لینکی ڕاستەقینەی باکێندەکەی خۆت دابنێ
+      const BACKEND_URL = "https://your-huggingface-spaces-link.hf.space"; 
+      
+      const response = await fetch(`${BACKEND_URL}/api/art-studio`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: `مۆدێل و ستایل: ${selectedStyle}، کوالیتی: ${quality}، وەسف: ${prompt}`
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // ئەگەر باکێندەکە وشەی نەشیاوی دۆزییەوە یان کێشەیەک هەبوو، نامەی هەڵەکە لێرەدا نیشان دەدات
+        throw new Error(data.detail || "هەڵەیەک لە سیستەمدا ڕوویدا.");
       }
 
-      // @ts-ignore
-      const result = await generateKurdishArt(prompt, selectedStyle, quality, userImage, userMimeType);
-      setImage(result);
+      // وەرگرتنی پڕۆمپت و دەقی داهێنراوی وێنە لە مۆدێلی Gemini 2.5 Pro
+      if (data.art_response) {
+        // لێرەدا دەتوانیت دەقەکە بخەیتە ناو تەمپڵێت یان ڕاستەوخۆ وەک دەقی داهێنان پیشانی بدەیت
+        // تێبینی: چونکە مۆدێلی جمینای دەق دەگەڕێنێتەوە، لێرەدا وەک نموونە دەقەکە لە ناو شاشەی وێنەکە جێگیر دەکەین
+        setImage(data.art_response);
+      } else {
+        throw new Error("هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.");
+      }
+
     } catch (err: any) {
       console.error(err);
-      const errorMessage = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
-      
-      if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("permission")) {
-        setError("هەڵەی دەسەڵات: پێویستت بە کلیلێکی API هەیە کە 'Billing' ی بۆ چالاک کرابێت بۆ مۆدێلی Pro.");
-        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
-      } else if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404") || errorMessage.includes("NOT_FOUND")) {
-        setError("هەڵە: ئەم پڕۆژەیە دەستی بەم مۆدێلە ناگات. تکایە کلیلێکی تر تاقی بکەرەوە.");
-        if ((window as any).aistudio) await (window as any).aistudio.openSelectKey();
-      } else {
-        setError("هەڵەیەک لە دروستکردنی وێنەکەدا ڕوویدا. دڵنیابەرەوە لە هەبوونی باڵانس و چالاکبوونی Billing.");
-      }
+      setError(err.message || "پەیوەندی بە باکێندەوە نەکرا. دڵنیابەرەوە لە ڕەنبوونی باکێندەکەت لە Hugging Face.");
     } finally {
       setLoading(false);
     }
@@ -74,11 +83,11 @@ const ArtStudio: React.FC = () => {
       <div className="text-center space-y-6">
         <div className="flex items-center justify-center gap-4">
            <div className="h-[1px] w-12 bg-white/10"></div>
-           <span className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.8em] font-['Noto_Sans_Arabic']">KurdAI CREATIVE ENGINE</span>
+           <span className="text-[10px] font-black text-amber-400 uppercase tracking-[0.8em] font-['Noto_Sans_Arabic']">KurdAI CREATIVE ENGINE</span>
            <div className="h-[1px] w-12 bg-white/10"></div>
         </div>
-        <h2 className="text-5xl lg:text-7xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">ستۆدیۆی <span className="text-yellow-500 italic">داهێنان</span></h2>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] font-['Noto_Sans_Arabic']">بەرهەمهێنانی تابلۆ و گۆڕینی وێنە بە ژیریی دەستکرد</p>
+        <h2 className="text-5xl lg:text-7xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">ستۆدیۆی <span className="text-amber-400 italic">داهێنان</span></h2>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] font-['Noto_Sans_Arabic']">بەرهەمهێنانی تابلۆ و گۆڕینی وێنە بە ژیریی دەستکردی پروو</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-stretch">
@@ -96,7 +105,7 @@ const ArtStudio: React.FC = () => {
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className={`flex-1 h-32 rounded-[2rem] border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 ${userImage ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                className={`flex-1 h-32 rounded-[2rem] border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 ${userImage ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
               >
                 <span className="text-3xl">{userImage ? '✅' : '📤'}</span>
                 <span className="text-[9px] font-black font-['Noto_Sans_Arabic'] uppercase tracking-widest text-slate-500">
@@ -124,7 +133,7 @@ const ArtStudio: React.FC = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={userImage ? "بنووسە دەتەوێت وێنەکەت چۆن بگۆڕێت... (بۆ نموونە: بیکە بە کارەکتەرێکی مێژوویی)" : "باسی ئەو وێنەیە بکە کە دەتەوێت دروستی بکەیت..."}
-              className="w-full p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/10 text-xl font-['Noto_Sans_Arabic'] focus:outline-none focus:border-yellow-500 h-40 resize-none text-right placeholder:opacity-20 transition-all"
+              className="w-full p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/10 text-xl font-['Noto_Sans_Arabic'] focus:outline-none focus:border-amber-500 h-40 resize-none text-right placeholder:opacity-20 transition-all"
             />
           </div>
 
@@ -133,7 +142,7 @@ const ArtStudio: React.FC = () => {
               <button 
                 key={style.id} 
                 onClick={() => setSelectedStyle(style.id)} 
-                className={`p-4 rounded-3xl border transition-all ${selectedStyle === style.id ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
+                className={`p-4 rounded-3xl border transition-all ${selectedStyle === style.id ? 'bg-amber-500 text-black border-amber-500' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
               >
                 <span className="text-2xl block mb-2">{style.icon}</span>
                 <span className="text-[9px] font-black font-['Noto_Sans_Arabic']">{style.label}</span>
@@ -156,38 +165,39 @@ const ArtStudio: React.FC = () => {
           {error && (
             <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center animate-in shake">
               {error}
-              <div className="mt-2 opacity-50 text-[8px] uppercase tracking-widest font-mono">CODE: 403/404_PERMISSION_DENIED</div>
             </div>
           )}
 
           <button
             onClick={handleGenerate}
             disabled={loading || (!prompt.trim() && !userImage)}
-            className="w-full py-8 bg-yellow-500 text-black font-black text-xl uppercase tracking-[0.4em] rounded-[2.5rem] shadow-2xl font-['Noto_Sans_Arabic'] disabled:opacity-20 transition-all active:scale-95"
+            className="w-full py-8 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-black font-black text-xl uppercase tracking-[0.4em] rounded-[2.5rem] shadow-2xl font-['Noto_Sans_Arabic'] disabled:opacity-20 transition-all active:scale-95"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-4">
                 <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-                <span>خەریکی دروستکردنی ئارته‌...</span>
+                <span>خەریکی داڕشتنی بیرۆکەکەیە لە Gemini Pro...</span>
               </div>
-            ) : (userImage ? 'گۆڕینی وێنە' : 'دروستکردنی وێنە')}
+            ) : (userImage ? 'گۆڕینی وێنە' : 'دایبڕێژە بە Gemini Pro')}
           </button>
-          
-          <p className="text-[9px] text-center text-slate-600 font-bold uppercase tracking-widest pt-4">
-            <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="hover:text-yellow-500 underline transition-colors">Gemini API Billing Documentation</a>
-          </p>
         </div>
 
+        {/* لای چەپ: پیشاندانی دەق و ئەنجامی داهێنانەکەت */}
         <div className="flex items-center justify-center min-h-[500px]">
           {image ? (
-            <div className="w-full bg-[#050505] rounded-[4rem] p-6 border border-white/10 shadow-3xl animate-in zoom-in duration-1000 group">
-              <img src={image} alt="Generated Art" className="w-full rounded-[3rem] object-cover transition-transform group-hover:scale-105 duration-[3s]" />
+            <div className="w-full bg-[#050505] rounded-[4rem] p-8 border border-white/10 shadow-3xl animate-in zoom-in duration-500 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">📜 پڕۆمپتی داهێنراوی ئینگلیزی بۆ وێنە:</span>
+                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 text-right font-mono text-slate-300 text-sm leading-relaxed whitespace-pre-wrap select-text selection:bg-amber-500 selection:text-black">
+                  {image}
+                </div>
+              </div>
               <div className="flex gap-4 mt-8">
                 <button 
-                  onClick={() => { const link = document.createElement('a'); link.href = image; link.download = 'kurdai-art.png'; link.click(); }} 
-                  className="flex-1 py-4 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-widest font-['Noto_Sans_Arabic'] hover:bg-yellow-500 transition-all"
+                  onClick={() => { navigator.clipboard.writeText(image); alert("پڕۆمپتەکە کۆپی بوو! دەتوانیت لە Midjourney یان هەر شوێنێکی تر دایبنێیت."); }} 
+                  className="flex-1 py-4 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-widest font-['Noto_Sans_Arabic'] hover:bg-amber-500 transition-all"
                 >
-                  داگرتنی تابلۆ
+                  کۆپیکردنی دەق
                 </button>
                 <button 
                   onClick={() => setImage(null)} 
@@ -202,9 +212,9 @@ const ArtStudio: React.FC = () => {
               <div className={`text-[12rem] mb-10 opacity-5 transition-all duration-1000 ${loading ? 'animate-pulse scale-110 opacity-10' : 'group-hover:opacity-10 grayscale group-hover:grayscale-0'}`}>🎨</div>
               <div className="text-center space-y-4">
                 <p className="text-[12px] font-black uppercase tracking-[0.6em] opacity-30 text-white font-['Noto_Sans_Arabic'] leading-loose">
-                  {loading ? 'وێنەکە لە دروستکردندایە...' : 'ئامادەیە بۆ وەرگرتنی فەرمانەکانت'}
+                  {loading ? 'Gemini Pro خەریکی شیکارییە...' : 'ئامادەیە بۆ لێکدانەوەی داهێنان'}
                 </p>
-                {!loading && <p className="text-[9px] font-bold text-slate-700 font-['Noto_Sans_Arabic']">وێنەیەک باربکە یان وەسفێک بنووسە</p>}
+                {!loading && <p className="text-[9px] font-bold text-slate-700 font-['Noto_Sans_Arabic']">وەسفەکەت بنووسە تا پڕۆمپتی پێشکەوتووت بۆ دابڕێژێت</p>}
               </div>
             </div>
           )}
