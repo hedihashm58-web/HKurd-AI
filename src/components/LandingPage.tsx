@@ -25,7 +25,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
             }}
           />
           
-          {/* ناوی KurdAI Pro - ڕوونکردنەوەی دەقەکە بۆ مۆبایل */}
+          {/* ناوی KurdAI Pro */}
           <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-sm shadow-inner">
             <span className="font-black text-sm md:text-lg tracking-wide bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text]">
               KurdAI Pro
@@ -44,7 +44,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
           <span> بەخێربێیت بۆ یەکەمین ژیریی دەستکردی کوردی</span>
         </div>
 
-        {/* ناونیشانی درەوشاوەی زێڕین - چاککردنی لێکترازان و ڕەنگ لەسەر مۆبایل */}
+        {/* ناونیشانی درەوشاوەی زێڕین */}
         <h1 className="text-2xl md:text-6xl font-black leading-snug md:leading-snug mb-6 md:mb-8 tracking-tight text-white px-2">
           هێزی ژیریی دەستکرد لەژێر کۆنتڕۆڵی <br className="hidden md:block" />
           <span className="bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text] drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] block mt-2 md:inline">
@@ -56,20 +56,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
           سەکۆی <span className="text-amber-400 font-bold">KurdAI Pro</span> نەوەیەکی نوێی ژیریی دەستکردە کە بە وردی و شارەزاییەکی قووڵەوە پەرەی پێدراوە، بۆ ئەوەی ببێتە ڕاوێژکار و یارمەتیدەر و هاوڕێی هەمیشەیی خێزان و پیشەوەرانی کوردستان.
         </p>
 
-        {/* دوگمەی نوێکراوە: چارەسەری ڕەنگی دەقی ناو دوگمەکە بۆ مۆبایل */}
+        {/* دوگمەی نوێکراوە */}
         <button
           onClick={onStartChat}
           className="group relative px-8 py-3.5 md:px-10 md:py-4 rounded-xl md:rounded-2xl bg-[#09090b] font-black text-sm md:text-base tracking-wider overflow-hidden transition-all duration-300 border border-amber-500/40 hover:border-amber-400 shadow-xl shadow-amber-500/5 active:scale-95"
         >
-          {/* ئەنیمەیشنی درەوشانەوەی نەرم لە کاتی هۆڤەردا */}
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          
           <span className="relative z-10 flex items-center gap-2 justify-center bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text] group-hover:text-amber-200 transition-colors">
             دەستپێکردنی گفتوگۆی شاهانە
           </span>
         </button>
 
-        {/* کارتەکان */}
+        {/* 🛠️ کارتەکان: لێرەدا line-clamp بە تەواوی لابراوە بۆ ئەوەی هەموو دەقەکە لە مۆبایلدا دەربکەوێت */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 w-full mt-12 md:mt-24 px-1 md:px-0">
           
           <div className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#09090b] border border-amber-500/10 text-right backdrop-blur-md hover:border-amber-500/40 transition-all duration-300 group">
@@ -77,7 +75,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
               🗺️
             </div>
             <h4 className="font-bold text-xs md:text-lg mb-1 md:mb-2 text-amber-300">ڕێبەری نەخشە</h4>
-            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium">
               گەشتێک بەناو شار و سروشتی کوردستاندا، ناساندنی سەرجەم شار و گەڕەک و شوێنە گەشتیاریەکان بە زانیاری ناوازەوە.
             </p>
           </div>
@@ -87,17 +85,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
               👥
             </div>
             <h4 className="font-bold text-xs md:text-lg mb-1 md:mb-2 text-amber-300">کەسایەتییەکانی کورد</h4>
-            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium">
               ناسینی شاعیران و سەرکردە کاریگەرەکانی گەلی کورد کە داهێنەربوون لە مێژوودا.
             </p>
           </div>
 
           <div className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#09090b] border border-amber-500/10 text-right backdrop-blur-md hover:border-amber-500/40 transition-all duration-300 group">
             <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-amber-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-              ¼
+              ⚜️
             </div>
             <h4 className="font-bold text-xs md:text-lg mb-1 md:mb-2 text-amber-300">زمان و فێربوون</h4>
-            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium">
               توانایەکی بێهاوتا لە وەرگێڕانی دەقەکان, داڕشتنی گوتار و وەڵامدانەوەی پرسیارە زانستییەکان بە کوردی.
             </p>
           </div>
@@ -107,7 +105,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
               👑
             </div>
             <h4 className="font-bold text-xs md:text-lg mb-1 md:mb-2 text-amber-300">داهێنان و کار</h4>
-            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+            <p className="text-slate-400 text-[10px] md:text-sm leading-relaxed font-medium">
               هاوکاریت دەکات لە بیرۆکەدانان بۆ پڕۆژەکان، نووسین و لێکدانەوەی هاوکێشە بیرکاری و ئەندازیارییەکان.
             </p>
           </div>
