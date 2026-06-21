@@ -20,7 +20,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
     { id: View.TRANSLATE, label: 'خزمەتگوزاری زمان', icon: '📜', desc: 'وەرگێڕانی فەرمی و پسپۆڕی دیالەکتەکان', meta: 'Linguistic AI' },
     { id: View.HEALTH, label: 'خزمەتگوزاری تەندروستی', icon: '🩺', desc: 'شیکاریی نیشانەکان و زانیاریی دەرمان', meta: 'Medical AI' },
     { id: View.ART, label: 'خزمەتگوزاری داهێنان', icon: '🎨', desc: 'بەرهەمهێنانی بینراوی کوالیتی بەرز', meta: 'Creative AI' },
-    { id: View.VIDEO, label: 'خزمەتگوزاری ڤیدیۆ', icon: '🎥', desc: 'ڕێندەرکردنی ڤیدیۆی سینەمایی و فەرمی', meta: 'Multimedia AI' },
+    // 👑 لێرەدا ناوی خزمەتگوزاری ڤیدیۆ گۆڕدرا بۆ پڕۆژەکانی نیشتەجێبوون بە ئایکۆنی باڵەخانەوە
+    { id: View.VIDEO, label: 'پڕۆژەکانی نیشتەجێبوون', icon: '🏢', desc: 'ڕێبەری گشتی نرخ، قیست و خزمەتگوزاری سیتییەکان', meta: 'Kurdistan Housing' },
     { id: View.VOICE, label: 'خزمەتگوزاری دەنگی', icon: '🔊', desc: 'پەیوەندی دەنگیی ڕاستەوخۆ و پارێزراو', meta: 'Audio AI' },
   ];
 
@@ -132,8 +133,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
       <main className="flex-1 container mx-auto max-w-[1500px] p-4 lg:p-8 relative z-10">
         {children}
       </main>
-
-      {/* ❌ بەشی فووتەر لێرەوە بە تەواوی سڕدراوەتەوە */}
     </div>
   );
 };

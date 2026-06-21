@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
-import { collection, addDoc, doc, setDoc, updateDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, updateDoc, getDocs, getDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 
 const ChatInterface: React.FC = () => {
@@ -11,9 +11,13 @@ const ChatInterface: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   
+  // ⏱️ لۆجیکی کۆنترۆڵکردنی ٣ نامە لە خولەکێکدا
+  const [msgCountInMinute, setMsgCountInMinute] = useState<number>(0);
+  const [minuteStartTime, setMinuteStartTime] = useState<number>(Date.now());
+
   const defaultMessage: Message = { 
     role: 'model', 
-    text: "سڵاوێکی گەرمت لێ بێت!\n\nمن KurdAI Pro م، پێشکەوتووترین و وردترین سیستەمی ژیریی نیشتمانی بۆ هەرێمی کوردستان کە لە لایەن (هێدی) پەرەم پێ دراوە. چۆن دەتوانم هاوکاریت بکەم؟", 
+    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەی پێدراوە. چۆن دەتوانم هاوکاریت بکەم؟", 
     timestamp: new Date() 
   };
 
@@ -96,15 +100,33 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  const generateCacheKey = (srcText: string) => {
+    return srcText.trim().toLowerCase().replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_').substring(0, 50);
+  };
+
   const handleSend = async () => { 
     if (!input.trim() || isLoading) return; 
+
+    const currentTime = Date.now();
     
-    const currentInput = input; 
+    // ⏱️ پشکنینی لێمیتی خولەک
+    if (currentTime - minuteStartTime >= 60000) {
+      setMinuteStartTime(currentTime);
+      setMsgCountInMinute(1);
+    } else {
+      if (msgCountInMinute >= 3) {
+        alert("⚠️ لێمیتی ناردنی خێرا! تۆ ناتوانیت لە ١ خولەکدا زیاتر لە ٣ نامە بنێریت. تکایە کەمێک بوەستە.");
+        return;
+      }
+      setMsgCountInMinute(prev => prev + 1);
+    }
+    
+    const currentInput = input.trim(); 
     const userMsg: Message = { role: 'user', text: currentInput, timestamp: new Date() }; 
     
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages); 
-    setInput(''); 
+    setInput(''); // ✅ کێشەکە لێرەدا بە تەواوی چاککراوەتەوە
     setIsLoading(true); 
 
     const user = auth.currentUser; 
@@ -134,14 +156,35 @@ const ChatInterface: React.FC = () => {
     
     await saveUserMessageToDB(); 
 
+    const cacheKey = generateCacheKey(currentInput);
+    if (db) {
+      try {
+        const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
+        if (cacheSnap.exists()) {
+          const cachedAnswer = cacheSnap.data().aiResponse;
+          setIsLoading(false);
+          setMessages(prev => [...prev, { role: 'model', text: cachedAnswer, timestamp: new Date() }]);
+          
+          if (user?.email && activeChatId) { 
+            await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
+              role: 'model', text: cachedAnswer, timestamp: serverTimestamp() 
+            }); 
+          }
+          return;
+        }
+      } catch (e) {
+        console.error("کێشە لە خوێندنەوەی کاش:", e);
+      }
+    }
+
+    let conversationHistory = "تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە. ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت, کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n";
     const lastFewMessages = updatedMessages.slice(-6);
-    let conversationHistory = "";
     
     lastFewMessages.forEach(msg => {
       if (msg.role === 'user') {
         conversationHistory += `بەکارهێنەر: ${msg.text}\n`;
       } else {
-        conversationHistory += `${msg.text}\n`;
+        conversationHistory += `مۆدێل: ${msg.text}\n`;
       }
     });
 
@@ -172,6 +215,18 @@ const ChatInterface: React.FC = () => {
       let aiAnswer = data.response ? data.response : "هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.";
       setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
+      if (db && aiAnswer.trim()) {
+        try {
+          await setDoc(doc(db, 'global_chat_cache', cacheKey), {
+            userQuery: currentInput,
+            aiResponse: aiAnswer,
+            createdAt: serverTimestamp()
+          });
+        } catch (e) {
+          console.error("کێشە لە خەزنکردنی کاش:", e);
+        }
+      }
+
       if (user?.email && activeChatId) { 
         await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
           role: 'model', text: aiAnswer, timestamp: serverTimestamp() 
@@ -181,7 +236,7 @@ const ChatInterface: React.FC = () => {
       setIsLoading(false); 
       let errorMessage = error.message;
       if (error.message === "LIMIT_EXCEEDED_CHAT") {
-        errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی شاهانە (Premium).";
+        errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
       }
       setMessages(prev => [...prev, {
         role: 'model',
@@ -224,10 +279,10 @@ const ChatInterface: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto space-y-6 px-2 pb-4 scroll-smooth" ref={scrollRef}>
           {messages.map((msg, idx) => ( 
-            <div key={idx} className={`flex w-full flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div key={idx} className={`flex w-full flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}>
               {msg.text && (
-                <div className={`max-w-[85%] p-4 shadow-md rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-bl-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-br-sm'}`}>
-                  <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                <div className={`max-w-[85%] p-4 shadow-md rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-tl-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
+                  <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap text-right">{msg.text}</p>
                   <div className="flex justify-end mt-2 pt-1.5 border-t border-white/10">
                     <button onClick={() => handleCopy(msg.text, idx)} className="text-[11px] font-medium">{copiedIndex === idx ? "کۆپی کرا! ✓" : "کۆپیکردن 📋"}</button>
                   </div>
@@ -237,8 +292,8 @@ const ChatInterface: React.FC = () => {
           ))}
 
           {isLoading && (
-            <div className="flex w-full flex-col items-start animate-pulse">
-              <div className={`w-[150px] p-4 rounded-3xl rounded-br-sm flex flex-col gap-2 ${isDarkMode ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
+            <div className="flex w-full flex-col items-end animate-pulse">
+              <div className={`w-[150px] p-4 rounded-3xl rounded-tl-sm flex flex-col gap-2 ${isDarkMode ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
                 <div className={`h-2.5 w-3/4 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
                 <div className={`h-2.5 w-1/2 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
               </div>
@@ -259,7 +314,6 @@ const ChatInterface: React.FC = () => {
             />
             <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-md shrink-0 mb-0.5">{isLoading ? '...' : 'ناردن'}</button>
           </div>
-          {/* ⚠️ ئاگاداری زیادکراوە لێرە */}
           <p className="text-[11px] text-center text-slate-500 font-medium mt-1">
             ⚠️ تکایە هیچ جۆرە زانیارییەکی کەسی، متمانەپێکراو یان پاسۆردی هەژمارەکانت لێرەدا مەنووسە.
           </p>

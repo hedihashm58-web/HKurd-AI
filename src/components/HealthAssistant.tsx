@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { analyzeHealthImageStream } from '../services/geminiService';
+import React, { useState, useRef, useEffect } from 'react';
+import { auth } from '../firebase';
 
 const HealthAssistant: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -8,6 +8,16 @@ const HealthAssistant: React.FC = () => {
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 📜 ڕێفرنس بۆ کۆنترۆڵکردنی سکرۆڵی ئۆتۆماتیکی
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // ⏱️ هەر کاتێک وەڵامەکە هاتەوە یان گۆڕدرا، شاشەکە دەباتە خوارەوە بۆ سەر وەڵامەکە
+  useEffect(() => {
+    if (result && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [result]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,45 +42,60 @@ const HealthAssistant: React.FC = () => {
     setResult("");
     
     try {
-      // ئەگەر پرسیاری نەنووسیبوو، پرسیارێکی دیفاڵتی بۆ دەنێرین
-      const promptText = question.trim() !== "" ? question : "تکایە شیکاری بۆ ئەم وێنەیە پزیشکییە یان پشکنینە بکە و زانیاری پێویستم پێ بدە بە زمانی کوردی.";
+      const userEmail = auth.currentUser?.email || "guest_user";
+      const promptText = question.trim() !== "" ? question : "تکایە شیکاری بۆ ئەم زانیارییە یان پشکنینە پزیشکییە بکە.";
       
-      // ڕیزبەندییەکە ڕاست کرایەوە: (پرسیار، وێنە، جۆری وێنە)
-      const response = await analyzeHealthImageStream(promptText, image, mimeType);
-      
-      let fullResult = "";
-      for await (const chunk of response.stream) {
-        fullResult += chunk.text();
-        setResult(fullResult);
+      const healthPrompt = `تۆ ڕاوێژکارێکی زیرەکی بواری تەندروستیت. وەک پسپۆڕێک وەڵامی ئەم پرسیارە تەندروستییە بدەرەوە بە زمانی کوردیی فەرمی. وەڵامەکەت زۆر کورت، پوخت و ڕاستەوخۆ بێت بەبێ درێژدادڕی.\n\nپرسیار:\n${promptText}`;
+
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: healthPrompt,
+          email: userEmail
+        }), 
+      });
+
+      const data = await response.json();
+
+      if (response.status === 403) {
+        throw new Error("⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.");
       }
-    } catch (error) {
+
+      if (!response.ok) {
+        throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە");
+      }
+
+      setResult(data.response || "هیچ زانیارییەک وەرنەگیرا.");
+
+    } catch (error: any) {
       console.error(error);
-      setResult("ببورە، هەڵەیەک لە کاتی شیکارکردنی زانیارییە تەندروستییەکان ڕوویدا.");
+      setResult(error.message || "ببورە، هەڵەیەک لە کاتی شیکارکردنی زانیارییە تەندروستییەکان ڕوویدا.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20" dir="rtl">
-      {/* Professional Header */}
+    <div className="max-w-5xl mx-auto space-y-10 md:space-y-12 animate-in fade-in duration-700 pb-20 px-2 sm:px-4" dir="rtl">
+      {/* هێدەر و نازناو */}
       <div className="text-center space-y-4">
         <h2 className="text-4xl lg:text-6xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">ژیریی <span className="text-red-500">تەندروستی</span></h2>
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] font-['Noto_Sans_Arabic']">شیکاریی وردی پشکنین و نیشانە پزیشکییەکان بە ژیریی KurdAI</p>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] sm:text-[10px] font-['Noto_Sans_Arabic']">شیکاریی وردی پشکنین و نیشانە پزیشکییەکان بە ژیریی KurdAI</p>
       </div>
 
-      <div className="glass-panel p-8 lg:p-14 rounded-[4rem] border border-white/5 shadow-3xl space-y-10 relative overflow-hidden bg-[#050507]">
+      <div className="glass-panel p-5 sm:p-8 lg:p-14 rounded-2xl sm:rounded-[4rem] border border-white/5 shadow-3xl space-y-8 relative overflow-hidden bg-[#050507]">
         <div className="absolute top-0 left-0 w-64 h-64 bg-red-500/5 blur-[100px] rounded-full pointer-events-none"></div>
 
-        <div className="grid lg:grid-cols-12 gap-10">
-          {/* Input Section */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] font-['Noto_Sans_Arabic'] px-4">وەسفی نیشانەکان یان پرسیارەکەت</label>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          {/* بەشی داخڵکردنی پرسیار و وێنە */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] sm:tracking-[0.5em] font-['Noto_Sans_Arabic'] px-2">وەسفی نیشانەکان یان پرسیارەکەت</label>
               <textarea 
                 value={question} 
                 onChange={e => setQuestion(e.target.value)}
-                className="w-full h-48 bg-white/[0.02] p-8 rounded-[2.5rem] text-white text-xl border border-white/5 font-['Noto_Sans_Arabic'] focus:border-red-500/30 outline-none transition-all resize-none shadow-inner placeholder:opacity-20 custom-scrollbar"
+                className="w-full h-40 sm:h-48 bg-white/[0.02] p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] text-white text-base sm:text-xl border border-white/10 font-['Noto_Sans_Arabic'] focus:border-red-500/30 outline-none transition-all resize-none shadow-inner placeholder:opacity-20 leading-relaxed"
                 placeholder="بۆ نموونە: ئەنجامی ئەم پشکنینەم بۆ ڕوون بکەرەوە، یان باسی ئازارەکەت بکە..."
               />
             </div>
@@ -85,77 +110,64 @@ const HealthAssistant: React.FC = () => {
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className={`flex-1 py-6 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
+                className={`flex-1 py-4 sm:py-6 rounded-2xl sm:rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
                   image ? 'border-red-500/50 bg-red-500/5' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'
                 }`}
               >
-                <span className="text-2xl">{image ? '✅' : '📷'}</span>
+                <span className="text-xl sm:text-2xl">{image ? '✅' : '📷'}</span>
                 <span className="text-[9px] font-black font-['Noto_Sans_Arabic'] uppercase tracking-widest text-slate-500">بارکردنی وێنەی پشکنین یان نیشانە</span>
               </button>
 
               <button 
                 onClick={handleAnalyze} 
                 disabled={loading || (!question.trim() && !image)}
-                className="flex-[1.5] py-6 bg-red-600 text-white rounded-[2rem] font-black text-lg uppercase tracking-[0.2em] font-['Noto_Sans_Arabic'] shadow-2xl shadow-red-600/20 hover:bg-red-500 disabled:opacity-20 transition-all active:scale-95"
+                className="flex-[1.5] py-4 sm:py-6 bg-red-600 text-white rounded-2xl sm:rounded-[2rem] font-black text-base sm:text-lg uppercase tracking-widest sm:tracking-[0.2em] font-['Noto_Sans_Arabic'] shadow-2xl shadow-red-600/20 hover:bg-red-500 disabled:opacity-20 transition-all active:scale-95"
               >
                 {loading ? 'خەریکی پشکنینە...' : 'دەستپێکردنی پشکنین'}
               </button>
             </div>
           </div>
 
-          {/* Preview Section */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            <div className={`flex-1 rounded-[3rem] border-2 border-dashed border-white/5 bg-white/[0.01] flex items-center justify-center relative overflow-hidden group ${!image && 'opacity-30'}`}>
+          {/* بەشی پیشاندانی وێنەی بارکراو */}
+          <div className="lg:col-span-5 flex flex-col gap-4 w-full">
+            <div className={`w-full aspect-video sm:aspect-square lg:flex-1 rounded-2xl sm:rounded-[3rem] border-2 border-dashed border-white/5 bg-white/[0.01] flex items-center justify-center relative overflow-hidden group ${!image && 'opacity-30'}`}>
               {image ? (
                 <>
                   <img src={image} className="w-full h-full object-cover" alt="Medical Reference" />
                   <button 
                     onClick={removeImage}
-                    className="absolute top-4 left-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                    className="absolute top-3 left-3 w-8 h-8 bg-black/60 backdrop-blur-md rounded-full text-white flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
                   >✕</button>
                 </>
               ) : (
-                <div className="text-center space-y-4 p-10">
-                  <div className="text-6xl opacity-10">🩺</div>
-                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest font-['Noto_Sans_Arabic']">هیچ وێنەیەک دیاری نەکراوە</p>
+                <div className="text-center space-y-3 p-6">
+                  <div className="text-4xl sm:text-5xl opacity-10">🩺</div>
+                  <p className="text-[9px] sm:text-[10px] font-black text-slate-600 uppercase tracking-widest font-['Noto_Sans_Arabic']">هیچ وێنەیەک دیاری نەکراوە</p>
                 </div>
               )}
             </div>
             
-            <div className="p-6 bg-yellow-500/5 border border-yellow-500/10 rounded-3xl flex gap-4 items-center">
-               <span className="text-2xl">⚠️</span>
-               <p className="text-[9px] font-bold text-yellow-600/80 leading-relaxed font-['Noto_Sans_Arabic']">
-                 تێبینی: ئەم ئەنجامانە تەنها بۆ زانیاری گشتین و جێگەی ڕاوێژی ڕاستەوخۆی پزیشکی پسپۆڕ ناگرنەوە.
+            <div className="p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl flex gap-3 items-center">
+               <span className="text-xl">⚠️</span>
+               <p className="text-[9px] sm:text-[10px] font-bold text-yellow-600/80 leading-relaxed font-['Noto_Sans_Arabic'] text-right">
+                 تێبینی: ئەم ئەنجامانە تەنها بۆ زانیاری گشتین و جێگەی ڕاوێژی ڕاستەوخۆیی پزیشکی پسپۆڕ ناگرنەوە.
                </p>
             </div>
           </div>
         </div>
 
-        {/* Result Area */}
+        {/* پیشاندانی ئەنجامی شیکاری پزیشکی بە لۆجیکی سکرۆڵی نوێ */}
         {result && (
-          <div className="mt-12 p-10 lg:p-16 bg-black/40 rounded-[3.5rem] border border-white/5 animate-in fade-in slide-in-from-top-6 duration-700 shadow-inner relative">
-            <div className="absolute top-8 right-8 text-[9px] font-black text-red-500 uppercase tracking-[0.4em] font-['Noto_Sans_Arabic']">ئەنجامی شیکاریی پزیشکی</div>
-            <div className="text-slate-200 font-['Noto_Sans_Arabic'] leading-[2.2] text-xl lg:text-2xl text-justify whitespace-pre-wrap pt-6">
+          <div 
+            ref={resultRef}
+            className="mt-8 p-6 sm:p-10 lg:p-16 bg-black/40 rounded-2xl sm:rounded-[3.5rem] border border-white/5 animate-in fade-in slide-in-from-top-6 duration-700 shadow-inner relative"
+          >
+            <div className="absolute top-4 sm:top-8 right-4 sm:right-8 text-[9px] font-black text-red-500 uppercase tracking-[0.4em] font-['Noto_Sans_Arabic']">ئەنجامی شیکاریی پزیشکی</div>
+            <div className="text-slate-200 font-['Noto_Sans_Arabic'] leading-relaxed sm:leading-[2.2] text-sm sm:text-xl lg:text-2xl text-justify whitespace-pre-wrap pt-6">
               {result}
             </div>
           </div>
         )}
-      </div>
-
-      {/* Trust Badges */}
-      <div className="flex flex-wrap justify-center gap-10 opacity-30 grayscale hover:grayscale-0 transition-all duration-700">
-         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">🔬</div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white">Advanced Lab Analysis</span>
-         </div>
-         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">🧬</div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white">Genetic Insight Core</span>
-         </div>
-         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">🛡️</div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white">Secure Medical Privacy</span>
-         </div>
       </div>
     </div>
   );

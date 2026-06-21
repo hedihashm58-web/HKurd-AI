@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { analyzeMathStream } from '../services/geminiService';
+import { auth } from '../firebase';
 
 const MathAnalyzer: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -25,17 +25,35 @@ const MathAnalyzer: React.FC = () => {
     if ((!query.trim() && !image) || loading) return;
     setLoading(true);
     setResult("");
+    
     try {
-      // لێرەدا کێشەکە چارەسەر کراوە: ئەنجامەکە دەخەینە ناو response
-      const response = await analyzeMathStream(query, image, mimeType);
-      
-      // پاشان response.stream بەکاردەهێنین
-      for await (const chunk of response.stream) {
-        setResult(prev => (prev || "") + chunk.text()); // دەبێت text() وەک فەنکشن بانگ بکرێت
+      const userEmail = auth.currentUser?.email || "guest_user";
+      // دروستکردنی پڕۆمپتی زانستی بۆ مۆدێلی باکێند
+      const mathPrompt = `تۆ زانایەکی پسپۆڕیت لە بواری بیرکاری، فیزیا و کیمیا. تکایە بە وردی و هەنگاو بە هەنگاو شیکاری بۆ ئەم کێشە زانستییە بکە بە زمانی کوردی.\n\nپرسیار:\n${query}`;
+
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: mathPrompt,
+          email: userEmail
+        }), 
+      });
+
+      const data = await response.json();
+
+      if (response.status === 403) {
+        throw new Error("⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.");
       }
-    } catch (error) {
+
+      if (!response.ok) {
+        throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە");
+      }
+
+      setResult(data.response || "هیچ شیکارییەک وەرنەگیرا.");
+    } catch (error: any) {
       console.error(error);
-      setResult("ببورە، هەڵەیەک لە کاتی شیکارکردن ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.");
+      setResult(error.message || "ببورە، هەڵەیەک لە کاتی شیکارکردن ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.");
     } finally {
       setLoading(false);
     }
@@ -48,24 +66,22 @@ const MathAnalyzer: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-12 text-right" dir="rtl">
-      {/* Header */}
       <div className="text-center space-y-4">
         <h2 className="text-4xl lg:text-6xl font-black text-white font-['Noto_Sans_Arabic']">شیکارکەری <span className="text-yellow-500">زانستی</span></h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] font-['Noto_Sans_Arabic']">شیکاریی ورد بۆ بیرکاری، فیزیا و کیمیا بە وێنە و دەق</p>
       </div>
 
-      <div className="glass-panel p-8 lg:p-12 rounded-[3.5rem] border border-white/5 shadow-3xl space-y-10">
+      <div className="glass-panel p-8 lg:p-12 rounded-[3.5rem] border border-white/5 shadow-3xl space-y-10 bg-[#050507]">
         <div className="space-y-6">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] font-['Noto_Sans_Arabic'] px-4">وەسفی کێشەکە یان هاوکێشەکە</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] font-['Noto_Sans_Arabic'] px-4">...وەسفی کێشەکە یان هاوکێشەکە</label>
           <textarea 
             value={query} 
             onChange={e => setQuery(e.target.value)}
-            className="w-full h-40 bg-white/[0.02] p-8 rounded-[2rem] text-white text-xl border border-white/5 font-['Noto_Sans_Arabic'] focus:border-yellow-500/30 outline-none transition-all resize-none shadow-inner"
+            className="w-full h-40 bg-white/[0.02] p-8 rounded-[2rem] text-white text-xl border border-white/10 font-['Noto_Sans_Arabic'] focus:border-yellow-500/30 outline-none transition-all resize-none shadow-inner"
             placeholder="لێرە دەتوانیت پرسیارەکە بنووسیت یان وێنەیەک بار بکەیت..."
           />
         </div>
 
-        {/* Image Upload Section */}
         <div className="flex flex-col lg:flex-row gap-6 items-center">
           <input 
             type="file" 
@@ -124,13 +140,12 @@ const MathAnalyzer: React.FC = () => {
         )}
       </div>
 
-      {/* Institutional Note */}
       <div className="max-w-2xl mx-auto p-10 bg-yellow-500/5 border border-yellow-500/10 rounded-[3rem] flex gap-8 items-center flex-row-reverse">
         <div className="text-4xl">🔬</div>
         <div className="text-right space-y-2">
            <h4 className="text-yellow-500 font-black text-xs uppercase tracking-widest font-['Noto_Sans_Arabic']">تایبەتمەندی بیرکردنەوەی قووڵ</h4>
            <p className="text-[11px] text-slate-500 font-medium leading-relaxed font-['Noto_Sans_Arabic']">
-             ئەم سیستەمە مۆدێلی Gemini 3 Pro بەکاردەهێنێت بۆ ئەوەی بە قووڵی بیر لە کێشە زانستییەکان بکاتەوە و وردترین وەڵامت بداتەوە.
+             ئەم سیستەمە مۆدێلی KurdAI Pro بەکاردەهێنێت بۆ ئەوەی بە قووڵی بیر لە کێشە زانستییەکان بکاتەوە و وردترین وەڵامت بداتەوە.
            </p>
         </div>
       </div>

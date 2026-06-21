@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { translateKurdishStream } from '../services/geminiService';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -24,7 +23,6 @@ const Translator: React.FC = () => {
   ];
 
   useEffect(() => {
-    // ئەگەر دەقەکە بەتاڵ بوو، ئەنجامەکە پاك دەکرێتەوە
     if (!text.trim()) {
       setResult('');
       setLoading(false);
@@ -35,7 +33,6 @@ const Translator: React.FC = () => {
     return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
   }, [text, sourceLang, targetLang]);
 
-  // دروستکردنی کلیلێکی پارێزراو بۆ فایەربەیس
   const generateCacheKey = (srcText: string, srcLang: string, trgLang: string) => {
     const safeText = srcText.trim().substring(0, 30).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_');
     return `${safeText}_${srcLang}_${trgLang}_General`;
@@ -43,9 +40,9 @@ const Translator: React.FC = () => {
 
   const performTranslation = async () => {
     setLoading(true);
-    const cacheKey = generateCacheKey(text, sourceLang, targetLang);
+    const currentInput = text.trim();
+    const cacheKey = generateCacheKey(currentInput, sourceLang, targetLang);
 
-    // پشکنینی کاش لە فایەربەیس
     if (db) {
       try {
         const docSnap = await getDoc(doc(db, 'global_translations', cacheKey));
@@ -60,20 +57,27 @@ const Translator: React.FC = () => {
     }
 
     try {
-      // ناردنی 'General' وەک تۆنی پێشوەچووی گشتی بۆ ئەوەی بەکارهێنەر پێویستی بە دوگمە نەبێت
-      const response = await translateKurdishStream(text, sourceLang, targetLang, 'General');
-      
-      if (!response || !response.stream) {
-        throw new Error("وەڵامی ستریم بەردەست نییە");
+      // 🧠 دروستکردنی پڕۆمپتێکی تایبەت بۆ وەرگێڕان بۆ ئەوەی مۆدێلی باکێند تەنها دەقی وەرگێڕدراو بنووسێت
+      const translationPrompt = `تۆ وەرگێڕێکی زمانەوانی پسپۆڕیت. تکایە ئەم دەقەی خوارەوە لە زمانی (${sourceLang}) وەرگێڕە بۆ سەر زمانی (${targetLang}). تەنها و تەنها دەقی وەرگێڕدراو بنووسە بەبێ هیچ دەقێکی زیادە یان تێبینی.\n\nدەق:\n${currentInput}`;
+
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: translationPrompt,
+          email: "guest_user" // وەرگێڕان بە شێوەی گشتی بێ لێمیت کار دەکات
+        }), 
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە");
       }
 
-      let fullResult = "";
-      for await (const chunk of response.stream) {
-        fullResult += chunk.text();
-        setResult(fullResult);
-      }
+      let fullResult = data.response ? data.response.trim() : "هەڵەیەک لە کاتی وەرگێڕاندا ڕوویدا.";
+      setResult(fullResult);
 
-      // پاشەکەوتکردن لە فایەربەیس
       if (db && fullResult.trim()) {
         try { 
           await setDoc(doc(db, 'global_translations', cacheKey), { 
@@ -86,7 +90,7 @@ const Translator: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Translation Error:", error);
-      setResult(error?.status === 429 ? "تکایە کەمێک چاوەڕێ بکە..." : "هەڵەیەک ڕوویدا...");
+      setResult("بۆورە، هەڵەیەک لە کاتی پەیوەندیکردن بە مێشکی وەرگێڕان ڕوویدا.");
     } finally {
       setLoading(false);
     }
@@ -111,7 +115,6 @@ const Translator: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-12 space-y-6 md:space-y-10 animate-in fade-in duration-700 pb-24" dir="rtl">
-      {/* ناونیشان */}
       <div className="text-center space-y-3">
         <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">
           وەرگێڕی <span className="text-yellow-500">خێرا</span>
@@ -120,7 +123,6 @@ const Translator: React.FC = () => {
       </div>
 
       <div className="glass-panel rounded-2xl md:rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden bg-[#050507] backdrop-blur-md">
-        {/* هەڵبژاردنی زمانەکان - بە تەواوی گونجاوە بۆ مۆبایل */}
         <div className="bg-white/[0.02] border-b border-white/5 p-4 md:p-6 lg:p-8 flex items-center justify-between gap-2 md:gap-6">
           <div className="flex-1">
             <select 
@@ -151,12 +153,10 @@ const Translator: React.FC = () => {
           </div>
         </div>
 
-        {/* ناوچەی دەق و ئەنجام - لەسەر یەک دادەنرێن لە مۆبایل و لە دەسکتۆپ دەبن بە دوو ستوون */}
         <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-white/5">
-          {/* سندوقی داخڵکردنی دەق */}
           <div className="relative flex flex-col h-[200px] md:h-[280px] lg:h-[380px]">
             <textarea 
-              className="p-4 md:p-8 w-full h-full bg-transparent text-white text-sm md:text-lg lg:text-2xl focus:outline-none resize-none placeholder-slate-500" 
+              className="p-4 md:p-8 w-full h-full bg-transparent text-white text-sm md:text-lg lg:text-2xl focus:outline-none resize-none placeholder-slate-500 text-right" 
               placeholder="دەقەکە لێرە بنووسە..." 
               value={text} 
               onChange={e => setText(e.target.value)}
@@ -172,10 +172,9 @@ const Translator: React.FC = () => {
             )}
           </div>
 
-          {/* سندوقی پیشاندانی وەرگێڕان */}
-          <div className="relative p-4 md:p-8 text-yellow-500 text-sm md:text-lg lg:text-2xl overflow-y-auto h-[200px] md:h-[280px] lg:h-[380px] whitespace-pre-wrap bg-white/[0.01]">
+          <div className="relative p-4 md:p-8 text-yellow-500 text-sm md:text-lg lg:text-2xl overflow-y-auto h-[200px] md:h-[280px] lg:h-[380px] whitespace-pre-wrap bg-white/[0.01] text-right">
             {loading ? (
-              <div className="flex items-center gap-2 text-slate-400 text-xs md:text-base">
+              <div className="flex items-center gap-2 text-slate-400 text-xs md:text-base justify-end">
                 <span className="animate-pulse">⏳ وەرگێڕانی گشتی بە ئەی ئای...</span>
               </div>
             ) : (

@@ -9,7 +9,7 @@ import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 
 import ArtInterface from './components/ArtStudio';
-import VideoInterface from './components/VideoStudio';
+import VideoInterface from './components/KurdishHousing';
 import MathInterface from './components/MathAnalyzer';
 import TranslateInterface from './components/Translator';
 import VoiceInterface from './components/VoiceAssistant';
