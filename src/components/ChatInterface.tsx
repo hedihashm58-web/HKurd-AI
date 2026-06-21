@@ -177,10 +177,10 @@ const ChatInterface: React.FC = () => {
       }
     }
 
-    // 👑 لێره‌دا سیسته‌م پڕۆمپتی هاوچه‌رخ جێگیرکرا بۆ چەسپاندنی مێشکی مۆدێلەکە لەسەر ساڵی ٢٠٢٦
+    // 👑 سیستەم پڕۆمپتی سەرەکی بۆ هاوچەرخکردنی مێشکەکە لەسەر ساڵی ٢٠٢٦
     let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
 ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.
-مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا، کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
+مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا, کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
 ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت، کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
     
     const lastFewMessages = updatedMessages.slice(-6);
@@ -197,11 +197,10 @@ const ChatInterface: React.FC = () => {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        // 👑 ناردنی فەرمانی ئینتەرنێت و گەڕانی گوگڵ (tools) هاوشانی پڕۆمپتەکە بۆ سێرڤەری هێگینگ فەیس
+        // 👑 چاککردنی هەڵەی 403 بە لابردنی کەرەسەی لۆکاڵی tools لێرەدا
         body: JSON.stringify({ 
           message: conversationHistory.trim(),
-          email: user?.email || "guest_user",
-          tools: [{ googleSearch: {} }] // 🌐 لێرەدا فەرمانی گەڕانی گوگڵ بۆ مێشکەکە زیاد بوو
+          email: user?.email || "guest_user"
         }), 
       });
 
@@ -273,7 +272,7 @@ const ChatInterface: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleLogout} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500'}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              <svg xmlns="http://www.w3.org/2000/xl" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </button>
             <button onClick={handleClearCurrentChat} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
