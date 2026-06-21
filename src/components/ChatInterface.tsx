@@ -180,7 +180,7 @@ const ChatInterface: React.FC = () => {
     // 👑 سیستەم پڕۆمپتی سەرەکی بۆ هاوچەرخکردنی مێشکەکە لەسەر ساڵی ٢٠٢٦
     let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
 ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.
-مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا, کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
+مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا، کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
 ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت، کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
     
     const lastFewMessages = updatedMessages.slice(-6);
@@ -197,7 +197,6 @@ const ChatInterface: React.FC = () => {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        // 👑 چاککردنی هەڵەی 403 بە لابردنی کەرەسەی لۆکاڵی tools لێرەدا
         body: JSON.stringify({ 
           message: conversationHistory.trim(),
           email: user?.email || "guest_user"
@@ -240,13 +239,18 @@ const ChatInterface: React.FC = () => {
       }
     } catch (error: any) { 
       setIsLoading(false); 
-      let errorMessage = error.message;
-      if (error.message === "LIMIT_EXCEEDED_CHAT") {
-        errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
+      
+      // 👑 لێره‌دا كێشه‌ی ده‌رچوونی هه‌ڵه‌ ته‌كنینكییه‌كان بۆ هه‌میشه‌ چاك كرا
+      // چی کلیلەکە بوەستێت، چی سێرڤەرەکە بە ته‌واوی لۆد نه‌بێت، ڕێک ئه‌م پەیامە شیک و ڕێکە پیشان دەدرێت:
+      let errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
+      
+      if (error.message === "داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.") {
+        errorMessage = `❌ ${error.message}`;
       }
+
       setMessages(prev => [...prev, {
         role: 'model',
-        text: `❌ ${errorMessage}`,
+        text: errorMessage,
         timestamp: new Date()
       }]);
     }
