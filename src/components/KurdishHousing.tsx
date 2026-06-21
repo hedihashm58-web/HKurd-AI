@@ -14,7 +14,7 @@ interface HousingProject {
   services: string[];
   units: {
     type: string;
-    zone?: string; // 👑 زیادکردنی گۆڕاوی زۆن بۆ داتاکە
+    zone?: string;
     price: string;
     installments: string;
     details: string;
@@ -40,7 +40,7 @@ const KurdishHousing: React.FC = () => {
   // 🔘 تابی فۆرمی ئەدمین (0 بۆ شوقە، 1 بۆ ڤێلا)
   const [adminFormTab, setAdminFormTab] = useState<number>(0);
 
-  // 📝 گۆڕاوەکانی فۆرم
+  // 📝 Gۆڕاوەکانی فۆرمی ئەدمین
   const [newName, setNewName] = useState('');
   const [newCity, setNewCity] = useState('erbil');
   const [newLocation, setNewLocation] = useState('');
@@ -55,16 +55,22 @@ const KurdishHousing: React.FC = () => {
   const [villaImages, setVillaImages] = useState<string[]>([]);
 
   // زانیاری شوقە
-  const [aptZone, setAptZone] = useState(''); // 👑 ستیتی نوێ بۆ زۆنی شوقە
+  const [aptZone, setAptZone] = useState('');
   const [aptPrice, setAptPrice] = useState('');
   const [aptInstallments, setAptInstallments] = useState('');
   const [aptDetails, setAptDetails] = useState('');
 
   // زانیاری ڤێلا
-  const [villaZone, setVillaZone] = useState(''); // 👑 ستیتی نوێ بۆ زۆنی ڤێلا
+  const [villaZone, setVillaZone] = useState('');
   const [villaPrice, setVillaPrice] = useState('');
   const [villaInstallments, setVillaInstallments] = useState('');
   const [villaDetails, setVillaDetails] = useState('');
+
+  // 👑 گۆڕاوەکانی فۆرمی کڕین (Leads Form) بۆ کڕیاران
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientNote, setClientPhoneNote] = useState('');
+  const [submittingLead, setSubmittingLead] = useState<boolean>(false);
 
   useEffect(() => {
     fetchProjects();
@@ -231,6 +237,29 @@ const KurdishHousing: React.FC = () => {
     }
   };
 
+  const handleClientSubmitLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName || !clientPhone) return alert("تکایە ناو و ژمارەی مۆبایلەکەت بنووسە");
+    if (!selectedProject) return;
+
+    setSubmittingLead(true);
+    try {
+      await addDoc(collection(db, 'housing_leads'), {
+        projectName: selectedProject.name,
+        clientName: clientName,
+        clientPhone: clientPhone,
+        clientNote: clientNote,
+        timestamp: new Date().toISOString()
+      });
+      alert(`🎉 کاک ${clientName} گیان، داواکارییەکەت نێردرا بۆ ڕوانین! بەم زووانە پەیوەندیت پێوە دەکەین.`);
+      setClientName(''); setClientPhone(''); setClientPhoneNote('');
+    } catch (err) {
+      alert("کێشەیەک ڕوویدا لە ناردنی داواکارییەکەدا");
+    } finally {
+      setSubmittingLead(false);
+    }
+  };
+
   const filteredProjects = projects.filter(project => selectedCity === 'all' || project.city === selectedCity);
 
   return (
@@ -257,14 +286,11 @@ const KurdishHousing: React.FC = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input type="text" placeholder="ناوی پڕۆژە" value={newName} onChange={e=>setNewName(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none" />
-            
-            {/* گەڕاندنەوەی فۆرماتە ڕەسەنەکە بەبێ زاخۆ */}
             <select value={newCity} onChange={e=>setNewCity(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none">
               <option value="erbil">هەولێر</option>
               <option value="sulaymaniyah">سلێمانی</option>
               <option value="duhok">دهۆک</option>
             </select>
-            
             <input type="text" placeholder="ناونیشانی ورد" value={newLocation} onChange={e=>setNewLocation(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
             <input type="text" placeholder="کۆد یان لینکی Google Maps" value={newMapLink} onChange={e=>setNewMapLink(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
             <input type="text" placeholder="ژمارەی تەلەفۆن" value={newPhone} onChange={e=>setNewPhone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
@@ -290,14 +316,11 @@ const KurdishHousing: React.FC = () => {
             </div>
           </div>
 
-          {/* 🏢 تابی شوقە لەگەڵ خانەی زۆن */}
           {adminFormTab === 0 && (
-            <div className="p-4 bg-indigo-950/20 border border-indigo-500/10 rounded-2xl space-y-4 animate-in fade-in duration-200">
+            <div className="p-4 bg-indigo-950/20 border border-indigo-500/10 rounded-2xl space-y-4">
               <h4 className="text-indigo-400 font-black text-xs">زانیاری شوقەکان:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* 👑 خانەی نوێ بۆ نووسینی زۆن */}
-                <input type="text" placeholder="زۆنی شوقەکان (بۆ نموونە: زۆنی A یان زۆنی مۆدێرن)" value={aptZone} onChange={e=>setAptZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
-                
+                <input type="text" placeholder="زۆنی شوقەکان (بۆ نموونە: زۆنی A)" value={aptZone} onChange={e=>setAptZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
                 <input type="text" placeholder="نرخ" value={aptPrice} onChange={e=>setAptPrice(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
                 <input type="text" placeholder="قیست" value={aptInstallments} onChange={e=>setAptInstallments(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
                 <input type="text" placeholder="وەسف" value={aptDetails} onChange={e=>setAptDetails(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
@@ -316,14 +339,11 @@ const KurdishHousing: React.FC = () => {
             </div>
           )}
 
-          {/* 🏡 تابی ڤێلا لەگەڵ خانەی زۆن */}
           {adminFormTab === 1 && (
-            <div className="p-4 bg-emerald-950/20 border border-emerald-500/10 rounded-2xl space-y-4 animate-in fade-in duration-200">
+            <div className="p-4 bg-emerald-950/20 border border-emerald-500/10 rounded-2xl space-y-4">
               <h4 className="text-emerald-400 font-black text-xs">زانیاری ڤێلاکان:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* 👑 خانەی نوێ بۆ نووسینی زۆن */}
-                <input type="text" placeholder="زۆنی ڤێلاکان (بۆ نموونە: زۆنی شاهانە یان زۆنی B)" value={villaZone} onChange={e=>setVillaZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
-                
+                <input type="text" placeholder="زۆنی ڤێلاکان (بۆ نموونە: زۆنی شاهانە)" value={villaZone} onChange={e=>setVillaZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
                 <input type="text" placeholder="نرخ" value={villaPrice} onChange={e=>setVillaPrice(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
                 <input type="text" placeholder="قیست" value={villaInstallments} onChange={e=>setVillaInstallments(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
                 <input type="text" placeholder="وەسف" value={villaDetails} onChange={e=>setVillaDetails(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
@@ -405,7 +425,7 @@ const KurdishHousing: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-5 sm:p-10 flex flex-col lg:flex-row gap-8 items-start">
+          <div className="p-5 sm:p-10 flex flex-col lg:flex-row gap-8 items-start border-b border-slate-900">
             <div className="w-full lg:w-[400px] aspect-video sm:aspect-square shrink-0 rounded-2xl overflow-hidden border border-slate-800 relative bg-black select-none">
               <img src={activeUnitIndex === -1 ? selectedProject.coverImage : (selectedProject.units[activeUnitIndex]?.unitImages[currentImageIndex] || 'https://via.placeholder.com/600')} alt="Gallery" className="w-full h-full object-cover" />
               
@@ -441,7 +461,6 @@ const KurdishHousing: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {/* 👑 لێرەدا ناوی زۆنەکە بە دیزاینێکی زۆر قەشەنگ نیشانی بەکارهێنەر دەدرێت ئەگەر پڕکرابێتەوە */}
                   {selectedProject.units[activeUnitIndex]?.zone && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl flex items-center justify-between text-right animate-in fade-in">
                       <span className="text-slate-400 text-xs font-bold">📍 زۆن یان شوێنی یەکە:</span>
@@ -472,7 +491,48 @@ const KurdishHousing: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-6 border-t border-slate-800 bg-slate-950/40 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          {/* 👑 🛠️ لێرەدا کێشەی فۆرمی لۆدبوونی ڕوانین چارەسەر کرا بە کڵاسی جێگیر تا دوگمەکە بە تەواوی دەرکەوێت */}
+          <div className="p-6 sm:p-10 bg-slate-950/40 border-b border-slate-900 text-right space-y-4">
+            <div className="border-l-4 border-yellow-500 pr-3">
+              <h3 className="text-lg font-black text-white">🤝 دەتەوێت ئەم یەکەیە بکڕیت؟</h3>
+              <p className="text-slate-400 text-xs mt-1">زانیارییەکانت بنووسە؛ تیمی یاسایی و ڕاوێژکاری KurdAI Pro بۆ کڕینی باشترین شوقە/ڤێلا بە کەمترین نرخ یاوەرکارت دەبێت.</p>
+            </div>
+
+            <form onSubmit={handleClientSubmitLead} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <input 
+                type="text" 
+                placeholder="ناوی سیانیت" 
+                value={clientName}
+                onChange={e=>setClientName(e.target.value)}
+                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
+              />
+              <input 
+                type="tel" 
+                placeholder="ژمارەی مۆبایل (ڕاست و دروست)" 
+                value={clientPhone}
+                onChange={e=>setClientPhone(e.target.value)}
+                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
+              />
+              <input 
+                type="text" 
+                placeholder="تێبینییەکەت (بۆ نموونە: کاتی پەیوەندی)" 
+                value={clientNote}
+                onChange={e=>setClientPhoneNote(e.target.value)}
+                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
+              />
+              
+              {/* 👑 نوێکردنەوەی کۆتایی دوگمەکە: بە پاشبنەمای زەردی ڕووناک (bg-yellow-500) و تێکستی ڕەشی تۆکمە تا بە جوانی شاشەکە بگرێت */}
+              <button 
+                type="submit" 
+                disabled={submittingLead}
+                className="w-full block col-span-1 sm:col-span-3 py-4 bg-yellow-500 hover:bg-yellow-600 text-black font-black text-xs rounded-xl shadow-2xl transition-all disabled:opacity-50 text-center"
+              >
+                {submittingLead ? 'خەریکی ناردنی زانیارییە...' : '📩 داواکردنی ڕاوێژکاری کڕین لە KurdAI Pro'}
+              </button>
+            </form>
+          </div>
+
+          <div className="p-6 bg-slate-950/20 flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="flex flex-wrap gap-3 w-full sm:w-auto">
               <a href={`tel:${selectedProject.phone}`} className="flex-1 sm:flex-none px-6 py-3 bg-white text-black font-black text-sm rounded-xl text-center">📞 تەلەفۆن</a>
               <a href={`https://wa.me/${selectedProject.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 text-white font-black text-sm rounded-xl text-center">💬 وەتسئەپ</a>

@@ -126,7 +126,7 @@ const ChatInterface: React.FC = () => {
     
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages); 
-    setInput(''); // ✅ کێشەکە لێرەدا بە تەواوی چاککراوەتەوە
+    setInput(''); 
     setIsLoading(true); 
 
     const user = auth.currentUser; 
@@ -177,7 +177,12 @@ const ChatInterface: React.FC = () => {
       }
     }
 
-    let conversationHistory = "تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە. ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت, کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n";
+    // 👑 لێره‌دا سیسته‌م پڕۆمپتی هاوچه‌رخ جێگیرکرا بۆ چەسپاندنی مێشکی مۆدێلەکە لەسەر ساڵی ٢٠٢٦
+    let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
+ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.
+مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا، کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
+ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت، کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
+    
     const lastFewMessages = updatedMessages.slice(-6);
     
     lastFewMessages.forEach(msg => {
@@ -192,9 +197,11 @@ const ChatInterface: React.FC = () => {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
+        // 👑 ناردنی فەرمانی ئینتەرنێت و گەڕانی گوگڵ (tools) هاوشانی پڕۆمپتەکە بۆ سێرڤەری هێگینگ فەیس
         body: JSON.stringify({ 
           message: conversationHistory.trim(),
-          email: user?.email || "guest_user"
+          email: user?.email || "guest_user",
+          tools: [{ googleSearch: {} }] // 🌐 لێرەدا فەرمانی گەڕانی گوگڵ بۆ مێشکەکە زیاد بوو
         }), 
       });
 
