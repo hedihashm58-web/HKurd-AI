@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { auth } from '../firebase';
 
 const ArtStudio: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -40,9 +41,8 @@ const ArtStudio: React.FC = () => {
     setImage(null);
 
     try {
-      // 🔗 💡 بەستنەوەی ڕاستەوخۆ بە ئیندپۆینتی باکێندەکەت لەسەر Hugging Face
-      // تەنها لەجیاتی ئەم لینکەی خوارەوە، لینکی ڕاستەقینەی باکێندەکەی خۆت دابنێ
-      const BACKEND_URL = "https://your-huggingface-spaces-link.hf.space"; 
+      const userEmail = auth.currentUser?.email || "guest_user";
+      const BACKEND_URL = "https://hedihashm-kurdai-chat-brain.hf.space"; 
       
       const response = await fetch(`${BACKEND_URL}/api/art-studio`, {
         method: "POST",
@@ -50,21 +50,22 @@ const ArtStudio: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `مۆدێل و ستایل: ${selectedStyle}، کوالیتی: ${quality}، وەسف: ${prompt}`
+          prompt: `مۆدێل و ستایل: ${selectedStyle}، کوالیتی: ${quality}، وەسف: ${prompt}`,
+          email: userEmail
         })
       });
 
       const data = await response.json();
 
+      if (response.status === 403) {
+        throw new Error("⚠️ لێمیتی دروستکردنی وێنەی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.");
+      }
+
       if (!response.ok) {
-        // ئەگەر باکێندەکە وشەی نەشیاوی دۆزییەوە یان کێشەیەک هەبوو، نامەی هەڵەکە لێرەدا نیشان دەدات
         throw new Error(data.detail || "هەڵەیەک لە سیستەمدا ڕوویدا.");
       }
 
-      // وەرگرتنی پڕۆمپت و دەقی داهێنراوی وێنە لە مۆدێلی Gemini 2.5 Pro
       if (data.art_response) {
-        // لێرەدا دەتوانیت دەقەکە بخەیتە ناو تەمپڵێت یان ڕاستەوخۆ وەک دەقی داهێنان پیشانی بدەیت
-        // تێبینی: چونکە مۆدێلی جمینای دەق دەگەڕێنێتەوە، لێرەدا وەک نموونە دەقەکە لە ناو شاشەی وێنەکە جێگیر دەکەین
         setImage(data.art_response);
       } else {
         throw new Error("هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.");
@@ -72,7 +73,7 @@ const ArtStudio: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "پەیوەندی بە باکێندەوە نەکرا. دڵنیابەرەوە لە ڕەنبوونی باکێندەکەت لە Hugging Face.");
+      setError(err.message || "پەیوەندی بە باکێندەوە نەکرا.");
     } finally {
       setLoading(false);
     }
@@ -182,7 +183,6 @@ const ArtStudio: React.FC = () => {
           </button>
         </div>
 
-        {/* لای چەپ: پیشاندانی دەق و ئەنجامی داهێنانەکەت */}
         <div className="flex items-center justify-center min-h-[500px]">
           {image ? (
             <div className="w-full bg-[#050505] rounded-[4rem] p-8 border border-white/10 shadow-3xl animate-in zoom-in duration-500 flex flex-col justify-between h-full">

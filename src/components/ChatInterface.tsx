@@ -134,7 +134,6 @@ const ChatInterface: React.FC = () => {
     
     await saveUserMessageToDB(); 
 
-    // 👑 ڕێکخستنی خاوێنی مێژووی چات بەبێ دووبارەکردنەوەی ناوی مۆدێلەکە تا باکێندەکە تێکنەچێت
     const lastFewMessages = updatedMessages.slice(-6);
     let conversationHistory = "";
     
@@ -151,11 +150,18 @@ const ChatInterface: React.FC = () => {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: conversationHistory.trim()
+          message: conversationHistory.trim(),
+          email: user?.email || "guest_user"
         }), 
       });
 
       const data = await response.json();
+
+      if (response.status === 403) {
+        throw new Error("LIMIT_EXCEEDED_CHAT");
+      } else if (response.status === 400) {
+        throw new Error("داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.");
+      }
 
       if (!response.ok) {
         throw new Error(data.detail || `سێرڤەری مێشک وەڵامی نەدایەوە: ${response.status}`);
@@ -163,14 +169,7 @@ const ChatInterface: React.FC = () => {
 
       setIsLoading(false);
 
-      // 👑 لێرەدا تەنها بەهای وەڵامی دەقەکە (.response) دەخوێنرێتەوە بۆ ئەوەی کەوانەی JSON نیشان نەدات
-      let aiAnswer = "";
-      if (data.response) {
-        aiAnswer = data.response;
-      } else {
-        aiAnswer = "هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.";
-      }
-
+      let aiAnswer = data.response ? data.response : "هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.";
       setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
       if (user?.email && activeChatId) { 
@@ -180,11 +179,22 @@ const ChatInterface: React.FC = () => {
       }
     } catch (error: any) { 
       setIsLoading(false); 
+      let errorMessage = error.message;
+      if (error.message === "LIMIT_EXCEEDED_CHAT") {
+        errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی شاهانە (Premium).";
+      }
       setMessages(prev => [...prev, {
         role: 'model',
-        text: `❌ کێشەیەک لە پەیوەندیکردن بە مێشکی سەرەکییەوە هەیە: ${error.message}`,
+        text: `❌ ${errorMessage}`,
         timestamp: new Date()
       }]);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -237,10 +247,22 @@ const ChatInterface: React.FC = () => {
         </div>
 
         <div className={`pt-4 mt-2 border-t flex flex-col gap-2 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
-          <div className={`flex items-center gap-2 border rounded-full p-1.5 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} className={`flex-1 bg-transparent px-4 py-2 focus:outline-none text-sm md:text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`} placeholder="پرسیارەکەت لێرە بنووسە..." disabled={isLoading} />
-            <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-md">{isLoading ? '...' : 'ناردن'}</button>
+          <div className={`flex items-end gap-2 border rounded-[2rem] p-2 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
+            <textarea 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              onKeyDown={handleKeyDown} 
+              rows={1}
+              className={`flex-1 bg-transparent px-4 py-2 focus:outline-none text-sm md:text-base resize-none max-h-32 min-h-[40px] leading-relaxed ${isDarkMode ? 'text-white' : 'text-slate-900'}`} 
+              placeholder="پرسیارەکەت لێرە بنووسە..." 
+              disabled={isLoading} 
+            />
+            <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-md shrink-0 mb-0.5">{isLoading ? '...' : 'ناردن'}</button>
           </div>
+          {/* ⚠️ ئاگاداری زیادکراوە لێرە */}
+          <p className="text-[11px] text-center text-slate-500 font-medium mt-1">
+            ⚠️ تکایە هیچ جۆرە زانیارییەکی کەسی، متمانەپێکراو یان پاسۆردی هەژمارەکانت لێرەدا مەنووسە.
+          </p>
         </div>
       </div>
     </>
