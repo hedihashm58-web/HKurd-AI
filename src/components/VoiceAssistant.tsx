@@ -51,7 +51,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [foodQuantity, setFoodQuantity] = useState<number>(1);
   const [isActive, setIsActive] = useState(false);
   const [noteText, setNoteText] = useState('');
-  const [isManualInput, setIsManualInput] = useState(false); // ✍️ بۆ نووسینی دەستی ئەگەر مایکەکە دەقی دروست نەکرد
+  const [isManualInput, setIsManualInput] = useState(false);
 
   const isSuperAdmin = auth.currentUser?.email === 'heremheyder@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
   const [showAdminForm, setShowAdminForm] = useState(false);
@@ -66,12 +66,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [newResCover, setNewResCover] = useState('');
 
   const recognitionRef = useRef<any>(null);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   useEffect(() => {
     fetchLiveRestaurants();
 
-    // 🚀 سیستەمی یەکەم: هەوڵدان بۆ چالاککردنی Speech to Text ی فەرمی وێبگەڕ
+    // 🚀 لۆجیکی جێگیری مایک بۆ وێبگەڕەکان
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
@@ -108,35 +107,21 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
     }
   };
 
-  // 🎙️ سیستەمی دووەم: ئەگەر وێبگەڕ پشتگیری نەبوو، وەک میدیا دەنگەکە تۆمار دەکات
-  const startVoiceProcess = async () => {
+  // 🎙️ کردنەوەی مایک بە فەرمی
+  const startVoiceProcess = () => {
     setNoteText('');
     setIsManualInput(false);
 
-    // ئەگەر وێبگەڕەکە پشتگیری گۆڕینی ڕاستەوخۆی دەنگی دەکرد
     if (recognitionRef.current) {
       try {
         recognitionRef.current.start();
-        return;
-      } catch (e) { console.log("SpeechRecognition working fallback"); }
-    }
-
-    // ئەگەر پشتگیری نەکرد، وەک فایل تۆماری دەکات و ڕێگا بە نووسینی دەستیش دەدات
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      
-      recorder.onstart = () => { setIsActive(true); };
-      recorder.ondataavailable = () => {
-        setNoteText("تێبینی دەنگی تۆمارکراو 🎙️");
-        setIsManualInput(true); // ✍️ کردنەوەی بەشی دەستکاری بۆ ئەوەی بنووسێت
-      };
-      recorder.onstop = () => { setIsActive(false); };
-      recorder.start();
-    } catch (err) {
+      } catch (e) {
+        setIsActive(false);
+      }
+    } else {
+      // ئەگەر وێبگەڕەکە کۆن بوو یان مۆڵەتی نەبوو، ڕێگا بە نووسین دەدات
       setIsManualInput(true);
-      alert("⚠️ مۆڵەتی مایک نەدراوە! دەتوانیت تێبینییەکە بە دەستی بنووسیت.");
+      alert("⚠️ وێبگەڕەکەت ڕێگەی بە مایک نەدا، دەتوانیت بە دەست تێبینییەکە بنووسیت.");
     }
   };
 
@@ -144,10 +129,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch(e){}
     }
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
-    }
+    setIsActive(false);
   };
 
   const handleCreateOrUpdateRestaurant = async (e: React.FormEvent) => {
@@ -219,7 +201,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         restaurantName: selectedRestaurant.name_ku,
         foodName: selectedFoodItem.name_ku,
         quantity: foodQuantity,
-        voiceNoteText: noteText || "بێ تێبینی",
+        voiceNoteText: noteText || "بێ تێبینی دایەلۆگ",
         status: "new",
         timestamp: new Date().toISOString()
       });
@@ -321,22 +303,22 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
             
             <div className="bg-slate-950 p-3 rounded-xl text-center space-y-2">
               {isActive ? (
-                <button type="button" onClick={stopVoiceProcess} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[11px] font-black animate-pulse">
-                  ⏹️ ڕاگرتنی تۆمارکردن
+                <button type="button" onClick={stopVoiceProcess} className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-black animate-pulse">
+                  🛑 ڕاگرتنی گوێگرتن
                 </button>
               ) : (
-                <button type="button" onClick={startVoiceProcess} className="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-[11px] font-black">
-                  🎙️ تێبینی دەنگی (کوردی / عەرەبی)
+                <button type="button" onClick={startVoiceProcess} className="px-4 py-2 bg-yellow-500 text-black rounded-lg text-xs font-black">
+                  🎙️ دەستپێکردنی مایک
                 </button>
               )}
               
-              {/* ✍️ ڕێگەدان بە نووسین یان دەستکاری تێبینی دەنگی */}
-              {(noteText || isManualInput) && (
+              {/* ✍️ ڕێگەدان بە نووسین یان بینینی دەقەکە لێرە */}
+              {(noteText || isManualInput || isActive) && (
                 <input 
                   type="text" 
                   value={noteText} 
                   onChange={(e) => { setNoteText(e.target.value); setIsManualInput(true); }}
-                  placeholder="تێبینی لێرە بنووسە یان دەستکاری بکە..." 
+                  placeholder="تێبینی بنووسە یان دەستکاری بکە..." 
                   className="w-full p-2 bg-black text-white border border-slate-800 rounded-lg text-xs text-right mt-2 outline-none focus:border-yellow-500"
                 />
               )}
