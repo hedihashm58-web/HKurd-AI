@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
-// 🔐 هاوردەکردنی نەخشەی فەرمی فایربەیس بۆ دروستکردنی حیسابی لۆگین
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, addDoc, getDocs, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
@@ -36,18 +35,6 @@ const initialRestaurantsData: Restaurant[] = [
     menu: [
       { name_ku: "کبابی سۆران (شیش)", name_ar: "كباب سوران (شيش)", price_ku: "٧,٠٠٠ دینار", price_ar: "٧,٠٠٠ دينار", image: "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?q=80&w=400", category: "food" }
     ]
-  },
-  {
-    id: "res_2",
-    name_ku: "داون تاون فاست فوود",
-    name_ar: "داون تاون فاست فود",
-    logo: "🍔",
-    cover: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=1000",
-    ownerEmail: "downtown@restaurant.com",
-    ownerName: "خاوەنی داون تاون",
-    menu: [
-      { name_ku: "برگەری شاهانە (دۆبڵ)", name_ar: "برجر ملوكي (دبل)", price_ku: "٨,٥٠٠ دینار", price_ar: "٨,٥٠٠ دينار", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400", category: "food" }
-    ]
   }
 ];
 
@@ -66,7 +53,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [status, setStatus] = useState('');
   const [noteText, setNoteText] = useState('');
 
-  // 👑 لۆجیکی سوپەر ئادمین
   const isSuperAdmin = auth.currentUser?.email === 'heremheyder@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
@@ -77,26 +63,41 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [newOwnerEmail, setNewOwnerEmail] = useState('');
   const [newOwnerPassword, setNewOwnerPassword] = useState('');
   const [newResLogo, setNewResLogo] = useState('🍽️');
+  const [newResCover, setNewResCover] = useState('');
 
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     fetchLiveRestaurants();
-    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
-      rec.lang = language === 'ku' ? 'ku-IQ' : 'ar-IQ';
+      
+      if (language === 'ku') {
+        rec.lang = 'ku-IQ'; 
+      } else {
+        rec.lang = 'ar-IQ';
+      }
+      
       rec.onstart = () => { 
         setIsActive(true); 
         setStatus(language === 'ku' ? '🎙️ گوێم لێتە، تێبینی بڵێ...' : '🎙️ أنا أستمع إليك...'); 
       };
+      
       rec.onresult = (e: any) => { 
         setNoteText(e.results[0][0].transcript); 
         setIsActive(false); 
       };
-      rec.onerror = () => setIsActive(false);
+      
+      rec.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsActive(false);
+        if (event.error === 'not-allowed') {
+          alert("🚫 تکایە لە ڕێکخستنی وێبگەڕەکەت ڕێگە بە مایکەکە بدە (Allow Microphone)");
+        }
+      };
+      
       rec.onend = () => setIsActive(false);
       recognitionRef.current = rec;
     }
@@ -126,7 +127,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
     try {
       if (editingRestaurant) {
-        // 📝 دەستکاریکردنی زانیاری لە Firestore
         const ref = doc(db, 'restaurants', editingRestaurant.id);
         await updateDoc(ref, {
           name_ku: newResNameKu,
@@ -135,53 +135,40 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
           ownerName: newOwnerName,
           ownerEmail: newOwnerEmail.toLowerCase().trim()
         });
-        alert("گۆڕانکارییەکە بە سەرکەوتوویی پاشەکەوت کرا");
+        alert("گۆڕانکارییەکە پاشەکەوت کرا");
       } else {
-        // ➕ ١. دروستکردنی حیسابی لۆگین لە Firebase Auth بۆ ئەوەی حیسابەکە کار بکات
         if (!newOwnerPassword || newOwnerPassword.length < 6) {
-          alert("تکایە پاسۆردێک بنووسە کە لە ٦ پیت کەمتر نباشێت");
+          alert("تکایە پاسۆرد لە ٦ پیت کەمتر نەبێت");
           return;
         }
-        
         await createUserWithEmailAndPassword(auth, newOwnerEmail.toLowerCase().trim(), newOwnerPassword);
-
-        // ➕ ٢. تۆمارکردنی زانیارییەکان لە ناو داتابەیسی Firestore
         await addDoc(collection(db, 'restaurants'), {
           name_ku: newResNameKu,
           name_ar: newResNameAr || newResNameKu,
           logo: newResLogo,
-          cover: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000",
+          cover: newResCover || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000",
           ownerName: newOwnerName,
           ownerEmail: newOwnerEmail.toLowerCase().trim(),
           temporaryPassword: newOwnerPassword,
           menu: []
         });
-        
-        alert("🎉 ڕێستۆرانت و حیسابی داخڵبوونی خاوەنەکە بە سەرکەوتوویی دروستکرا!");
+        alert("ڕێستۆرانت دروستکرا");
       }
-      setNewResNameKu(''); setNewResNameAr(''); setNewOwnerName(''); setNewOwnerEmail(''); setNewOwnerPassword('');
+      setNewResNameKu(''); setNewResNameAr(''); setNewOwnerName(''); setNewOwnerEmail(''); setNewOwnerPassword(''); setNewResCover('');
       setEditingRestaurant(null); setShowAdminForm(false);
       fetchLiveRestaurants();
     } catch (err: any) {
-      if (err.code === 'auth/email-already-in-use') {
-        alert("❌ ئەم ئیمەیڵە پێشتر حیسابی بۆ دروستکراوە!");
-      } else {
-        alert("خەتایەک لە کاتی دروستکردنی حیساب ڕوویدا: " + err.message);
-      }
+      alert("خەتا: " + err.message);
     }
   };
 
   const handleDeleteRestaurant = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("دڵنیای لە سڕینەوەی ئەم ڕێستۆرانتە؟")) return;
-
+    if (!window.confirm("دڵنیای لە سڕینەوە؟")) return;
     try {
       await deleteDoc(doc(db, 'restaurants', id));
-      alert("ڕێستۆرانتەکە سڕدراوە");
       fetchLiveRestaurants();
-    } catch (err) {
-      alert("خەتا لە کاتی سڕینەوە");
-    }
+    } catch (err) { alert("خەتا"); }
   };
 
   const handleStartEdit = (res: Restaurant, e: React.MouseEvent) => {
@@ -207,11 +194,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         status: "new",
         timestamp: new Date().toISOString()
       });
-      alert(language === 'ku' ? `🎉 داواکاری نێردرا بۆ ڕێستۆرانت!` : `🎉 تم إرسال الطلب!`);
+      alert(`🎉 داواکاری بە سەرککەوتوویی نێردرا!`);
       setSelectedFoodItem(null);
       setNoteText('');
-    } catch (e) {
-      alert("Error saving order");
+    } catch (e) { 
+      alert("خەتا لە ناردنی داواکاری"); 
     }
   };
 
@@ -220,57 +207,45 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in duration-700 pb-20 px-2 sm:px-4 text-right" dir="rtl">
+    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-in fade-in duration-500 pb-20 px-4 text-right" dir="rtl">
       
       {isSuperAdmin && (
         <div className="text-center">
-          <button type="button" onClick={() => { setShowAdminForm(!showAdminForm); setEditingRestaurant(null); }} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl text-xs shadow-lg">
-            {showAdminForm ? '✕ داخستنی پانێڵ' : '➕ زیادکردنی ڕێستۆرانتی نوێ'}
+          <button type="button" onClick={() => { setShowAdminForm(!showAdminForm); setEditingRestaurant(null); }} className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs">
+            {showAdminForm ? '✕ داخستنی پانێڵ' : '➕ زیادکردنی ڕێستۆرانت'}
           </button>
         </div>
       )}
 
       {showAdminForm && isSuperAdmin && (
-        <form onSubmit={handleCreateOrUpdateRestaurant} className="bg-slate-950 p-6 rounded-[2.5rem] border border-slate-800 space-y-4 max-w-2xl mx-auto w-full shadow-2xl">
-          <h3 className="text-sm font-black text-yellow-500">{editingRestaurant ? '📝 دەستکاریکردنی ڕێستۆرانت' : '📋 زیادکردنی ڕێستۆرانت'}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input type="text" placeholder="ناوی ڕێستۆرانت (کوردی)" value={newResNameKu} onChange={e=>setNewResNameKu(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />
-            <input type="text" placeholder="اسم المطعم (عربي)" value={newResNameAr} onChange={e=>setNewResNameAr(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />
-            <input type="text" placeholder="ئیمۆجی لۆگۆ (🍕)" value={newResLogo} onChange={e=>setNewResLogo(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input type="text" placeholder="ناوی خاوەن" value={newOwnerName} onChange={e=>setNewOwnerName(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />
-            <input type="email" placeholder="ئیمەیڵ" value={newOwnerEmail} onChange={e=>setNewOwnerEmail(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />
-            {!editingRestaurant && <input type="text" placeholder="پاسۆرد" value={newOwnerPassword} onChange={e=>setNewOwnerPassword(e.target.value)} className="p-3 bg-black text-white text-xs rounded-xl border border-slate-800 outline-none" />}
-          </div>
-          <button type="submit" className="w-full py-3 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">
-            {editingRestaurant ? '💾 پاشەکەوتکردنی گۆڕانکارییەکان' : '🚀 دروستکردنی ڕێستۆرانت'}
-          </button>
+        <form onSubmit={handleCreateOrUpdateRestaurant} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 max-w-xl mx-auto w-full">
+          <input type="text" placeholder="ناوی کوردی" value={newResNameKu} onChange={e=>setNewResNameKu(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />
+          <input type="text" placeholder="ئیمەیڵ" value={newOwnerEmail} onChange={e=>setNewOwnerEmail(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />
+          {!editingRestaurant && <input type="text" placeholder="پاسۆرد" value={newOwnerPassword} onChange={e=>setNewOwnerPassword(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />}
+          <input type="text" placeholder="🔗 لینکی وێنەی کەڤەر" value={newResCover} onChange={e=>setNewResCover(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" dir="ltr" />
+          <button type="submit" className="w-full py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-lg">🚀 پاشەکەوت</button>
         </form>
       )}
 
       {!selectedRestaurant ? (
         <>
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-black text-white">🎙️ داواکاری دەنگی <span className="text-yellow-500">ڕێستۆرانتەکان</span></h2>
-            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="🔎 گەڕان..." className="w-full max-w-md bg-slate-950/60 border border-slate-800 rounded-2xl py-3 px-6 text-sm text-slate-200 text-right" />
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-black text-white">🎙️ داواکاری دەنگی <span className="text-yellow-500">ڕێستۆرانتەکان</span></h2>
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="🔎 گەڕان..." className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-slate-200 text-right" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             {handleCitySearch.map((res) => (
-              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setFoodQuantity(1); }} className="group rounded-3xl border border-slate-800 bg-[#050507] overflow-hidden cursor-pointer shadow-xl relative">
-                <div className="h-44 w-full relative">
-                  <img src={res.cover} alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                  <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-2xl">{res.logo}</div>
-                    <h3 className="text-base font-black text-white">{language === 'ku' ? res.name_ku : res.name_ar}</h3>
-                  </div>
+              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setFoodQuantity(1); }} className="rounded-xl border border-slate-900 bg-[#050507] overflow-hidden cursor-pointer flex h-24 items-center p-2 gap-3 hover:border-slate-700 transition-all">
+                <img src={res.cover} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-black text-white truncate">{language === 'ku' ? res.name_ku : res.name_ar}</h3>
+                  <p className="text-[11px] text-slate-500 mt-1">✨ لۆگۆ: {res.logo}</p>
                 </div>
                 {isSuperAdmin && (
-                  <div className="p-3 bg-slate-950 flex gap-2 border-t border-slate-900">
-                    <button onClick={(e) => handleStartEdit(res, e)} className="flex-1 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-[10px] font-bold">📝 دەستکاری</button>
-                    <button onClick={(e) => handleDeleteRestaurant(res.id, e)} className="flex-1 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-bold">🗑️ سڕینەوە</button>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={(e) => handleStartEdit(res, e)} className="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-[10px]">📝</button>
+                    <button onClick={(e) => handleDeleteRestaurant(res.id, e)} className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-[10px]">🗑️</button>
                   </div>
                 )}
               </div>
@@ -278,17 +253,25 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
           </div>
         </>
       ) : (
-        <div className="space-y-8 animate-in fade-in duration-300">
-          <div className="flex justify-between items-center bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-            <button onClick={() => setSelectedRestaurant(null)} className="text-indigo-400 font-black text-xs">← گەڕانەوە</button>
-            <h2 className="text-xl font-black text-white flex items-center gap-2"><span>{selectedRestaurant.logo}</span><span>{selectedRestaurant.name_ku}</span></h2>
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-900">
+            <button onClick={() => setSelectedRestaurant(null)} className="text-indigo-400 font-bold text-xs">← گەڕانەوە</button>
+            <h2 className="text-sm font-black text-white">{selectedRestaurant.name_ku}</h2>
           </div>
-          <div className="flex flex-wrap gap-6 bg-slate-950/20 p-6 rounded-[2.5rem] border border-slate-800/40">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {selectedRestaurant.menu?.map((food, index) => (
-              <div key={index} onClick={() => { setSelectedFoodItem(food); setFoodQuantity(1); }} className="w-28 sm:w-36 flex flex-col items-center cursor-pointer group">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-800 mb-3"><img src={food.image} alt="" className="w-full h-full object-cover" /></div>
-                <h4 className="text-xs font-bold text-slate-200">{language === 'ku' ? food.name_ku : food.name_ar}</h4>
-                <span className="text-[11px] font-black text-slate-400 mt-1">{food.price_ku}</span>
+              <div 
+                key={index} 
+                onClick={() => { setSelectedFoodItem(food); setFoodQuantity(1); }} 
+                className="bg-slate-950 p-2.5 rounded-xl border border-slate-900 flex items-center gap-3 cursor-pointer hover:border-yellow-500/30 transition-all"
+              >
+                <img src={food.image} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-black text-slate-200 truncate">{language === 'ku' ? food.name_ku : food.name_ar}</h4>
+                  <span className="text-[11px] font-bold text-yellow-500 block mt-1">{food.price_ku}</span>
+                </div>
+                <span className="text-xs text-indigo-400 font-bold bg-indigo-500/5 px-2 py-1 rounded-lg">🛒 داواکردن</span>
               </div>
             ))}
           </div>
@@ -298,18 +281,19 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       {selectedFoodItem && (
         <div className="fixed inset-0 z-[350] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setSelectedFoodItem(null)}></div>
-          <div className="relative bg-[#09090b] border border-slate-800 w-full max-w-md rounded-[3rem] p-6 space-y-6 text-right">
-            <h3 className="text-lg font-black text-white text-center">{selectedFoodItem.name_ku}</h3>
-            <div className="flex justify-center items-center gap-5 max-w-[180px] mx-auto bg-slate-950 p-1.5 rounded-full border border-slate-800">
-              <button type="button" onClick={() => setFoodQuantity(q => q + 1)} className="w-9 h-9 bg-slate-900 text-white rounded-full">＋</button>
-              <span className="text-white font-black">{foodQuantity}</span>
-              <button type="button" onClick={() => setFoodQuantity(q => q > 1 ? q - 1 : 1)} className="w-9 h-9 bg-slate-900 text-white rounded-full">－</button>
+          <div className="relative bg-[#09090b] border border-slate-800 w-full max-w-sm rounded-2xl p-5 space-y-4 text-right">
+            <h3 className="text-sm font-black text-white text-center">{selectedFoodItem.name_ku}</h3>
+            <div className="flex justify-center items-center gap-4 bg-slate-950 p-1 rounded-full border border-slate-800 max-w-[140px] mx-auto">
+              <button type="button" onClick={() => setFoodQuantity(q => q + 1)} className="w-7 h-7 bg-slate-900 text-white rounded-full font-bold text-xs">＋</button>
+              <span className="text-white font-bold text-xs">{foodQuantity}</span>
+              <button type="button" onClick={() => setFoodQuantity(q => q > 1 ? q - 1 : 1)} className="w-7 h-7 bg-slate-900 text-white rounded-full font-bold text-xs">－</button>
             </div>
-            <div className="bg-slate-950 p-4 rounded-2xl text-center">
-              {isActive ? <p className="text-red-500 animate-pulse">🎙️ گوێم لێتە...</p> : <button type="button" onClick={() => { if (recognitionRef.current) recognitionRef.current.start(); }} className="px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-xl text-xs font-black">🎙️ تێبینی دەنگی</button>}
-              {noteText && <p className="text-xs text-slate-300 mt-2">"{noteText}"</p>}
+            
+            <div className="bg-slate-950 p-3 rounded-xl text-center">
+              {isActive ? <p className="text-red-500 text-xs animate-pulse">🎙️ گوێم لێتە...</p> : <button type="button" onClick={() => { if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e){} } }} className="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-[11px] font-bold">🎙️ تێبینی دەنگی (ئارەزوومەندانە)</button>}
+              {noteText && <p className="text-xs text-slate-400 mt-2 italic">"{noteText}"</p>}
             </div>
-            <button type="button" onClick={confirmOrder} className="w-full py-4 bg-yellow-500 text-black font-black text-xs rounded-xl shadow-lg">🚀 ناردنی داواکاری</button>
+            <button type="button" onClick={confirmOrder} className="w-full py-2.5 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 ناردنی داواکاری</button>
           </div>
         </div>
       )}
