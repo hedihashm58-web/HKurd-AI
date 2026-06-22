@@ -4,25 +4,37 @@ import { collection, addDoc, getDocs, query, doc, updateDoc, deleteDoc } from 'f
 
 interface HousingProject {
   id?: string;
-  name: string;
+  name_ku: string;
+  name_ar: string;
   city: string;
-  location: string;
+  location_ku: string;
+  location_ar: string;
   coverImage: string;
   mapLink?: string; 
   phone: string;
   whatsapp: string;
-  services: string[];
+  services_ku: string[];
+  services_ar: string[];
   units: {
-    type: string;
-    zone?: string;
-    price: string;
-    installments: string;
-    details: string;
+    type_ku: string;
+    type_ar: string;
+    zone_ku?: string;
+    zone_ar?: string;
+    price_ku: string;
+    price_ar: string;
+    installments_ku: string;
+    installments_ar: string;
+    details_ku: string;
+    details_ar: string;
     unitImages: string[];
   }[];
 }
 
-const KurdishHousing: React.FC = () => {
+interface KurdishHousingProps {
+  language: 'ku' | 'ar';
+}
+
+const KurdishHousing: React.FC<KurdishHousingProps> = ({ language }) => {
   const [projects, setProjects] = useState<HousingProject[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<HousingProject | null>(null);
@@ -40,33 +52,44 @@ const KurdishHousing: React.FC = () => {
   // 🔘 تابی فۆرمی ئەدمین (0 بۆ شوقە، 1 بۆ ڤێلا)
   const [adminFormTab, setAdminFormTab] = useState<number>(0);
 
-  // 📝 Gۆڕاوەکانی فۆرمی ئەدمین
-  const [newName, setNewName] = useState('');
+  // 📝 گۆڕاوەکانی فۆرمی ئەدمین (دوو زمانە)
+  const [newNameKu, setNewNameKu] = useState('');
+  const [newNameAr, setNewNameAr] = useState('');
   const [newCity, setNewCity] = useState('erbil');
-  const [newLocation, setNewLocation] = useState('');
+  const [newLocationKu, setNewLocationKu] = useState('');
+  const [newLocationAr, setNewLocationAr] = useState('');
   const [newMapLink, setNewMapLink] = useState(''); 
   const [newPhone, setNewPhone] = useState('');
   const [newWhatsapp, setNewWhatsapp] = useState('');
-  const [servicesStr, setServicesStr] = useState('');
+  const [servicesStrKu, setServicesStrKu] = useState('');
+  const [servicesStrAr, setServicesStrAr] = useState('');
   
   // 📸 وێنە بارکراوەکان
   const [singleCoverImage, setSingleCoverImage] = useState<string>('');
   const [aptImages, setAptImages] = useState<string[]>([]);
   const [villaImages, setVillaImages] = useState<string[]>([]);
 
-  // زانیاری شوقە
-  const [aptZone, setAptZone] = useState('');
-  const [aptPrice, setAptPrice] = useState('');
-  const [aptInstallments, setAptInstallments] = useState('');
-  const [aptDetails, setAptDetails] = useState('');
+  // زانیاری شوقە (دوو زمانە)
+  const [aptZoneKu, setAptZoneKu] = useState('');
+  const [aptZoneAr, setAptZoneAr] = useState('');
+  const [aptPriceKu, setAptPriceKu] = useState('');
+  const [aptPriceAr, setAptPriceAr] = useState('');
+  const [aptInstallmentsKu, setAptInstallmentsKu] = useState('');
+  const [aptInstallmentsAr, setAptInstallmentsAr] = useState('');
+  const [aptDetailsKu, setAptDetailsKu] = useState('');
+  const [aptDetailsAr, setAptDetailsAr] = useState('');
 
-  // زانیاری ڤێلا
-  const [villaZone, setVillaZone] = useState('');
-  const [villaPrice, setVillaPrice] = useState('');
-  const [villaInstallments, setVillaInstallments] = useState('');
-  const [villaDetails, setVillaDetails] = useState('');
+  // زانیاری ڤێلا (دوو زمانە)
+  const [villaZoneKu, setVillaZoneKu] = useState('');
+  const [villaZoneAr, setVillaZoneAr] = useState('');
+  const [villaPriceKu, setVillaPriceKu] = useState('');
+  const [villaPriceAr, setVillaPriceAr] = useState('');
+  const [villaInstallmentsKu, setVillaInstallmentsKu] = useState('');
+  const [villaInstallmentsAr, setVillaInstallmentsAr] = useState('');
+  const [villaDetailsKu, setVillaDetailsKu] = useState('');
+  const [villaDetailsAr, setVillaDetailsAr] = useState('');
 
-  // 👑 گۆڕاوەکانی فۆرمی کڕین (Leads Form) بۆ کڕیاران
+  // 👑 فۆرمی کڕین بۆ کڕیاران
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientNote, setClientPhoneNote] = useState('');
@@ -83,7 +106,34 @@ const KurdishHousing: React.FC = () => {
       const querySnapshot = await getDocs(q);
       const loaded: HousingProject[] = [];
       querySnapshot.forEach((doc) => {
-        loaded.push({ id: doc.id, ...doc.data() } as HousingProject);
+        const data = doc.data();
+        loaded.push({ 
+          id: doc.id, 
+          name_ku: data.name_ku || data.name || "",
+          name_ar: data.name_ar || data.name || "",
+          city: data.city || "erbil",
+          location_ku: data.location_ku || data.location || "",
+          location_ar: data.location_ar || data.location || "",
+          coverImage: data.coverImage || "",
+          mapLink: data.mapLink || "",
+          phone: data.phone || "",
+          whatsapp: data.whatsapp || "",
+          services_ku: data.services_ku || data.services || [],
+          services_ar: data.services_ar || data.services || [],
+          units: (data.units || []).map((u: any) => ({
+            type_ku: u.type_ku || u.type || "شوقە",
+            type_ar: u.type_ar || u.type || "شقة",
+            zone_ku: u.zone_ku || u.zone || "",
+            zone_ar: u.zone_ar || u.zone || "",
+            price_ku: u.price_ku || u.price || "",
+            price_ar: u.price_ar || u.price || "",
+            installments_ku: u.installments_ku || u.installments || "",
+            installments_ar: u.installments_ar || u.installments || "",
+            details_ku: u.details_ku || u.details || "",
+            details_ar: u.details_ar || u.details || "",
+            unitImages: u.unitImages || []
+          }))
+        } as HousingProject);
       });
       setProjects(loaded);
     } catch (e) {
@@ -138,30 +188,33 @@ const KurdishHousing: React.FC = () => {
   const startEditing = (project: HousingProject) => {
     if (!project.id) return;
     setEditingProjectId(project.id);
-    setNewName(project.name);
+    setNewNameKu(project.name_ku);
+    setNewNameAr(project.name_ar);
     setNewCity(project.city);
-    setNewLocation(project.location);
+    setNewLocationKu(project.location_ku);
+    setNewLocationAr(project.location_ar);
     setNewMapLink(project.mapLink || '');
     setNewPhone(project.phone);
     setNewWhatsapp(project.whatsapp);
-    setServicesStr(project.services.join(', '));
+    setServicesStrKu(project.services_ku.join(', '));
+    setServicesStrAr(project.services_ar.join(', '));
     setSingleCoverImage(project.coverImage);
 
-    const apt = project.units.find(u => u.type.includes('شوقە'));
-    const villa = project.units.find(u => u.type.includes('ڤێلا'));
+    const apt = project.units.find(u => u.type_ku.includes('شوقە') || u.type_ar.includes('شقة'));
+    const villa = project.units.find(u => u.type_ku.includes('ڤێلا') || u.type_ar.includes('فيلا'));
 
     if (apt) {
-      setAptZone(apt.zone || '');
-      setAptPrice(apt.price); setAptInstallments(apt.installments); setAptDetails(apt.details); setAptImages(apt.unitImages);
-    } else {
-      setAptZone(''); setAptPrice(''); setAptInstallments(''); setAptDetails(''); setAptImages([]);
+      setAptZoneKu(apt.zone_ku || ''); setAptZoneAr(apt.zone_ar || '');
+      setAptPriceKu(apt.price_ku); setAptPriceAr(apt.price_ar);
+      setAptInstallmentsKu(apt.installments_ku); setAptInstallmentsAr(apt.installments_ar);
+      setAptDetailsKu(apt.details_ku); setAptDetailsAr(apt.details_ar); setAptImages(apt.unitImages);
     }
 
     if (villa) {
-      setVillaZone(villa.zone || '');
-      setVillaPrice(villa.price); setVillaInstallments(villa.installments); setVillaDetails(villa.details); setVillaImages(villa.unitImages);
-    } else {
-      setVillaZone(''); setVillaPrice(''); setVillaInstallments(''); setVillaDetails(''); setVillaImages([]);
+      setVillaZoneKu(villa.zone_ku || ''); setVillaZoneAr(villa.zone_ar || '');
+      setVillaPriceKu(villa.price_ku); setVillaPriceAr(villa.price_ar);
+      setVillaInstallmentsKu(villa.installments_ku); setVillaInstallmentsAr(villa.installments_ar);
+      setVillaDetailsKu(villa.details_ku); setVillaDetailsAr(villa.details_ar); setVillaImages(villa.unitImages);
     }
 
     setShowAdminPanel(true);
@@ -170,91 +223,89 @@ const KurdishHousing: React.FC = () => {
 
   const handleDeleteProject = async (projectId: string | undefined) => {
     if (!projectId) return;
-    const confirmDelete = window.confirm("⚠️ دڵنیای لە سڕینەوەی تەواوەتی ئەم پڕۆژەیە؟");
+    const confirmDelete = window.confirm(language === 'ku' ? "⚠️ دڵنیای لە سڕینەوەی تەواوەتی ئەم پڕۆژەیە؟" : "⚠️ هل أنت متأكد من حذف هذا المشروع نهائياً؟");
     if (!confirmDelete) return;
 
     try {
       await deleteDoc(doc(db, 'housing_projects', projectId));
-      alert("🗑️ پڕۆژەکە بە سەرکەوتوویی سڕایەوە!");
+      alert(language === 'ku' ? "🗑️ پڕۆژەکە بە سەرکەوتوویی سڕایەوە!" : "🗑️ تم حذف المشروع بنجاح!");
       setSelectedProject(null);
       fetchProjects();
     } catch (err) {
-      alert("هەڵەیەک ڕوویدا لە کاتی سڕینەوەدا");
+      alert("Error");
     }
   };
 
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || !newLocation) return alert("تکایە ناو و ناونیشانی گشتی پڕبکەرەوە");
-    if (!singleCoverImage) return alert("تکایە وێنەی کەڤەر بار بکە");
+    if (!newNameKu || !newLocationKu) return alert("Please fill fields");
 
     const unitsList = [];
-    if (aptPrice || aptDetails || aptImages.length > 0) {
+    if (aptPriceKu || aptImages.length > 0) {
       unitsList.push({
-        type: 'شوقەکان (Apartments)', zone: aptZone, price: aptPrice, installments: aptInstallments, details: aptDetails, unitImages: aptImages
+        type_ku: 'شوقەکان (Apartments)', type_ar: 'الشقق (Apartments)',
+        zone_ku: aptZoneKu, zone_ar: aptZoneAr || aptZoneKu,
+        price_ku: aptPriceKu, price_ar: aptPriceAr || aptPriceKu,
+        installments_ku: aptInstallmentsKu, installments_ar: aptInstallmentsAr || aptInstallmentsKu,
+        details_ku: aptDetailsKu, details_ar: aptDetailsAr || aptDetailsKu,
+        unitImages: aptImages
       });
     }
-    if (villaPrice || villaDetails || villaImages.length > 0) {
+    if (villaPriceKu || villaImages.length > 0) {
       unitsList.push({
-        type: 'ڤێلاکان (Villas)', zone: villaZone, price: villaPrice, installments: villaInstallments, details: villaDetails, unitImages: villaImages
+        type_ku: 'ڤێلاکان (Villas)', type_ar: 'الفلل (Villas)',
+        zone_ku: villaZoneKu, zone_ar: villaZoneAr || villaZoneKu,
+        price_ku: villaPriceKu, price_ar: villaPriceAr || villaPriceKu,
+        installments_ku: villaInstallmentsKu, installments_ar: villaInstallmentsAr || villaInstallmentsKu,
+        details_ku: villaDetailsKu, details_ar: villaDetailsAr || villaDetailsKu,
+        unitImages: villaImages
       });
     }
 
-    if (unitsList.length === 0) return alert("تکایە زانیاری لانی کەم یەکەیەک پڕبکەرەوە");
-
-    const projectData: HousingProject = {
-      name: newName,
+    const projectData = {
+      name_ku: newNameKu, name_ar: newNameAr || newNameKu,
       city: newCity,
-      location: newLocation,
+      location_ku: newLocationKu, location_ar: newLocationAr || newLocationKu,
       mapLink: formatGoogleMapLink(newMapLink), 
-      phone: newPhone,
-      whatsapp: newWhatsapp,
+      phone: newPhone, whatsapp: newWhatsapp,
       coverImage: singleCoverImage,
-      services: servicesStr.split(',').map(s => s.trim()).filter(s => s !== ''),
+      services_ku: servicesStrKu.split(',').map(s => s.trim()).filter(s => s !== ''),
+      services_ar: (servicesStrAr || servicesStrKu).split(',').map(s => s.trim()).filter(s => s !== ''),
       units: unitsList
     };
 
     try {
       if (editingProjectId) {
         await updateDoc(doc(db, 'housing_projects', editingProjectId), projectData as any);
-        alert("🎉 زانیارییەکانی پڕۆژەکە نوێکرانەوە!");
       } else {
         await addDoc(collection(db, 'housing_projects'), projectData);
-        alert("🎉 پڕۆژە نوێیەکە بڵاوکرایەوە!");
       }
-
-      setShowAdminPanel(false);
-      setEditingProjectId(null);
-      setNewName(''); setNewLocation(''); setNewMapLink(''); setNewPhone(''); setNewWhatsapp(''); setServicesStr('');
-      setSingleCoverImage(''); setAptImages([]); setVillaImages([]);
-      setAptZone(''); setAptPrice(''); setAptInstallments(''); setAptDetails('');
-      setVillaZone(''); setVillaPrice(''); setVillaInstallments(''); setVillaDetails('');
-      setSelectedProject(null);
-      
+      alert("🎉 Done!");
+      setShowAdminPanel(false); setEditingProjectId(null); setSelectedProject(null);
       fetchProjects();
     } catch (err) {
-      alert("هەڵەیەک ڕوویدا لە کاتی پاشکەوتکردندا");
+      alert("Error");
     }
   };
 
   const handleClientSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName || !clientPhone) return alert("تکایە ناو و ژمارەی مۆبایلەکەت بنووسە");
+    if (!clientName || !clientPhone) return alert("Error");
     if (!selectedProject) return;
 
     setSubmittingLead(true);
     try {
       await addDoc(collection(db, 'housing_leads'), {
-        projectName: selectedProject.name,
+        projectName: selectedProject.name_ku,
         clientName: clientName,
         clientPhone: clientPhone,
         clientNote: clientNote,
         timestamp: new Date().toISOString()
       });
-      alert(`🎉 کاک ${clientName} گیان، داواکارییەکەت نێردرا بۆ ڕوانین! بەم زووانە پەیوەندیت پێوە دەکەین.`);
+      alert(language === 'ku' ? `🎉 کاک ${clientName} گیان، داواکارییەکەت نێردرا!` : `🎉 سید ${clientName}، تم إرسال طلبك بنجاح!`);
       setClientName(''); setClientPhone(''); setClientPhoneNote('');
     } catch (err) {
-      alert("کێشەیەک ڕوویدا لە ناردنی داواکارییەکەدا");
+      alert("Error");
     } finally {
       setSubmittingLead(false);
     }
@@ -265,279 +316,208 @@ const KurdishHousing: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20 px-2 sm:px-4" dir="rtl">
       
-      {/* دوگمەی ئەدمین */}
       {isAdmin && (
         <div className="flex justify-center">
-          <button 
-            onClick={() => { setShowAdminPanel(!showAdminPanel); if(showAdminPanel) { setEditingProjectId(null); } }} 
-            className="px-6 py-3 bg-indigo-600 text-white font-black rounded-xl text-xs shadow-md border border-indigo-500 transition-all"
-          >
-            {showAdminPanel ? '⚙️ داخستنی پانێڵ' : '➕ داخڵکردنی پڕۆژە و وێنە بە مۆبایل'}
+          <button onClick={() => { setShowAdminPanel(!showAdminPanel); if(showAdminPanel) { setEditingProjectId(null); } }} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-xl text-xs shadow-md border border-indigo-500 transition-all">
+            {showAdminPanel 
+              ? (language === 'ku' ? '✕ داخستنی پانێڵ' : '✕ إغلاق اللوحة') 
+              : (language === 'ku' ? '➕ داخڵکردنی پڕۆژە و وێنە بە مۆبایل' : '➕ إدخال مشروع وصور بالجوال')}
           </button>
         </div>
       )}
 
-      {/* ⚙️ فۆرمی ئەدمین */}
       {showAdminPanel && isAdmin && (
         <form onSubmit={handleSaveProject} className="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl space-y-5 max-w-2xl mx-auto text-right animate-in slide-in-from-top-4">
           <h3 className="text-yellow-500 font-black text-sm border-b border-slate-800 pb-2">
-            {editingProjectId ? '📝 دەستکاریکردنی زانیارییەکانی پڕۆژە' : '🏢 زانیارییە گشتییەکانی پڕۆژە'}
+            {language === 'ku' ? '🏢 زانیارییەکانی پڕۆژە' : '🏢 معلومات المشروع العامة'}
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input type="text" placeholder="ناوی پڕۆژە" value={newName} onChange={e=>setNewName(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none" />
-            <select value={newCity} onChange={e=>setNewCity(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none">
-              <option value="erbil">هەولێر</option>
-              <option value="sulaymaniyah">سلێمانی</option>
-              <option value="duhok">دهۆک</option>
+            <input type="text" placeholder="ناوی پڕۆژە (کوردی)" value={newNameKu} onChange={e=>setNewNameKu(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none" />
+            <input type="text" placeholder="اسم المشروع (عربي)" value={newNameAr} onChange={e=>setNewNameAr(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none" />
+            <select value={newCity} onChange={e=>setNewCity(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 focus:outline-none sm:col-span-2">
+              <option value="erbil">{language === 'ku' ? 'هەولێر' : 'أربيل'}</option>
+              <option value="sulaymaniyah">{language === 'ku' ? 'سلێمانی' : 'السليمانية'}</option>
+              <option value="duhok">{language === 'ku' ? 'دهۆک' : 'دهوك'}</option>
             </select>
-            <input type="text" placeholder="ناونیشانی ورد" value={newLocation} onChange={e=>setNewLocation(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
-            <input type="text" placeholder="کۆد یان لینکی Google Maps" value={newMapLink} onChange={e=>setNewMapLink(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
-            <input type="text" placeholder="ژمارەی تەلەفۆن" value={newPhone} onChange={e=>setNewPhone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
-            <input type="text" placeholder="ژمارەی وەتسئەپ" value={newWhatsapp} onChange={e=>setNewWhatsapp(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
-            <input type="text" placeholder="خزمەتگوزارییەکان (بە کۆما)" value={servicesStr} onChange={e=>setServicesStr(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="ناونیشانی ورد (کوردی)" value={newLocationKu} onChange={e=>setNewLocationKu(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="العنوان بالتفصيل (عربي)" value={newLocationAr} onChange={e=>setNewLocationAr(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="Google Maps Link" value={newMapLink} onChange={e=>setNewMapLink(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800 sm:col-span-2" />
+            <input type="text" placeholder="Phone" value={newPhone} onChange={e=>setNewPhone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="WhatsApp" value={newWhatsapp} onChange={e=>setNewWhatsapp(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="خزمەتگوزاری (کوردی - بە کۆما)" value={servicesStrKu} onChange={e=>setServicesStrKu(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
+            <input type="text" placeholder="الخدمات (عربي - بالفاصلة)" value={servicesStrAr} onChange={e=>setServicesStrAr(e.target.value)} className="p-3 rounded-xl bg-black text-white text-sm border border-slate-800" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 block">🖼️ بارکردنی وێنەی کەڤەر:</label>
-            <input type="file" accept="image/*" onChange={(e) => handleSingleFile(e, setSingleCoverImage)} className="text-xs text-slate-400 block w-full file:py-2 file:px-4 file:rounded-full file:bg-yellow-500 cursor-pointer" />
-            {singleCoverImage && (
-              <div className="relative w-24 h-16 mt-1 group overflow-hidden rounded-lg border border-slate-700">
-                <img src={singleCoverImage} className="w-full h-full object-cover" alt="Preview" />
-                <button type="button" onClick={() => setSingleCoverImage('')} className="absolute inset-0 bg-black/60 flex items-center justify-center text-red-500 text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity">لابردن ✕</button>
-              </div>
-            )}
+            <input type="file" accept="image/*" onChange={(e) => handleSingleFile(e, setSingleCoverImage)} className="text-xs text-slate-400 file:bg-yellow-500 cursor-pointer" />
+            {singleCoverImage && <img src={singleCoverImage} className="w-24 h-16 object-cover rounded-lg border border-slate-700" alt="Preview" />}
           </div>
 
-          <div className="space-y-2 border-t border-slate-800/60 pt-4">
-            <div className="flex gap-2 bg-black p-1 rounded-xl border border-slate-800">
-              <button type="button" onClick={() => setAdminFormTab(0)} className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${adminFormTab === 0 ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>🏢 شوقەکان</button>
-              <button type="button" onClick={() => setAdminFormTab(1)} className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${adminFormTab === 1 ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>🏡 ڤێلاکان</button>
-            </div>
+          <div className="flex gap-2 bg-black p-1 rounded-xl border border-slate-800">
+            <button type="button" onClick={() => setAdminFormTab(0)} className={`flex-1 py-2.5 text-xs font-black rounded-lg ${adminFormTab === 0 ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>{language === 'ku' ? '🏢 شوقەکان' : '🏢 الشقق'}</button>
+            <button type="button" onClick={() => setAdminFormTab(1)} className={`flex-1 py-2.5 text-xs font-black rounded-lg ${adminFormTab === 1 ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>{language === 'ku' ? '🏡 ڤێلاکان' : '🏡 الفلل'}</button>
           </div>
 
           {adminFormTab === 0 && (
             <div className="p-4 bg-indigo-950/20 border border-indigo-500/10 rounded-2xl space-y-4">
-              <h4 className="text-indigo-400 font-black text-xs">زانیاری شوقەکان:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="text" placeholder="زۆنی شوقەکان (بۆ نموونە: زۆنی A)" value={aptZone} onChange={e=>setAptZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
-                <input type="text" placeholder="نرخ" value={aptPrice} onChange={e=>setAptPrice(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <input type="text" placeholder="قیست" value={aptInstallments} onChange={e=>setAptInstallments(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <input type="text" placeholder="وەسف" value={aptDetails} onChange={e=>setAptDetails(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <div className="space-y-1">
-                  <input type="file" multiple accept="image/*" onChange={(e) => handleMultipleFiles(e, setAptImages)} className="text-xs text-slate-400 file:py-1.5 cursor-pointer" />
-                  <div className="flex gap-1.5 flex-wrap pt-1">
-                    {aptImages.map((img, i) => (
-                      <div key={i} className="relative w-10 h-10 group overflow-hidden rounded-md border border-slate-800">
-                        <img src={img} className="w-full h-full object-cover" alt="Preview" />
-                        <button type="button" onClick={() => removeUploadedImage(i, setAptImages)} className="absolute inset-0 bg-black/80 flex items-center justify-center text-[10px] text-red-500 font-black opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <input type="text" placeholder="زۆن (کوردی)" value={aptZoneKu} onChange={e=>setAptZoneKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="المنطقة/الزون (عربي)" value={aptZoneAr} onChange={e=>setAptZoneAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="نرخ (کوردی)" value={aptPriceKu} onChange={e=>setAptPriceKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="السعر (عربي)" value={aptPriceAr} onChange={e=>setAptPriceAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="قیست (کوردی)" value={aptInstallmentsKu} onChange={e=>setAptInstallmentsKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="الأقساط (عربي)" value={aptInstallmentsAr} onChange={e=>setAptInstallmentsAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <textarea placeholder="وەسف (کوردی)" value={aptDetailsKu} onChange={e=>setAptDetailsKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800 h-16 sm:col-span-2" />
+                <textarea placeholder="الوصف (عربي)" value={aptDetailsAr} onChange={e=>setAptDetailsAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800 h-16 sm:col-span-2" />
+                <input type="file" multiple accept="image/*" onChange={(e) => handleMultipleFiles(e, setAptImages)} className="text-xs text-slate-400 file:py-1.5 cursor-pointer sm:col-span-2" />
               </div>
             </div>
           )}
 
           {adminFormTab === 1 && (
             <div className="p-4 bg-emerald-950/20 border border-emerald-500/10 rounded-2xl space-y-4">
-              <h4 className="text-emerald-400 font-black text-xs">زانیاری ڤێلاکان:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="text" placeholder="زۆنی ڤێلاکان (بۆ نموونە: زۆنی شاهانە)" value={villaZone} onChange={e=>setVillaZone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 sm:col-span-2" />
-                <input type="text" placeholder="نرخ" value={villaPrice} onChange={e=>setVillaPrice(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <input type="text" placeholder="قیست" value={villaInstallments} onChange={e=>setVillaInstallments(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <input type="text" placeholder="وەسف" value={villaDetails} onChange={e=>setVillaDetails(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800" />
-                <div className="space-y-1">
-                  <input type="file" multiple accept="image/*" onChange={(e) => handleMultipleFiles(e, setVillaImages)} className="text-xs text-slate-400 file:py-1.5 cursor-pointer" />
-                  <div className="flex gap-1.5 flex-wrap pt-1">
-                    {villaImages.map((img, i) => (
-                      <div key={i} className="relative w-10 h-10 group overflow-hidden rounded-md border border-slate-800">
-                        <img src={img} className="w-full h-full object-cover" alt="Preview" />
-                        <button type="button" onClick={() => removeUploadedImage(i, setVillaImages)} className="absolute inset-0 bg-black/80 flex items-center justify-center text-[10px] text-red-500 font-black opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <input type="text" placeholder="زۆنی ڤێلا (کوردی)" value={villaZoneKu} onChange={e=>setVillaZoneKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="المنطقة/الزون (عربي)" value={villaZoneAr} onChange={e=>setVillaZoneAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="نرخ (کوردی)" value={villaPriceKu} onChange={e=>setVillaPriceKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="السعر (عربي)" value={villaPriceAr} onChange={e=>setVillaPriceAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="قیست (کوردی)" value={villaInstallmentsKu} onChange={e=>setVillaInstallmentsKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <input type="text" placeholder="الأقساط (عربي)" value={villaInstallmentsAr} onChange={e=>setVillaInstallmentsAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800" />
+                <textarea placeholder="وەسف (کوردی)" value={villaDetailsKu} onChange={e=>setVillaDetailsKu(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800 h-16 sm:col-span-2" />
+                <textarea placeholder="الوصف (عربي)" value={villaDetailsAr} onChange={e=>setVillaDetailsAr(e.target.value)} className="p-3 rounded-xl bg-black text-xs border border-slate-800 h-16 sm:col-span-2" />
+                <input type="file" multiple accept="image/*" onChange={(e) => handleMultipleFiles(e, setVillaImages)} className="text-xs text-slate-400 file:py-1.5 cursor-pointer sm:col-span-2" />
               </div>
             </div>
           )}
 
-          <button type="submit" className="w-full py-4 bg-yellow-500 text-black font-black text-sm rounded-xl shadow-lg mt-4">
-            {editingProjectId ? '🔄 نوێکردنەوەی پڕۆژە' : '🚀 بڵاوکردنەوەی گشتی'}
-          </button>
+          <button type="submit" className="w-full py-4 bg-yellow-500 text-black font-black text-sm rounded-xl">🚀 {language === 'ku' ? 'بڵاوکردنەوەی پڕۆژە' : 'نشر المشروع'}</button>
         </form>
       )}
 
-      {/* پێڕستی گشتی پڕۆژەکان */}
       {!selectedProject ? (
         <>
           <div className="text-center space-y-4">
-            <h2 className="text-4xl lg:text-6xl font-black text-white">پڕۆژەکانی <span className="text-yellow-500">نیشتەجێبوون</span></h2>
-            <p className="text-slate-500 font-bold tracking-widest text-[10px]">ڕێبەری گشتی نرخ و قیستەکانی کوردستان</p>
+            <h2 className="text-4xl lg:text-6xl font-black text-white">
+              {language === 'ku' ? 'پڕۆژەکانی ' : 'المشاريع '}<span className="text-yellow-500">{language === 'ku' ? 'نیشتەجێبوون' : 'السكنية'}</span>
+            </h2>
+            <p className="text-slate-500 font-bold tracking-widest text-[10px]">
+              {language === 'ku' ? 'ڕێبەری گشتی نرخ و قیستەکانی کوردستان' : 'الدليل العام للأسعار والأقساط في كوردستان'}
+            </p>
           </div>
 
           <div className="flex justify-center gap-2 max-w-lg mx-auto bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800">
-            <button onClick={() => setSelectedCity('all')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'all' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>هەمووی</button>
-            <button onClick={() => setSelectedCity('erbil')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'erbil' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>🏰 هەولێر</button>
-            <button onClick={() => setSelectedCity('sulaymaniyah')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'sulaymaniyah' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>🌲 سلێمانی</button>
-            <button onClick={() => setSelectedCity('duhok')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'duhok' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>🍇 دهۆک</button>
+            <button onClick={() => setSelectedCity('all')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'all' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>{language === 'ku' ? 'هەمووی' : 'الكل'}</button>
+            <button onClick={() => setSelectedCity('erbil')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'erbil' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>{language === 'ku' ? ' هەولێر' : ' أربيل'}</button>
+            <button onClick={() => setSelectedCity('sulaymaniyah')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'sulaymaniyah' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>{language === 'ku' ? ' سلێمانی' : ' السليمانية'}</button>
+            <button onClick={() => setSelectedCity('duhok')} className={`flex-1 py-2.5 text-xs font-bold rounded-xl ${selectedCity === 'duhok' ? 'bg-yellow-500 text-black shadow-md' : 'text-slate-400'}`}>{language === 'ku' ? ' دهۆک' : ' دهوك'}</button>
           </div>
 
-          {loadingData ? (
-            <div className="text-center text-slate-500 text-xs animate-pulse">خەریکی هێنانەوەی پڕۆژەکان...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project, idx) => (
-                <div key={idx} onClick={() => { setSelectedProject(project); setActiveUnitIndex(-1); setCurrentImageIndex(0); }} className="group rounded-3xl border border-slate-800 bg-[#050507] hover:border-yellow-500/50 cursor-pointer flex flex-col overflow-hidden transition-all duration-300">
-                  <div className="h-52 w-full overflow-hidden relative">
-                    <img src={project.coverImage || 'https://via.placeholder.com/600'} alt={project.name} className="w-full h-full object-cover" />
-                    <div className="absolute top-4 right-4 bg-black/60 px-3 py-1 rounded-full text-[10px] font-bold text-yellow-500 border border-yellow-500/20">
-                      {project.city === 'erbil' ? 'هەولێر' : project.city === 'sulaymaniyah' ? 'سلێمانی' : 'دهۆک'}
-                    </div>
-                  </div>
-                  <div className="p-6 text-right">
-                    <h3 className="text-lg font-black text-white mb-2">{project.name}</h3>
-                    <p className="text-slate-400 text-xs mb-4">📍 {project.location}</p>
-                    <span className="text-yellow-500 text-xs font-bold">بینینی زانیاری تەواو ←</span>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project, idx) => (
+              <div key={idx} onClick={() => { setSelectedProject(project); setActiveUnitIndex(-1); setCurrentImageIndex(0); }} className="group rounded-3xl border border-slate-800 bg-[#050507] hover:border-yellow-500/50 cursor-pointer flex flex-col overflow-hidden transition-all duration-300">
+                <div className="h-52 w-full overflow-hidden relative">
+                  <img src={project.coverImage} alt="" className="w-full h-full object-cover" />
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="p-6 text-right">
+                  <h3 className="text-lg font-black text-white mb-2">{language === 'ku' ? project.name_ku : project.name_ar}</h3>
+                  <p className="text-slate-400 text-xs mb-4">📍 {language === 'ku' ? project.location_ku : project.location_ar}</p>
+                  <span className="text-yellow-500 text-xs font-bold">{language === 'ku' ? 'بینینی زانیاری تەواو ←' : 'عرض التفاصيل بالكامل ←'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </>
       ) : (
-        /* لاپەڕەی ناوەوەی پڕۆژەکە */
-        <div className="flex-1 flex flex-col bg-[#050507] rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="flex-1 flex flex-col bg-[#050507] rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl animate-in zoom-in-95">
           <div className="p-6 border-b border-slate-800 bg-slate-950/40 flex justify-between items-center">
             <div className="flex flex-col text-right">
-              <h2 className="text-xl sm:text-2xl font-black text-white">{selectedProject.name}</h2>
-              <span className="text-slate-400 text-xs mt-1">📍 {selectedProject.location}</span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">{language === 'ku' ? selectedProject.name_ku : selectedProject.name_ar}</h2>
+              <span className="text-slate-400 text-xs mt-1">📍 {language === 'ku' ? selectedProject.location_ku : selectedProject.location_ar}</span>
             </div>
-            
             <div className="flex items-center gap-2">
               {isAdmin && (
                 <>
-                  <button onClick={() => startEditing(selectedProject)} className="px-3.5 py-2 bg-indigo-600 text-white font-black text-xs rounded-xl transition-all">📝 دەستکاری</button>
-                  <button onClick={() => handleDeleteProject(selectedProject.id)} className="px-3.5 py-2 bg-red-600 text-white font-black text-xs rounded-xl transition-all">🗑️ سڕینەوە</button>
+                  <button onClick={() => startEditing(selectedProject)} className="px-3.5 py-2 bg-indigo-600 text-white font-black text-xs rounded-xl">📝 {language === 'ku' ? 'دەستکاری' : 'تعديل'}</button>
+                  <button onClick={() => handleDeleteProject(selectedProject.id)} className="px-3.5 py-2 bg-red-600 text-white font-black text-xs rounded-xl">🗑️ {language === 'ku' ? 'سڕینەوە' : 'حذف'}</button>
                 </>
               )}
               <button onClick={() => setSelectedProject(null)} className="w-10 h-10 bg-slate-800 hover:bg-yellow-500 text-white rounded-xl flex items-center justify-center font-bold">✕</button>
             </div>
           </div>
 
-          <div className="p-5 sm:p-10 flex flex-col lg:flex-row gap-8 items-start border-b border-slate-900">
-            <div className="w-full lg:w-[400px] aspect-video sm:aspect-square shrink-0 rounded-2xl overflow-hidden border border-slate-800 relative bg-black select-none">
-              <img src={activeUnitIndex === -1 ? selectedProject.coverImage : (selectedProject.units[activeUnitIndex]?.unitImages[currentImageIndex] || 'https://via.placeholder.com/600')} alt="Gallery" className="w-full h-full object-cover" />
-              
+          <div className="p-5 sm:p-10 flex flex-col lg:flex-row gap-8 items-start">
+            <div className="w-full lg:w-[400px] aspect-square rounded-2xl overflow-hidden border border-slate-800 relative bg-black select-none shrink-0">
+              <img src={activeUnitIndex === -1 ? selectedProject.coverImage : (selectedProject.units[activeUnitIndex]?.unitImages[currentImageIndex] || selectedProject.coverImage)} className="w-full h-full object-cover" alt="" />
               {activeUnitIndex !== -1 && selectedProject.units[activeUnitIndex]?.unitImages.length > 1 && (
                 <>
-                  <button onClick={() => setCurrentImageIndex((prev) => (prev - 1 + selectedProject.units[activeUnitIndex].unitImages.length) % selectedProject.units[activeUnitIndex].unitImages.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center font-bold">‹</button>
-                  <button onClick={() => setCurrentImageIndex((prev) => (prev + 1) % selectedProject.units[activeUnitIndex].unitImages.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center font-bold">›</button>
+                  <button onClick={() => setCurrentImageIndex(p => (p - 1 + selectedProject.units[activeUnitIndex].unitImages.length) % selectedProject.units[activeUnitIndex].unitImages.length)} className="absolute left-2 top-1/2 bg-black/60 text-white rounded-full p-2">‹</button>
+                  <button onClick={() => setCurrentImageIndex(p => (p + 1) % selectedProject.units[activeUnitIndex].unitImages.length)} className="absolute right-2 top-1/2 bg-black/60 text-white rounded-full p-2">›</button>
                 </>
               )}
             </div>
 
             <div className="flex-1 text-right w-full space-y-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block px-2">جۆری یەکەی نیشتەجێبوون دیاری بکە:</label>
-                <div className="flex gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                  {selectedProject.units.map((unit, index) => (
-                    <button key={index} onClick={() => { setActiveUnitIndex(index); setCurrentImageIndex(0); }} className={`flex-1 py-3 text-xs font-black rounded-lg ${activeUnitIndex === index ? 'bg-yellow-500 text-black' : 'text-slate-400'}`}>
-                      {unit.type}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                {selectedProject.units.map((unit, index) => (
+                  <button key={index} onClick={() => { setActiveUnitIndex(index); setCurrentImageIndex(0); }} className={`flex-1 py-3 text-xs font-black rounded-lg ${activeUnitIndex === index ? 'bg-yellow-500 text-black' : 'text-slate-400'}`}>
+                    {language === 'ku' ? unit.type_ku : unit.type_ar}
+                  </button>
+                ))}
               </div>
 
               {activeUnitIndex === -1 ? (
-                <div className="bg-white/[0.01] p-6 rounded-2xl border border-white/5 text-center py-6 space-y-4">
-                  <p className="text-slate-300 text-sm font-black">کلیک لەسەر تابی شوقە یان ڤێلا بکە بۆ بینینی نرخەکان.</p>
-                  
-                  {selectedProject.mapLink && selectedProject.mapLink.trim() !== "" && (
-                    <div className="w-full h-48 sm:h-56 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative bg-slate-950">
-                      <iframe src={selectedProject.mapLink} width="100%" height="100%" style={{ border: 0 }} allowFullScreen={true} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                <div className="bg-white/[0.01] p-6 rounded-2xl border border-white/5 text-center space-y-4">
+                  <p className="text-slate-300 text-sm font-black">{language === 'ku' ? 'کلیک لەسەر یەکێک لە جۆرەکان بکە بۆ بینینی نرخەکان.' : 'اضغط على أحد الأنواع لعرض الأسعار.'}</p>
+                  {selectedProject.mapLink && (
+                    <div className="w-full h-56 rounded-2xl overflow-hidden border border-slate-800">
+                      <iframe src={selectedProject.mapLink} width="100%" height="100%" style={{ border: 0 }} allowFullScreen={true}></iframe>
                     </div>
                   )}
                 </div>
               ) : (
                 <>
-                  {selectedProject.units[activeUnitIndex]?.zone && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl flex items-center justify-between text-right animate-in fade-in">
-                      <span className="text-slate-400 text-xs font-bold">📍 زۆن یان شوێنی یەکە:</span>
-                      <span className="text-yellow-500 text-sm font-black">✨ {selectedProject.units[activeUnitIndex].zone}</span>
-                    </div>
-                  )}
-
                   <div className="bg-white/[0.01] p-5 rounded-2xl border border-white/5 space-y-2">
-                    <h4 className="text-yellow-500 font-black text-xs">💰 نرخەکانی کڕین:</h4>
-                    <p className="text-slate-200 text-sm font-bold">{selectedProject.units[activeUnitIndex]?.price}</p>
-                    <p className="text-slate-400 text-xs">{selectedProject.units[activeUnitIndex]?.details}</p>
+                    <h4 className="text-yellow-500 font-black text-xs">💰 {language === 'ku' ? 'نرخ و زانیاری کڕین:' : '💰 الأسعار ومعلومات الشراء:'}</h4>
+                    <p className="text-slate-200 text-sm font-bold">{language === 'ku' ? selectedProject.units[activeUnitIndex].price_ku : selectedProject.units[activeUnitIndex].price_ar}</p>
+                    <p className="text-slate-400 text-xs">{language === 'ku' ? selectedProject.units[activeUnitIndex].details_ku : selectedProject.units[activeUnitIndex].details_ar}</p>
                   </div>
                   <div className="bg-white/[0.01] p-5 rounded-2xl border border-white/5 space-y-2">
-                    <h4 className="text-yellow-500 font-black text-xs">📅 شێوازی قیستەکان:</h4>
-                    <p className="text-slate-200 text-sm">{selectedProject.units[activeUnitIndex]?.installments}</p>
+                    <h4 className="text-yellow-500 font-black text-xs">📅 {language === 'ku' ? 'شێوازی قیستەکان:' : '📅 نظام الأقساط:'}</h4>
+                    <p className="text-slate-200 text-sm">{language === 'ku' ? selectedProject.units[activeUnitIndex].installments_ku : selectedProject.units[activeUnitIndex].installments_ar}</p>
                   </div>
                 </>
               )}
 
               <div className="bg-white/[0.01] p-5 rounded-2xl border border-white/5 space-y-3">
-                <h4 className="text-yellow-500 font-black text-xs">✨ خزمەتگوزارییەکانی کۆمەڵگەکە:</h4>
+                <h4 className="text-yellow-500 font-black text-xs">✨ {language === 'ku' ? 'خزمەتگوزارییەکان:' : '✨ الخدمات والمраفق:'}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300 text-xs">
-                  {selectedProject.services.map((service, index) => (
-                    <div key={index} className="flex items-center gap-2 justify-start"><span className="text-yellow-500">✓</span><span>{service}</span></div>
+                  {(language === 'ku' ? selectedProject.services_ku : selectedProject.services_ar).map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 justify-start"><span className="text-yellow-500">✓</span><span>{s}</span></div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 👑 🛠️ لێرەدا کێشەی فۆرمی لۆدبوونی ڕوانین چارەسەر کرا بە کڵاسی جێگیر تا دوگمەکە بە تەواوی دەرکەوێت */}
           <div className="p-6 sm:p-10 bg-slate-950/40 border-b border-slate-900 text-right space-y-4">
-            <div className="border-l-4 border-yellow-500 pr-3">
-              <h3 className="text-lg font-black text-white">🤝 دەتەوێت ئەم یەکەیە بکڕیت؟</h3>
-              <p className="text-slate-400 text-xs mt-1">زانیارییەکانت بنووسە؛ تیمی یاسایی و ڕاوێژکاری KurdAI Pro بۆ کڕینی باشترین شوقە/ڤێلا بە کەمترین نرخ یاوەرکارت دەبێت.</p>
-            </div>
-
+            <h3 className="text-lg font-black text-white">{language === 'ku' ? '🤝 دەتەوێت ئەم یەکەیە بکڕیت؟' : '🤝 هل ترغب في شراء هذه الوحدة؟'}</h3>
             <form onSubmit={handleClientSubmitLead} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <input 
-                type="text" 
-                placeholder="ناوی سیانیت" 
-                value={clientName}
-                onChange={e=>setClientName(e.target.value)}
-                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
-              />
-              <input 
-                type="tel" 
-                placeholder="ژمارەی مۆبایل (ڕاست و دروست)" 
-                value={clientPhone}
-                onChange={e=>setClientPhone(e.target.value)}
-                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
-              />
-              <input 
-                type="text" 
-                placeholder="تێبینییەکەت (بۆ نموونە: کاتی پەیوەندی)" 
-                value={clientNote}
-                onChange={e=>setClientPhoneNote(e.target.value)}
-                className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 focus:outline-none focus:border-yellow-500/50" 
-              />
-              
-              {/* 👑 نوێکردنەوەی کۆتایی دوگمەکە: بە پاشبنەمای زەردی ڕووناک (bg-yellow-500) و تێکستی ڕەشی تۆکمە تا بە جوانی شاشەکە بگرێت */}
-              <button 
-                type="submit" 
-                disabled={submittingLead}
-                className="w-full block col-span-1 sm:col-span-3 py-4 bg-yellow-500 hover:bg-yellow-600 text-black font-black text-xs rounded-xl shadow-2xl transition-all disabled:opacity-50 text-center"
-              >
-                {submittingLead ? 'خەریکی ناردنی زانیارییە...' : '📩 داواکردنی ڕاوێژکاری کڕین لە KurdAI Pro'}
+              <input type="text" placeholder={language === 'ku' ? "ناوی سیانیت" : "الاسم الثلاثي"} value={clientName} onChange={e=>setClientName(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 outline-none" />
+              <input type="tel" placeholder={language === 'ku' ? "ژمارەی مۆبایل" : "رقم الهاتف"} value={clientPhone} onChange={e=>setClientPhone(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 outline-none" />
+              <input type="text" placeholder={language === 'ku' ? "تێبینی" : "ملاحظات إضافية"} value={clientNote} onChange={e=>setClientPhoneNote(e.target.value)} className="p-3 rounded-xl bg-black text-white text-xs border border-slate-800 outline-none" />
+              <button type="submit" disabled={submittingLead} className="w-full block sm:col-span-3 py-4 bg-yellow-500 text-black font-black text-xs rounded-xl shadow-2xl transition-all">
+                {submittingLead ? '...' : (language === 'ku' ? '📩 داواکردنی ڕاوێژکاری کڕین لە KurdAI Pro' : '📩 طلب استشارة الشراء من KurdAI Pro')}
               </button>
             </form>
           </div>
 
           <div className="p-6 bg-slate-950/20 flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-              <a href={`tel:${selectedProject.phone}`} className="flex-1 sm:flex-none px-6 py-3 bg-white text-black font-black text-sm rounded-xl text-center">📞 تەلەفۆن</a>
-              <a href={`https://wa.me/${selectedProject.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 text-white font-black text-sm rounded-xl text-center">💬 وەتسئەپ</a>
+              <a href={`tel:${selectedProject.phone}`} className="flex-1 sm:flex-none px-6 py-3 bg-white text-black font-black text-sm rounded-xl text-center">{language === 'ku' ? '📞 تەلەفۆن' : '📞 اتصالات'}</a>
+              <a href={`https://wa.me/${selectedProject.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 text-white font-black text-sm rounded-xl text-center">WhatsApp</a>
             </div>
-            <button onClick={() => setSelectedProject(null)} className="w-full sm:w-auto px-8 py-3 bg-slate-800 text-white text-sm font-bold rounded-xl border border-slate-700">گەڕانەوە</button>
+            <button onClick={() => setSelectedProject(null)} className="w-full sm:w-auto px-8 py-3 bg-slate-800 text-white text-sm font-bold rounded-xl border border-slate-700">{language === 'ku' ? 'گەڕانەوە' : 'رجوع'}</button>
           </div>
         </div>
       )}

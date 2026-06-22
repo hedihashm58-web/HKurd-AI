@@ -17,7 +17,7 @@ const ChatInterface: React.FC = () => {
 
   const defaultMessage: Message = { 
     role: 'model', 
-    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەی پێدراوە. چۆن دەتوانم هاوکاریت بکەم؟", 
+    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەی پێدراوە، چۆن دەتوانم هاوکاریت بکەم؟", 
     timestamp: new Date() 
   };
 
@@ -325,7 +325,7 @@ const ChatInterface: React.FC = () => {
             <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-md shrink-0 mb-0.5">{isLoading ? '...' : 'ناردن'}</button>
           </div>
           <p className="text-[11px] text-center text-slate-500 font-medium mt-1">
-            ⚠️ تکایە هیچ جۆرە زانیارییەکی کەسی، متمانەپێکراو یان پاسۆردی هەژمارەکانت لێرەدا مەنووسە.
+            ⚠️ تکایە هیچ جۆرە زانیارییەکی کەسیی متمانەپێکراو یان پاسۆردی هەژمارەکانت لێرەدا مەنووسە.
           </p>
         </div>
       </div>

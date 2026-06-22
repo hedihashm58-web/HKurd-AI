@@ -7,7 +7,8 @@ export enum View {
   TRANSLATE = 'TRANSLATE',
   VOICE = 'VOICE',
   HEALTH = 'HEALTH',
-  PERSONALITIES = 'PERSONALITIES' 
+  PERSONALITIES = 'PERSONALITIES',
+  RESTAURANT_DASHBOARD = 'RESTAURANT_DASHBOARD' // 👈 لێرەدا بە پیتی گەورە زیادکرا تا وەک ستایلی خۆت بێت
 }
 
 export interface Message {

@@ -10,11 +10,12 @@ import LandingPage from './components/LandingPage';
 
 import ArtInterface from './components/ArtStudio';
 import VideoInterface from './components/KurdishHousing';
-import MathInterface from './components/MathAnalyzer';
+import MathInterface from './components/MathAnalyzer'; 
 import TranslateInterface from './components/Translator';
-import VoiceInterface from './components/VoiceAssistant';
+import VoiceInterface from './components/VoiceAssistant'; 
 import HealthInterface from './components/HealthAssistant';
 import KurdishPersonalities from './components/KurdishPersonalities';
+import RestaurantDashboard from './components/RestaurantDashboard'; 
 
 import { View } from './types';
 
@@ -25,7 +26,8 @@ const App: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
-  // پشکنینی ئەوەی ئایا پێشتر دوگمەی دەستپێکردنی لێداوە لە لاندینگ پەیج
+  const [language, setLanguage] = useState<'ku' | 'ar'>('ku');
+  
   const [hasStarted, setHasStarted] = useState<boolean>(() => {
     return localStorage.getItem('kurdai_landing_started') === 'true';
   });
@@ -48,6 +50,8 @@ const App: React.FC = () => {
     setHasStarted(true);
   };
 
+  const isRestaurantAdmin = userEmail?.endsWith('@restaurant.com');
+
   if (isCheckingAuth) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-[#020617]" dir="rtl">
@@ -56,19 +60,22 @@ const App: React.FC = () => {
     );
   }
 
-  // 👑 ١. یەکەم هەنگاو: ئەگەر بەکارهێنەر لۆگین نەبووبوو، ڕاستەوخۆ لاپەڕەی لۆگینی پێشان بدە
   if (!userEmail) {
     return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
   }
 
-  // 👑 ٢. دووەم هەنگاو: ئەگەر لۆگین بوو بەڵام هێشتا لاندینگ پەیجەکەی تێنەپەڕاندبوو، لاندینگەکەی پێشان بدە
   if (!hasStarted) {
     return <LandingPage onStartChat={handleStartChat} />;
   }
 
-  // ٣. سێیەم هەنگاو: ئەگەر هەم لۆگین بوو و هەم لاندینگەکەی تێپەڕاندبوو، ڕاستەوخۆ دەچێتە ناو ئەپەکە
   return (
-    <Layout activeView={activeView} onViewChange={setActiveView} backgroundImage={bgImage}>
+    <Layout 
+      activeView={activeView} 
+      onViewChange={setActiveView} 
+      backgroundImage={bgImage}
+      language={language}
+      setLanguage={setLanguage}
+    >
       {renderView()}
     </Layout>
   );
@@ -76,14 +83,21 @@ const App: React.FC = () => {
   function renderView() {
     switch (activeView) {
       case View.CHAT: return <ChatInterface />;
-      case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} />;
+      case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
       case View.ART: return <ArtInterface />;
-      case View.VIDEO: return <VideoInterface />;
-      case View.MATH: return <MathInterface />;
+      case View.VIDEO: return <VideoInterface language={language} />; 
+      case View.MATH: return <MathInterface />; 
       case View.TRANSLATE: return <TranslateInterface />;
-      case View.VOICE: return <VoiceInterface />;
+      case View.VOICE: return <VoiceInterface language={language} />; 
       case View.HEALTH: return <HealthInterface />;
-      case View.PERSONALITIES: return <KurdishPersonalities />;
+      case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
+      case View.RESTAURANT_DASHBOARD: 
+        if (isRestaurantAdmin && userEmail) {
+          return <RestaurantDashboard adminEmail={userEmail} language={language} />;
+        } else {
+          setActiveView(View.CHAT);
+          return <ChatInterface />;
+        }
       default: return <ChatInterface />;
     }
   }
