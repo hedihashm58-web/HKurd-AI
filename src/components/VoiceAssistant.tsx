@@ -52,9 +52,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [isActive, setIsActive] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isManualInput, setIsManualInput] = useState(false);
-  const [isProcessingAI, setIsProcessingAI] = useState(false); // 🤖 دۆخی چاوەڕوانی بۆ AI
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
 
-  const isSuperAdmin = auth.currentUser?.email === 'hedihashm58@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
+  const isSuperAdmin = auth.currentUser?.email === 'heremheyder@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   
@@ -66,13 +66,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [newResLogo, setNewResLogo] = useState('🍽️');
   const [newResCover, setNewResCover] = useState('');
 
-  // 🎙️ گۆڕاوەکانی تۆمارکردنی دەنگ
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // 🔑 کلیلی API بۆ AI Studio (لێرەدا کلیلی خۆت دابنێ)
-  const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
+  // 🔑 بەکارهێنانی کلیل لە رێگەی گۆڕاوەکانی ڤێرسێڵ
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ""; 
 
   useEffect(() => {
     fetchLiveRestaurants();
@@ -101,7 +100,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
     }
   };
 
-  // 🎙️ ١. دەستپێکردنی تۆمارکردنی دەنگی کڕیار
   const startVoiceProcess = async () => {
     setNoteText('');
     setIsManualInput(false);
@@ -111,7 +109,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
-      const recorder = new MediaRecorder(stream);
+      // 🚀 دیاریکردنی باشترین فۆرمات کە مۆبایلەکە پشتگیری بکات (گرنگ بۆ ئایفۆن و ئەندرۆید)
+      const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : undefined;
+      const recorder = new MediaRecorder(stream, options);
       setMediaRecorder(recorder);
 
       recorder.onstart = () => { setIsActive(true); };
@@ -121,14 +121,15 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
       recorder.onstop = async () => {
         setIsActive(false);
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
-        await sendAudioToGemini(audioBlob); // 🚀 ناردنی ڕاستەوخۆ بۆ ژیری دەستکرد
+        // دروستکردنی بلۆب بە پێی ئەو فۆرماتەی کە مۆبایلەکە تۆماری کردووە
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
+        await sendAudioToGemini(audioBlob, recorder.mimeType);
       };
 
       recorder.start();
     } catch (err) {
       setIsManualInput(true);
-      alert("🚫 مایکەکە کار ناکات! تکایە مۆڵەت بدە.");
+      alert("🚫 مایکەکە کار ناکات! دڵنیابە مۆڵەتت داوە بە بەرنامەکە.");
     }
   };
 
@@ -142,25 +143,31 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
     setIsActive(false);
   };
 
-  // 🤖 ٢. لۆجیکی ناردنی دەنگەکە بۆ Gemini بۆ ئەوەی بیکات بە دەقی کوردی ڕێک و پێک
-  const sendAudioToGemini = async (blob: Blob) => {
+  // 🤖 ناردنی فەرمی دەنگ بۆ Gemini لەگەڵ دیاریکردنی جۆری فۆرماتەکە (MimeType)
+  const sendAudioToGemini = async (blob: Blob, mimeType: string) => {
+    if (!GEMINI_API_KEY) {
+      setNoteText("⚠️ خەتا: کلیلی API لەسەر ڤێرسێڵ دانەنراوە!");
+      setIsManualInput(true);
+      return;
+    }
+
     setIsProcessingAI(true);
     
-    // گۆڕینی فایلەکە بۆ هێمای base64
     const reader = new FileReader();
     reader.readAsDataURL(blob);
     reader.onloadend = async () => {
       const base64Audio = (reader.result as string).split(',')[1];
 
       try {
+        // 🚀 بەکارهێنانی مۆدێلی بەهێزی gemini-2.5-flash کە لە دەنگی کوردی زۆر باش تێدەگات
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{
               parts: [
-                { text: "Listen to this audio carefully and transcribe exactly what is said. The language is Kurdish (or Arabic if spoken in Arabic). Return ONLY the transcription text, nothing else." },
-                { inlineData: { mimeType: "audio/mp3", data: base64Audio } }
+                { text: "تۆ یاریدەدەرێکی دەنگی پڕۆفیشناڵیت بۆ ڕێستۆرانت. گوێ لەم دەنگە بگرە و تەنها ئەو قسەیەی کە دەکرێت بە زمانی کوردی (یان عەرەبی) بنووسەرەوە. هیچ نووسینێکی زیادە یان ئینگلیزی مەگەڕێنەوە، تەنها دەقەکە بە ڕێکی بنووسە." },
+                { inlineData: { mimeType: mimeType, data: base64Audio } }
               ]
             }]
           })
@@ -170,13 +177,13 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         const transcribedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (transcribedText) {
-          setNoteText(transcribedText.trim()); // ✨ دەقە کوردییەکە لێرە جێگیر دەبێت
+          setNoteText(transcribedText.trim()); // ✨ لێرەدا دەقە کوردییەکە ڕاستەوخۆ دادەنێت
         } else {
-          setNoteText(language === 'ku' ? "تێبینی دەنگی تۆمارکراو 🎙️" : "ملاحظة صوتية 🎙️");
+          setNoteText("تێبینی دەنگی تۆمارکراو 🎙️");
         }
       } catch (error) {
         console.error("AI Error:", error);
-        setNoteText(language === 'ku' ? "تێبینی دەنگی 🎙️" : "ملاحظة صوتية 🎙️");
+        setNoteText("خەتا لە وەرگێڕانی دەنگ 🎙️");
       }
       setIsProcessingAI(false);
       setIsManualInput(true);
@@ -252,11 +259,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         restaurantName: selectedRestaurant.name_ku,
         foodName: selectedFoodItem.name_ku,
         quantity: foodQuantity,
-        voiceNoteText: noteText || "بێ تێبینی دایەلۆگ",
+        voiceNoteText: noteText || "بێ تێبینی",
         status: "new",
         timestamp: new Date().toISOString()
       });
-      alert(`🎉 داواکاری بە سەرکەوتوویی نێردرا!`);
+      alert(`🎉 داواکاری نێردرا!`);
       setSelectedFoodItem(null);
       setNoteText('');
       setIsManualInput(false);
@@ -359,7 +366,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
                 </button>
               ) : (
                 <button type="button" onClick={startVoiceProcess} disabled={isProcessingAI} className="px-4 py-2 bg-yellow-500 text-black rounded-lg text-xs font-black disabled:opacity-50">
-                  {isProcessingAI ? '🤖 خەریکی وەرگێڕانی دەنگ...' : '🎙️ لێدانی مایک (کوردی / عەرەبی)'}
+                  {isProcessingAI ? '🤖 خەریکی ناسینەوەی دەنگی کوردی...' : '🎙️ لێدانی مایک (کوردی / عەرەبی)'}
                 </button>
               )}
               
@@ -368,7 +375,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
                   type="text" 
                   value={noteText} 
                   onChange={(e) => { setNoteText(e.target.value); setIsManualInput(true); }}
-                  placeholder="دەتوانیت تێبینی بە دەست بنووسیت یان لێرە دەستکاری بکەیت..." 
+                  placeholder="دەتوانیت لێرە دەستکاری دەقەکە بکەیت..." 
                   className="w-full p-2 bg-black text-white border border-slate-800 rounded-lg text-xs text-right mt-2 outline-none focus:border-yellow-500"
                 />
               )}
