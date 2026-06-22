@@ -50,7 +50,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [foodQuantity, setFoodQuantity] = useState<number>(1);
   const [isActive, setIsActive] = useState(false);
-  const [status, setStatus] = useState('');
   const [noteText, setNoteText] = useState('');
 
   const isSuperAdmin = auth.currentUser?.email === 'heremheyder@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
@@ -65,43 +64,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [newResLogo, setNewResLogo] = useState('🍽️');
   const [newResCover, setNewResCover] = useState('');
 
-  const recognitionRef = useRef<any>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   useEffect(() => {
     fetchLiveRestaurants();
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      
-      if (language === 'ku') {
-        rec.lang = 'ku-IQ'; 
-      } else {
-        rec.lang = 'ar-IQ';
-      }
-      
-      rec.onstart = () => { 
-        setIsActive(true); 
-        setStatus(language === 'ku' ? '🎙️ گوێم لێتە، تێبینی بڵێ...' : '🎙️ أنا أستمع إليك...'); 
-      };
-      
-      rec.onresult = (e: any) => { 
-        setNoteText(e.results[0][0].transcript); 
-        setIsActive(false); 
-      };
-      
-      rec.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsActive(false);
-        if (event.error === 'not-allowed') {
-          alert("🚫 تکایە لە ڕێکخستنی وێبگەڕەکەت ڕێگە بە مایکەکە بدە (Allow Microphone)");
-        }
-      };
-      
-      rec.onend = () => setIsActive(false);
-      recognitionRef.current = rec;
-    }
-  }, [language]);
+  }, []);
 
   const fetchLiveRestaurants = async () => {
     try {
@@ -118,6 +85,38 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       }
     } catch (e) {
       setRestaurants(initialRestaurantsData);
+    }
+  };
+
+  // 🎙️ لۆجیکی نوێی مایک بە MediaRecorder بۆ کارکردن لەسەر مۆبایل
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      
+      recorder.onstart = () => {
+        setIsActive(true);
+      };
+
+      recorder.ondataavailable = (e) => {
+        setNoteText("تێبینی دەنگی تۆمارکراو 🎙️");
+      };
+
+      recorder.onstop = () => {
+        setIsActive(false);
+      };
+
+      recorder.start();
+    } catch (err) {
+      alert("🚫 تکایە لە ڕێکخستنی مۆبایلەکەتدا مۆڵەت بە مایکەکە بدە (Allow Microphone)");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
   };
 
@@ -194,7 +193,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         status: "new",
         timestamp: new Date().toISOString()
       });
-      alert(`🎉 داواکاری بە سەرککەوتوویی نێردرا!`);
+      alert(`🎉 داواکاری بە سەرکەوتوویی نێردرا!`);
       setSelectedFoodItem(null);
       setNoteText('');
     } catch (e) { 
@@ -290,7 +289,15 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
             </div>
             
             <div className="bg-slate-950 p-3 rounded-xl text-center">
-              {isActive ? <p className="text-red-500 text-xs animate-pulse">🎙️ گوێم لێتە...</p> : <button type="button" onClick={() => { if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e){} } }} className="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-[11px] font-bold">🎙️ تێبینی دەنگی (ئارەزوومەندانە)</button>}
+              {isActive ? (
+                <button type="button" onClick={stopRecording} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[11px] font-black animate-pulse">
+                  ⏹️ ڕاگرتنی تۆمارکردن
+                </button>
+              ) : (
+                <button type="button" onClick={startRecording} className="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-[11px] font-black">
+                  🎙️ تێبینی دەنگی (ئارەزوومەندانە)
+                </button>
+              )}
               {noteText && <p className="text-xs text-slate-400 mt-2 italic">"{noteText}"</p>}
             </div>
             <button type="button" onClick={confirmOrder} className="w-full py-2.5 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 ناردنی داواکاری</button>

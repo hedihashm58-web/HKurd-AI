@@ -30,7 +30,7 @@ const RestaurantDashboard: React.FC<DashboardProps> = ({ adminEmail, language })
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentRestaurant, setCurrentRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [audioReady, setAudioReady] = useState(false); // 🔔 بۆ دەربازبوون لە بلۆکی کرۆم
+  const [audioReady, setAudioReady] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
   const [editingFoodIndex, setEditingFoodIndex] = useState<number | null>(null);
@@ -66,10 +66,19 @@ const RestaurantDashboard: React.FC<DashboardProps> = ({ adminEmail, language })
           setOrders(loadedOrders);
           setLoading(false);
 
-          // 🔔 لێدانی دەنگەکە بە بەکارهێنانی لینکی فەرمی پارێزراو
+          // 🔔 زەنگی گەورە و بەردەوام (Loop) تا خاوەنەکە لۆدین بێت یان فەرمانەکە وەربگرێت
           if (hasNewOrder) {
-            const audio = new Audio('https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mpjs'); // لینکێکی نوێ و جێگیر
-            audio.play().catch((err) => console.log("Autoplay blocked, waiting for click"));
+            if (!(window as any).currentOrderAudio) {
+              const audio = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
+              audio.loop = true;
+              audio.play().catch(() => console.log("Blocked"));
+              (window as any).currentOrderAudio = audio;
+            }
+          } else {
+            if ((window as any).currentOrderAudio) {
+              (window as any).currentOrderAudio.pause();
+              (window as any).currentOrderAudio = null;
+            }
           }
         });
 
@@ -83,7 +92,23 @@ const RestaurantDashboard: React.FC<DashboardProps> = ({ adminEmail, language })
   }, [adminEmail]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: 'preparing' | 'completed') => {
-    try { await updateDoc(doc(db, 'food_orders', orderId), { status: newStatus }); } catch (e) {}
+    try { 
+      await updateDoc(doc(db, 'food_orders', orderId), { status: newStatus }); 
+      // 🔕 کوژاندنەوەی دەنگ کاتێک کلیک لە دەستپێکردن دەکرێت
+      if ((window as any).currentOrderAudio) {
+        (window as any).currentOrderAudio.pause();
+        (window as any).currentOrderAudio = null;
+      }
+    } catch (e) {}
+  };
+
+  const handleStartEditFood = (food: MenuItem, index: number) => {
+    setEditingFoodIndex(index);
+    setFoodNameKu(food.name_ku);
+    setFoodNameAr(food.name_ar);
+    setFoodPriceKu(food.price_ku.replace(/[^\d]/g, ''));
+    setFoodImage(food.image);
+    setFoodCategory(food.category);
   };
 
   const handleSaveMenuItem = async (e: React.FormEvent) => {
@@ -100,8 +125,11 @@ const RestaurantDashboard: React.FC<DashboardProps> = ({ adminEmail, language })
     };
 
     let updatedMenu = [...(currentRestaurant.menu || [])];
-    if (editingFoodIndex !== null) { updatedMenu[editingFoodIndex] = newFoodItem; } 
-    else { updatedMenu.push(newFoodItem); }
+    if (editingFoodIndex !== null) { 
+      updatedMenu[editingFoodIndex] = newFoodItem; 
+    } else { 
+      updatedMenu.push(newFoodItem); 
+    }
 
     try {
       await updateDoc(doc(db, 'restaurants', currentRestaurant.id), { menu: updatedMenu });
@@ -117,23 +145,23 @@ const RestaurantDashboard: React.FC<DashboardProps> = ({ adminEmail, language })
     try { await updateDoc(doc(db, 'restaurants', currentRestaurant.id), { menu: updatedMenu }); } catch (err) {}
   };
 
-  const handleStartEditFood = (food: MenuItem, index: number) => {
-    setEditingFoodIndex(index);
-    setFoodNameKu(food.name_ku);
-    setFoodNameAr(food.name_ar);
-    setFoodPriceKu(food.price_ku.replace(/[^\d]/g, ''));
-    setFoodImage(food.image);
-    setFoodCategory(food.category);
-  };
-
   if (loading) return <div className="min-h-[70vh] flex items-center justify-center bg-black"><div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div></div>;
+
+  if (!currentRestaurant) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center bg-black text-white text-center space-y-4 rounded-[3rem] border border-slate-900 p-6">
+        <span className="text-6xl">🚫</span>
+        <h2 className="text-2xl font-black">ڕێستۆرانتەکەت نەدۆزرایەوە!</h2>
+        <p className="text-slate-500 text-xs max-w-sm">ئەم ئیمەیڵە ({adminEmail}) هێشتا بە هیچ ڕێستۆرانتێکەوە نەبەستراوەتەوە لە داتابەیسەکەدا.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-4 text-right" dir="rtl" onClick={() => setAudioReady(true)}>
       
-      {/* 🔔 نامەی ئاگادارکردنەوە بۆ دەربازبوون لە بلۆکی دەنگی وێبگەڕ */}
       {!audioReady && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-xl text-center text-xs text-yellow-500 animate-pulse">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-xl text-center text-xs text-yellow-500 animate-pulse cursor-pointer">
           👉 تکایە یەک کلیک لەسەر شاشەکە بکە بۆ ئەوەی دەنگی زەنگی داواکارییە نوێیەکان چالاک بێت.
         </div>
       )}
