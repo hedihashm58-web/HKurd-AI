@@ -62,6 +62,15 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [tempQuantity, setTempQuantity] = useState<number>(1);
   const [showCartModal, setShowCartModal] = useState<boolean>(false);
 
+  // 💳 زانیاری پێویست بۆ وەسڵ
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerAddress, setCustomerAddress] = useState<string>('');
+
+  // 🚴 ستەیتەکانی بەدواداچوونی لایڤی داواکاری
+  const [isOrderSubmitted, setIsOrderSubmitted] = useState<boolean>(false);
+  const [orderStatus, setOrderStatus] = useState<string>('🍳 خەریکە ئامادە دەبێت');
+
   const [reserveGuests, setReserveGuests] = useState<number>(2);
   const [reserveNote, setReserveNote] = useState<string>('');
 
@@ -105,6 +114,17 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
     };
   }, []);
+
+  // سیستەمی لایڤ بۆ گۆڕینی دۆخی خواردنەکە پاش ناردنی وەسڵ
+  useEffect(() => {
+    let timer: any;
+    if (isOrderSubmitted) {
+      timer = setTimeout(() => {
+        setOrderStatus('🚴 لە ڕێگایە بۆ گەیاندن');
+      }, 7000); // پاش ٧ چرکە دۆخەکەی دەگۆڕێت
+    }
+    return () => clearTimeout(timer);
+  }, [isOrderSubmitted]);
 
   const fetchLiveRestaurants = async () => {
     try {
@@ -245,6 +265,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
             }
           });
           setCart(updatedCart);
+          setIsOrderSubmitted(false); // ڕیستکردنەوەی دۆخی وەسڵ
           setShowCartModal(true);
         }
       } catch (error: any) {}
@@ -254,6 +275,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
   const confirmOrder = async () => {
     if (cart.length === 0 || !selectedRestaurant) return;
+    if (!customerPhone.trim() || !customerAddress.trim()) {
+      alert("⚠️ تکایە ژمارەی مۆبایل و ناونیشان بنووسە.");
+      return;
+    }
+
     try {
       const orderItems = cart.map(item => ({
         foodName: item.food.name_ku,
@@ -266,14 +292,19 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         restaurantName: selectedRestaurant.name_ku,
         items: orderItems,
         totalPrice: calculateTotal() + " دینار",
+        paymentMethod: paymentMethod === 'digital' ? 'دیجیتاڵی' : 'کاش (گەیاندن)',
+        customerPhone: customerPhone,
+        customerAddress: customerAddress,
         status: "new",
         timestamp: new Date().toISOString()
       });
 
-      alert("داواکاری نێردرا");
-      setCart([]);
-      setShowCartModal(false);
-    } catch (e) {}
+      // چالاککردنی دۆخی بەدواداچوونی لایڤی داواکاری بە داینامیکی
+      setIsOrderSubmitted(true);
+      setOrderStatus('🍳 خەریکە ئامادە دەبێت');
+    } catch (e) {
+      alert("خەتا لە ناردنی داواکاری");
+    }
   };
 
   const handleTableReservation = async (e: React.FormEvent) => {
@@ -412,7 +443,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             {restaurants.filter(res => (language === 'ku' ? res.name_ku : res.name_ar).toLowerCase().includes(searchQuery.toLowerCase())).map((res) => (
-              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setActiveSubSection('none'); setCart([]); }} className="rounded-xl border border-slate-900 bg-[#050507] overflow-hidden cursor-pointer flex h-24 items-center p-2 gap-3 hover:border-slate-700 transition-all">
+              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setActiveSubSection('none'); setCart([]); setIsOrderSubmitted(false); }} className="rounded-xl border border-slate-900 bg-[#050507] overflow-hidden cursor-pointer flex h-24 items-center p-2 gap-3 hover:border-slate-700 transition-all">
                 <img src={res.cover} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-black text-white truncate">{language === 'ku' ? res.name_ku : res.name_ar}</h3>
@@ -425,7 +456,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         <div className="space-y-4">
           
           <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-900">
-            <button onClick={() => { setSelectedRestaurant(null); setActiveSubSection('none'); setCart([]); }} className="text-indigo-400 font-bold text-xs">← گەڕانەوە</button>
+            <button onClick={() => { setSelectedRestaurant(null); setActiveSubSection('none'); setCart([]); setIsOrderSubmitted(false); }} className="text-indigo-400 font-bold text-xs">← گەڕانەوە</button>
             <h2 className="text-sm font-black text-white">{selectedRestaurant.name_ku}</h2>
           </div>
 
@@ -479,6 +510,15 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
                 </div>
                 {debugError && <div className="text-[10px] text-red-500 mt-1">⚠️ {debugError}</div>}
               </div>
+
+              {/* دوگمەی سەبەتەی کڕین بۆ دەستی */}
+              {cart.length > 0 && (
+                <div className="flex justify-center animate-in fade-in duration-300">
+                  <button type="button" onClick={() => setShowCartModal(true)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl shadow-lg flex items-center gap-2 transition-all active:scale-95">
+                    🛒 بینینی سەبەتەی کڕین ({cart.length})
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                 {selectedRestaurant.menu?.map((food, index) => (
@@ -557,32 +597,65 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
       {showCartModal && (
         <div className="fixed inset-0 z-[350] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setShowCartModal(false)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => { setShowCartModal(false); setIsOrderSubmitted(false); }}></div>
           <div className="relative bg-[#09090b] border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 text-right flex flex-col max-h-[85vh]">
             <h3 className="text-base font-black text-white border-b border-slate-800 pb-2 text-center">🧾 وەسڵی داواکاری</h3>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {cart.map((item, index) => (
-                <div key={index} className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex justify-between items-center gap-2">
-                  <button onClick={() => removeFromCart(index)} className="text-red-500 text-xs hover:bg-red-500/10 p-1 rounded">🗑️</button>
-                  <div className="flex items-center gap-2 bg-black border border-slate-800 px-2 py-1 rounded-full">
-                    <button onClick={() => updateCartQuantity(index, 1)} className="text-white font-bold text-xs px-1">＋</button>
-                    <span className="text-yellow-500 font-bold text-xs px-1">{item.quantity}</span>
-                    <button onClick={() => updateCartQuantity(index, -1)} className="text-white font-bold text-xs px-1">－</button>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <h4 className="text-xs font-bold text-white">{item.food.name_ku}</h4>
-                    <span className="text-[10px] text-slate-500">{item.food.price_ku}</span>
-                  </div>
+            
+            {/* پێشاندانی وەسڵ و فۆڕمەکە تەنها لە کاتێکدا کە هێشتا وەسڵەکە نەنێردراوە */}
+            {!isOrderSubmitted ? (
+              <>
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {cart.map((item, index) => (
+                    <div key={index} className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex justify-between items-center gap-2">
+                      <button onClick={() => removeFromCart(index)} className="text-red-500 text-xs hover:bg-red-500/10 p-1 rounded">🗑️</button>
+                      <div className="flex items-center gap-2 bg-black border border-slate-800 px-2 py-1 rounded-full">
+                        <button onClick={() => updateCartQuantity(index, 1)} className="text-white font-bold text-xs px-1">＋</button>
+                        <span className="text-yellow-500 font-bold text-xs px-1">{item.quantity}</span>
+                        <button onClick={() => updateCartQuantity(index, -1)} className="text-white font-bold text-xs px-1">－</button>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <h4 className="text-xs font-bold text-white">{item.food.name_ku}</h4>
+                        <span className="text-[10px] text-slate-500">{item.food.price_ku}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {cart.length > 0 && (
-              <div className="border-t border-slate-800 pt-3 flex justify-between items-center text-sm font-black text-white">
-                <span className="text-yellow-500">{calculateTotal()} دینار</span>
-                <span>کۆی گشتی وەسڵ:</span>
+
+                <div className="space-y-2 border-t border-slate-800 pt-3">
+                  <input type="tel" placeholder="📞 ژمارەی مۆبایل" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="w-full bg-black text-white text-xs border border-slate-800 p-2.5 rounded-xl outline-none" />
+                  <input type="text" placeholder="📍 ناونیشانی تەواو" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full bg-black text-white text-xs border border-slate-800 p-2.5 rounded-xl outline-none" />
+                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-black text-white text-xs border border-slate-800 p-2.5 rounded-xl outline-none">
+                    <option value="cash">💵 کاش (گەیاندن)</option>
+                    <option value="digital">💳 پارەدانی دیجیتاڵی</option>
+                  </select>
+                </div>
+
+                {cart.length > 0 && (
+                  <div className="border-t border-slate-800 pt-3 flex justify-between items-center text-sm font-black text-white">
+                    <span className="text-yellow-500">{calculateTotal()} دینار</span>
+                    <span>کۆی گشتی وەسڵ:</span>
+                  </div>
+                )}
+                <button type="button" onClick={confirmOrder} disabled={cart.length === 0} className="w-full py-2.5 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 ناردنی داواکاری وەسڵەکە</button>
+              </>
+            ) : (
+              /* 🏁 بەشی بەدواداچوونی لایڤی داواکاری (Live Order Tracking) بە دیزاینێکی شاهانە و داخراو لە ناو مۆداڵەکەدا */
+              <div className="py-8 text-center space-y-6 animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-indigo-600/10 text-indigo-400 rounded-full flex items-center justify-center text-3xl mx-auto border border-indigo-500/20 animate-pulse">
+                  📦
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-black text-white">دۆخی داواکارییەکەت لە لایڤدا:</h4>
+                  <p className="text-base font-black text-yellow-500 bg-slate-950 py-3 px-4 rounded-xl border border-slate-900 inline-block">
+                    {orderStatus}
+                  </p>
+                </div>
+                <p className="text-[11px] text-slate-500 px-4">داواکارییەکەت بە سەرکەوتوویی نێردراوە بۆ چێشتخانە، تکایە چاوەڕوان بە تا دەگاتە دەستت.</p>
+                <button type="button" onClick={() => { setShowCartModal(false); setIsOrderSubmitted(false); setCart([]); }} className="px-5 py-2 bg-slate-900 text-slate-300 text-xs font-bold rounded-lg border border-slate-800">
+                  ✕ داخستن
+                </button>
               </div>
             )}
-            <button type="button" onClick={confirmOrder} disabled={cart.length === 0} className="w-full py-2.5 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 ناردنی داواکاری وەسڵەکە</button>
           </div>
         </div>
       )}

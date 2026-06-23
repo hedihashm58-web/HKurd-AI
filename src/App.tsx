@@ -38,7 +38,7 @@ const App: React.FC = () => {
         const emailClean = user.email.toLowerCase().trim();
         setUserEmail(emailClean);
         
-        // 👑 ئەگەر خاوەن ڕێستۆرانت بوو، ڕاستەوخۆ دەچێتە داشبۆردەکە
+        // ئەگەر خاوەن ڕێستۆرانت بوو، ڕاستەوخۆ دەچێتە داشبۆردەکە
         if (emailClean.endsWith('@restaurant.com')) {
           setActiveView(View.RESTAURANT_DASHBOARD);
         }
@@ -88,12 +88,10 @@ const App: React.FC = () => {
   );
 
   function renderView() {
-    // 🔒 قوفڵی پۆڵایین: ئەگەر خاوەن ڕێستۆرانت بوو، تەنها و تەنها داشبۆردی پێشان دەدات
     if (isRestaurantAdmin && userEmail) {
       return <RestaurantDashboard adminEmail={userEmail} language={language} />;
     }
 
-    // ئەگەر کڕیاری ئاسایی بوو، ئەوا ئەم بەشانەی بۆ دەکرێتەوە
     switch (activeView) {
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
@@ -104,6 +102,7 @@ const App: React.FC = () => {
       case View.VOICE: return <VoiceInterface language={language} />; 
       case View.HEALTH: return <HealthInterface />;
       case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
+      case View.RESTAURANT_DASHBOARD: return <RestaurantDashboard adminEmail={userEmail || ''} language={language} />;
       default: return <ChatInterface />;
     }
   }
