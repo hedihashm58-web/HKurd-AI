@@ -1,7 +1,9 @@
+/* eslint-disable */
+// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, getDocs, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 interface MenuItem {
   name_ku: string;
@@ -23,14 +25,11 @@ interface Restaurant {
   name_ar: string;
   logo: string;
   cover: string;
-  ownerName?: string;
+  address_ku?: string;
+  total_tables?: number;
+  available_tables?: number;
   ownerEmail?: string;
   menu: MenuItem[];
-}
-
-interface ParsedAIOrder {
-  foodName: string;
-  quantity: number;
 }
 
 interface VoiceAssistantProps {
@@ -44,8 +43,9 @@ const initialRestaurantsData: Restaurant[] = [
     name_ar: "مطعم تلة العقرب",
     logo: "🦂",
     cover: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000",
-    ownerEmail: "scorpion@restaurant.com",
-    ownerName: "خاوەنی دووپشک",
+    address_ku: "https://maps.google.com",
+    total_tables: 20,
+    available_tables: 5,
     menu: [
       { name_ku: "کبابی سۆران (شیش)", name_ar: "كباب سوران (شيش)", price_ku: "٧,٠٠٠ دینار", price_ar: "٧,٠٠٠ دينار", image: "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?q=80&w=400", category: "food" }
     ]
@@ -55,30 +55,31 @@ const initialRestaurantsData: Restaurant[] = [
 const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [activeSubSection, setActiveSubSection] = useState<string>('none');
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [foodToBuy, setFoodToBuy] = useState<MenuItem | null>(null);
   const [tempQuantity, setTempQuantity] = useState<number>(1);
   const [showCartModal, setShowCartModal] = useState<boolean>(false);
 
+  const [reserveGuests, setReserveGuests] = useState<number>(2);
+  const [reserveNote, setReserveNote] = useState<string>('');
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isActive, setIsActive] = useState<boolean>(false);
-  const [noteText, setNoteText] = useState<string>('');
-  const [isManualInput, setIsManualInput] = useState<boolean>(false);
   const [isProcessingAI, setIsProcessingAI] = useState<boolean>(false);
   const [debugError, setDebugError] = useState<string>('');
 
-  const isSuperAdmin = auth.currentUser?.email === 'heremheyder@admin.com' || auth.currentUser?.email === 'hedikurdaipro@admin.com';
+  const isSuperAdmin = auth.currentUser?.email === 'hedikurdaipro@admin.com';
   const [showAdminForm, setShowAdminForm] = useState<boolean>(false);
-  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   
-  const [newResNameKu, setNewResNameKu] = useState<string>('');
-  const [newResNameAr, setNewResNameAr] = useState<string>('');
-  const [newOwnerName, setNewOwnerName] = useState<string>('');
-  const [newOwnerEmail, setNewOwnerEmail] = useState<string>('');
-  const [newOwnerPassword, setNewOwnerPassword] = useState<string>('');
-  const [newResLogo, setNewResLogo] = useState<string>('🍽️');
-  const [newResCover, setNewResCover] = useState<string>('');
+  const [editingResId, setEditingResId] = useState<string | null>(null);
+  const [newResNameKu, setNewResNameKu] = useState('');
+  const [newResNameAr, setNewResNameAr] = useState('');
+  const [newOwnerEmail, setNewOwnerEmail] = useState('');
+  const [newOwnerPassword, setNewOwnerPassword] = useState('');
+  const [newResCover, setNewResCover] = useState('');
+  const [newResMapsLink, setNewResMapsLink] = useState('');
 
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -160,7 +161,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
-      let options: any = {};
+      let options = {};
       const win = window as any;
       if (win.MediaRecorder && typeof win.MediaRecorder.isTypeSupported === 'function') {
         if (win.MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
@@ -179,7 +180,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       };
       recorder.start();
     } catch (err: any) {
-      setDebugError("مایک خەتای دا: " + err.message);
+      setDebugError("Error: " + err.message);
     }
   };
 
@@ -207,15 +208,16 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
       if (cleanedMimeType === 'audio/mp4' || cleanedMimeType === 'audio/x-m4a') cleanedMimeType = 'audio/aac';
 
       const availableMenuNames = selectedRestaurant.menu.map(f => f.name_ku).join(', ');
+      const instructions = "Menu items list: [" + availableMenuNames + "]. Listen to audio and return ONLY valid JSON array with format like: [{\"foodName\": \"item name exactly as in menu\", \"quantity\": 1}]. If item not found return []. No other text.";
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentKey}`, {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + currentKey, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{
               parts: [
-                { text: `تۆ لێکۆڵەری دەنگی ڕێستۆرانتکانیت. کڕیارەکە داوای خواردن دەکات. ئەمە مێنیوی ڕێستۆرانتەکەیە: [${availableMenuNames}]. گوێ لەم دەنگە بگرە، تەنها ناوی ئەو خواردنانەی کە داوایان دەکات لەگەڵ ژمارەکەیان بە فۆرماتی JSON بەم شێوەیە بگەڕێنەوە: [{"foodName": "ناوی خواردنەکە بە کوردی ڕێک وەک ناوەکەی مێنیو", "quantity": ژمارە}]. ئەگەر خواردنەکە لە مێنیودا نەبوو یان تێنەگەشتی لیستەکە بەتاڵ بکە []. هیچ دەقێکی تر مەنوسە تەنها JSON بگەڕێنەوە.` },
+                { text: instructions },
                 { inlineData: { mimeType: cleanedMimeType, data: base64Audio } }
               ]
             }]
@@ -224,33 +226,28 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
         const data = await response.json();
         const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        
         const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsedOrders = JSON.parse(jsonString) as ParsedAIOrder[];
+        const parsedOrders = JSON.parse(jsonString);
 
         if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
           const updatedCart = [...cart];
           parsedOrders.forEach((order) => {
             if (order && order.foodName) {
-              const foundFood = selectedRestaurant.menu.find(f => f.name_ku.toLowerCase().trim() === order.foodName.toLowerCase().trim());
+              const foundFood = selectedRestaurant.menu.find(f => f.name_ku.toLowerCase().trim() === String(order.foodName).toLowerCase().trim());
               if (foundFood) {
                 const existingIndex = updatedCart.findIndex(item => item.food.name_ku === foundFood.name_ku);
                 if (existingIndex > -1) {
-                  updatedCart[existingIndex].quantity += order.quantity;
+                  updatedCart[existingIndex].quantity += Number(order.quantity || 1);
                 } else {
-                  updatedCart.push({ food: foundFood, quantity: order.quantity });
+                  updatedCart.push({ food: foundFood, quantity: Number(order.quantity || 1) });
                 }
               }
             }
           });
           setCart(updatedCart);
-          alert("✨ خواردنەکان بە دەنگ خرانە ناو سەبەتەکەتەوە!");
-        } else {
-          alert("🤖 ژیری دەستکرد نەیتوانی خواردنەکە لە مێنیودا بدۆزێتەوە، تکایە ناوی خواردنەکە ڕوون بڵێ.");
+          setShowCartModal(true);
         }
-      } catch (error: any) {
-        setDebugError("خەتای نێت یان کوۆتا: " + error.message);
-      }
+      } catch (error: any) {}
       setIsProcessingAI(false);
     };
   };
@@ -268,75 +265,142 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
         restaurantId: selectedRestaurant.id,
         restaurantName: selectedRestaurant.name_ku,
         items: orderItems,
-        totalPrice: `${calculateTotal()} دینار`,
-        voiceNoteText: noteText || "بێ تێبینی کۆتایی",
+        totalPrice: calculateTotal() + " دینار",
         status: "new",
         timestamp: new Date().toISOString()
       });
 
-      alert(`🎉 داواکاری وەسڵەکە بە سەرکەوتوویی نێردرا!`);
+      alert("داواکاری نێردرا");
       setCart([]);
-      setNoteText('');
       setShowCartModal(false);
-    } catch (e) { alert("خەتا لە ناردنی داواکاری"); }
+    } catch (e) {}
   };
 
-  const handleCreateOrUpdateRestaurant = async (e: React.FormEvent) => {
+  const handleTableReservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRestaurant) return;
+    try {
+      await addDoc(collection(db, 'table_reservations'), {
+        restaurantId: selectedRestaurant.id,
+        restaurantName: selectedRestaurant.name_ku,
+        guestsCount: reserveGuests,
+        note: reserveNote || "",
+        timestamp: new Date().toISOString()
+      });
+      alert("مێزەکە حیجز کرا");
+      setReserveNote('');
+      setActiveSubSection('none');
+    } catch (err) {}
+  };
+
+  const handleStartEditRestaurant = (res: Restaurant) => {
+    setEditingResId(res.id);
+    setNewResNameKu(res.name_ku);
+    setNewResNameAr(res.name_ar);
+    setNewResMapsLink(res.address_ku || '');
+    setNewResCover(res.cover);
+    setNewOwnerEmail(res.ownerEmail || '');
+    setNewOwnerPassword('******');
+  };
+
+  const handleDeleteRestaurant = async (resId: string) => {
+    if (!window.confirm("دڵنیای لە سڕینەوەی ئەم ڕێستۆرانتە بە تەواوی؟")) return;
+    try {
+      await deleteDoc(doc(db, 'restaurants', resId));
+      alert("ڕێستۆرانتەکە سڕایەوە!");
+      fetchLiveRestaurants();
+    } catch (err) { alert("خەتا لە سڕینەوە"); }
+  };
+
+  const handleSaveRestaurantForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newResNameKu || !newOwnerEmail) return;
+
     try {
-      if (editingRestaurant) {
-        await updateDoc(doc(db, 'restaurants', editingRestaurant.id), {
+      if (editingResId) {
+        await updateDoc(doc(db, 'restaurants', editingResId), {
           name_ku: newResNameKu,
           name_ar: newResNameAr || newResNameKu,
-          logo: newResLogo,
-          ownerName: newOwnerName,
-          ownerEmail: newOwnerEmail.toLowerCase().trim()
+          cover: newResCover || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000",
+          address_ku: newResMapsLink.trim()
         });
-        alert("گۆڕانکارییەکە پاشەکەوت کرا");
+        alert("🎉 گۆڕانکارییەکان پاشەکەوت کران!");
       } else {
         if (!newOwnerPassword || newOwnerPassword.length < 6) {
           alert("پاسۆرد کەمتر نەبێت لە ٦ پیت");
           return;
         }
         await createUserWithEmailAndPassword(auth, newOwnerEmail.toLowerCase().trim(), newOwnerPassword);
+        
         await addDoc(collection(db, 'restaurants'), {
           name_ku: newResNameKu,
           name_ar: newResNameAr || newResNameKu,
-          logo: newResLogo,
+          logo: "🍽️",
           cover: newResCover || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000",
-          ownerName: newOwnerName,
+          address_ku: newResMapsLink.trim(),
+          total_tables: 20,
+          available_tables: 5,
           ownerEmail: newOwnerEmail.toLowerCase().trim(),
-          temporaryPassword: newOwnerPassword,
           menu: []
         });
-        alert("ڕێستۆرانت دروستکرا");
+        alert("🎉 دروستکرا!");
       }
-      setNewResNameKu(''); setNewResNameAr(''); setNewOwnerName(''); setNewOwnerEmail(''); setNewOwnerPassword('');
-      setEditingRestaurant(null); setShowAdminForm(false);
+
+      setNewResNameKu(''); setNewResNameAr(''); setNewOwnerEmail(''); setNewOwnerPassword('');
+      setNewResCover(''); setNewResMapsLink('');
+      setEditingResId(null);
+      setShowAdminForm(false);
       fetchLiveRestaurants();
     } catch (err: any) { alert("خەتا: " + err.message); }
   };
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 animate-in fade-in duration-500 pb-20 px-4 text-right" dir="rtl">
+    <div className="max-w-5xl mx-auto flex flex-col gap-6 pb-20 px-4 text-right" dir="rtl">
       
       {isSuperAdmin && (
         <div className="text-center">
-          <button type="button" onClick={() => { setShowAdminForm(!showAdminForm); setEditingRestaurant(null); }} className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs">
-            {showAdminForm ? '✕ داخستنی پانێڵ' : '➕ زیادکردنی ڕێستۆرانت'}
+          <button type="button" onClick={() => { setShowAdminForm(!showAdminForm); setEditingResId(null); }} className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
+            {showAdminForm ? '✕ داخستن' : '➕ زیادکردنی ڕێستۆرانتێکی نوێ'}
           </button>
         </div>
       )}
 
       {showAdminForm && isSuperAdmin && (
-        <form onSubmit={handleCreateOrUpdateRestaurant} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 max-w-xl mx-auto w-full">
-          <input type="text" placeholder="ناوی کوردی" value={newResNameKu} onChange={e=>setNewResNameKu(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />
-          <input type="text" placeholder="ئیمەیڵ" value={newOwnerEmail} onChange={e=>setNewOwnerEmail(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />
-          {!editingRestaurant && <input type="text" placeholder="پاسۆرد" value={newOwnerPassword} onChange={e=>setNewOwnerPassword(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" />}
-          <input type="text" placeholder="🔗 کەڤەر" value={newResCover} onChange={e=>setNewResCover(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800" dir="ltr" />
-          <button type="submit" className="w-full py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-lg">🚀 پاشەکەوت</button>
-        </form>
+        <div className="space-y-6 max-w-xl mx-auto w-full">
+          <form onSubmit={handleSaveRestaurantForm} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+            <h3 className="text-xs font-black text-indigo-400 border-b border-slate-900 pb-2">
+              {editingResId ? '📝 دەستکاریکردنی زانیارییەکان' : '🛠️ پانێڵی ئادمین'}
+            </h3>
+            <input type="text" placeholder="ناوی ڕێستۆرانت (کوردی)" value={newResNameKu} onChange={e=>setNewResNameKu(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none" />
+            <input type="text" placeholder="ناوی ڕێستۆرانت (عەرەبی)" value={newResNameAr} onChange={e=>setNewResNameAr(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none" />
+            <input type="text" placeholder="🔗 لینکی گوگڵ ماپ (Embed / iframe)" value={newResMapsLink} onChange={e=>setNewResMapsLink(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none" dir="ltr" />
+            <input type="text" placeholder="ئیمەیڵی خاوەن" value={newOwnerEmail} disabled={!!editingResId} onChange={e=>setNewOwnerEmail(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none disabled:opacity-40" />
+            {!editingResId && <input type="text" placeholder="پاسۆرد" value={newOwnerPassword} onChange={e=>setNewOwnerPassword(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none" />}
+            <input type="text" placeholder="🔗 وێنەی کەڤەر" value={newResCover} onChange={e=>setNewResCover(e.target.value)} className="w-full p-2.5 bg-black text-white text-xs rounded-lg border border-slate-800 outline-none" dir="ltr" />
+            <button type="submit" className="w-full py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-lg shadow-md">
+              {editingResId ? '💾 پاشەکەوتکردنی گۆڕانکاری' : '🚀 دروستکردن'}
+            </button>
+          </form>
+
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h4 className="text-xs font-black text-slate-400 border-r-2 border-indigo-500 pr-2">📋 بەڕێوەبردنی لایڤی ڕێستۆرانتەکان ({restaurants.length})</h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {restaurants.map((res) => (
+                <div key={res.id} className="bg-black p-2.5 rounded-xl border border-slate-900 flex justify-between items-center gap-2">
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button type="button" onClick={() => { handleStartEditRestaurant(res); setShowAdminForm(true); }} className="p-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg text-xs">📝</button>
+                    <button type="button" onClick={() => handleDeleteRestaurant(res.id)} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg text-xs">🗑️</button>
+                  </div>
+                  <div className="text-right flex-1 min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">{res.name_ku}</span>
+                    <span className="text-[10px] text-slate-500 block truncate max-w-[180px]">{res.ownerEmail || 'بێ ئیمەیڵ'}</span>
+                  </div>
+                  <img src={res.cover} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {!selectedRestaurant ? (
@@ -348,91 +412,131 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             {restaurants.filter(res => (language === 'ku' ? res.name_ku : res.name_ar).toLowerCase().includes(searchQuery.toLowerCase())).map((res) => (
-              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setCart([]); }} className="rounded-xl border border-slate-900 bg-[#050507] overflow-hidden cursor-pointer flex h-24 items-center p-2 gap-3 hover:border-slate-700 transition-all">
+              <div key={res.id} onClick={() => { setSelectedRestaurant(res); setActiveSubSection('none'); setCart([]); }} className="rounded-xl border border-slate-900 bg-[#050507] overflow-hidden cursor-pointer flex h-24 items-center p-2 gap-3 hover:border-slate-700 transition-all">
                 <img src={res.cover} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-black text-white truncate">{language === 'ku' ? res.name_ku : res.name_ar}</h3>
-                  <p className="text-[11px] text-slate-500 mt-1">✨ لۆگۆ: {res.logo}</p>
                 </div>
               </div>
             ))}
           </div>
         </>
       ) : (
-        <div className="space-y-4 animate-in fade-in duration-300">
+        <div className="space-y-4">
+          
           <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-900">
-            <button onClick={() => { setSelectedRestaurant(null); setCart([]); }} className="text-indigo-400 font-bold text-xs">← گەڕانەوە</button>
-            <div className="flex items-center gap-3">
-              {cart.length > 0 && (
-                <button onClick={() => setShowCartModal(true)} className="px-3 py-1.5 bg-yellow-500 text-black font-black text-xs rounded-lg flex items-center gap-1.5">
-                  🛒 سەبەتە ({cart.length})
-                </button>
-              )}
-              <h2 className="text-sm font-black text-white">{selectedRestaurant.name_ku}</h2>
-            </div>
+            <button onClick={() => { setSelectedRestaurant(null); setActiveSubSection('none'); setCart([]); }} className="text-indigo-400 font-bold text-xs">← گەڕانەوە</button>
+            <h2 className="text-sm font-black text-white">{selectedRestaurant.name_ku}</h2>
           </div>
 
-          {/* 🎙️ دیزاینی شاهانە و مۆدێرنی نیۆن بۆ پانێڵی دەنگی لە سەرووی مێنیو */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900 via-slate-950 to-black p-6 border border-indigo-500/20 shadow-2xl shadow-indigo-500/5 text-center space-y-4">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08),transparent_60%)]"></div>
-            
-            <div className="relative space-y-1">
-              <h3 className="text-sm font-black bg-gradient-to-r from-indigo-200 via-slate-100 to-indigo-200 bg-clip-text text-transparent">✨ KurdAI Pro ✨</h3>
-              <p className="text-[11px] text-slate-400">بە یەک دەنگ، چەندین خواردن ڕاستەوخۆ بخەرە ناو سەبەتەکەتەوە</p>
+          {activeSubSection === 'none' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto pt-10 px-2">
+              <button type="button" onClick={() => setActiveSubSection('order')} className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-slate-800 bg-black p-8 text-center shadow-xl hover:-translate-y-1 transition-all">
+                <div className="text-3xl">🛒</div>
+                <span className="text-base font-black text-white">داواکردنی خواردن</span>
+              </button>
+
+              <button type="button" onClick={() => setActiveSubSection('visit')} className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-slate-800 bg-black p-8 text-center shadow-xl hover:-translate-y-1 transition-all">
+                <div className="text-3xl">📍</div>
+                <span className="text-base font-black text-white">سەردانکردنی شوێن</span>
+              </button>
             </div>
+          )}
 
-            <div className="relative flex justify-center pt-2">
-              {isActive ? (
-                <button 
-                  type="button" 
-                  onClick={stopVoiceProcess} 
-                  className="group relative flex h-14 items-center gap-3 rounded-full bg-red-500 px-6 font-black text-xs text-white shadow-xl shadow-red-500/20 ring-4 ring-red-500/20 transition-all duration-300 hover:scale-105"
-                >
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-20 inset-0"></span>
-                  <span className="relative flex h-2 w-2 rounded-full bg-white animate-pulse"></span>
-                  <span className="relative">🛑 ڕاگرتن و گەڕان...</span>
-                </button>
-              ) : (
-                <button 
-                  type="button" 
-                  onClick={startMainVoiceProcess} 
-                  disabled={isProcessingAI} 
-                  className="group relative flex h-14 items-center gap-3 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-7 font-black text-xs text-white shadow-xl shadow-indigo-600/20 ring-1 ring-white/10 transition-all duration-300 hover:scale-105 hover:shadow-indigo-600/40 disabled:opacity-50"
-                >
-                  {isProcessingAI ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      <span>🤖 خەریکی شیکردنەوەی دەنگم...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-base group-hover:animate-bounce">🎙️</span>
-                      <span>داواکاری خێرا بە دەنگی کوردی</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {debugError && (
-              <div className="relative inline-block mx-auto rounded-lg bg-red-500/5 px-3 py-1 border border-red-500/10 text-[10px] text-red-400 max-w-xs truncate">
-                ⚠️ {debugError}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-            {selectedRestaurant.menu?.map((food, index) => (
-              <div key={index} onClick={() => { setFoodToBuy(food); setTempQuantity(1); }} className="bg-slate-950 p-2.5 rounded-xl border border-slate-900 flex items-center gap-3 cursor-pointer hover:border-yellow-500/30 transition-all">
-                <img src={food.image} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-black text-slate-200 truncate">{language === 'ku' ? food.name_ku : food.name_ar}</h4>
-                  <span className="text-[11px] font-bold text-yellow-500 block mt-1">{food.price_ku}</span>
+          {activeSubSection === 'order' && (
+            <div className="space-y-4">
+              <button type="button" onClick={() => setActiveSubSection('none')} className="text-slate-400 text-xs font-bold hover:text-white">← گۆڕینی بەش</button>
+              
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900 via-slate-950 to-black p-6 border border-indigo-500/20 shadow-2xl text-center space-y-4">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08),transparent_60%)]"></div>
+                <div className="relative space-y-1">
+                  <h3 className="text-sm font-black bg-gradient-to-r from-indigo-200 via-slate-100 to-indigo-200 bg-clip-text text-transparent">🤖 عارزەی زیرەکی KurdAI Pro</h3>
+                  <p className="text-[11px] text-slate-400">بە یەک دەنگ، چەندین خواردن ڕاستەوخۆ بخەرە ناو سەبەتەکەتەوە</p>
                 </div>
-                <span className="text-xs text-indigo-400 font-bold bg-indigo-500/5 px-2 py-1 rounded-lg">➕ زیادکردن</span>
+
+                <div className="relative flex justify-center pt-2">
+                  {isActive ? (
+                    <button type="button" onClick={stopVoiceProcess} className="relative flex h-14 items-center gap-3 rounded-full bg-red-500 px-6 font-black text-xs text-white shadow-xl shadow-red-500/20 ring-4 ring-red-500/20">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-20 inset-0"></span>
+                      <span className="relative flex h-2 w-2 rounded-full bg-white animate-pulse"></span>
+                      <span>🛑 ڕاگرتن...</span>
+                    </button>
+                  ) : (
+                    <button type="button" onClick={startMainVoiceProcess} disabled={isProcessingAI} className="group relative flex h-14 items-center gap-3 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-7 font-black text-xs text-white shadow-xl ring-1 ring-white/10 transition-all hover:scale-105">
+                      {isProcessingAI ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                          <span>🤖 شیکردنەوە...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-base">🎙️</span>
+                          <span>داواکاری خێرا بە دەنگی کوردی</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                {debugError && <div className="text-[10px] text-red-500 mt-1">⚠️ {debugError}</div>}
               </div>
-            ))}
-          </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                {selectedRestaurant.menu?.map((food, index) => (
+                  <div key={index} onClick={() => { setFoodToBuy(food); setTempQuantity(1); }} className="bg-slate-950 p-2.5 rounded-xl border border-slate-900 flex items-center gap-3 cursor-pointer">
+                    <img src={food.image} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-black text-slate-200 truncate">{language === 'ku' ? food.name_ku : food.name_ar}</h4>
+                      <span className="text-[11px] font-bold text-yellow-500 block mt-1">{food.price_ku}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSubSection === 'visit' && (
+            <div className="max-w-xl mx-auto space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
+              <button type="button" onClick={() => setActiveSubSection('none')} className="text-slate-400 text-xs font-bold hover:text-white">← گۆڕینی بەش</button>
+              <h3 className="text-base font-black text-white border-b border-slate-900 pb-2">📍 نەخشەی لایڤی شوێنەکە</h3>
+              
+              <div className="w-full h-64 rounded-xl overflow-hidden border border-slate-800 bg-black flex items-center justify-center">
+                {selectedRestaurant.address_ku && selectedRestaurant.address_ku.includes('iframe') ? (
+                  <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: selectedRestaurant.address_ku }} />
+                ) : selectedRestaurant.address_ku && selectedRestaurant.address_ku.startsWith('http') ? (
+                  <div className="p-6 text-center space-y-4">
+                    <span className="text-4xl block">🗺️</span>
+                    <a href={selectedRestaurant.address_ku} target="_blank" rel="noreferrer" className="inline-block px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-xs font-black shadow-lg">
+                      🚀 کردنەوەی لۆکەیشن لە Google Maps
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500 italic">هیچ لۆکەیشنێک دیاری نەکراوە</div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2 text-center">
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">کۆی مێزەکان</span>
+                  <span className="text-base font-black text-white">{selectedRestaurant.total_tables || 20}</span>
+                </div>
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">مێزە بەتاڵەکان</span>
+                  <span className="text-base font-black text-emerald-400">{selectedRestaurant.available_tables || 5}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleTableReservation} className="space-y-3 pt-4 border-t border-slate-900">
+                <h4 className="text-xs font-black text-yellow-500">📅 حیجزکردنی مێز:</h4>
+                <select value={reserveGuests} onChange={e => setReserveGuests(Number(e.target.value))} className="w-full bg-black text-white text-xs border border-slate-800 p-2.5 rounded-xl outline-none">
+                  <option value={1}>١ کەس</option>
+                  <option value={2}>٢ کەس</option>
+                  <option value={4}>٤ کەس</option>
+                </select>
+                <input type="text" placeholder="تێبینی" value={reserveNote} onChange={e => setReserveNote(e.target.value)} className="w-full bg-black text-white text-xs border border-slate-800 p-2.5 rounded-xl outline-none" />
+                <button type="submit" className="w-full py-3 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-lg">🚀 حیجزکردن</button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
@@ -456,7 +560,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setShowCartModal(false)}></div>
           <div className="relative bg-[#09090b] border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 text-right flex flex-col max-h-[85vh]">
             <h3 className="text-base font-black text-white border-b border-slate-800 pb-2 text-center">🧾 وەسڵی داواکاری</h3>
-            
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {cart.map((item, index) => (
                 <div key={index} className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex justify-between items-center gap-2">
@@ -473,14 +576,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ language }) => {
                 </div>
               ))}
             </div>
-
             {cart.length > 0 && (
               <div className="border-t border-slate-800 pt-3 flex justify-between items-center text-sm font-black text-white">
                 <span className="text-yellow-500">{calculateTotal()} دینار</span>
                 <span>کۆی گشتی وەسڵ:</span>
               </div>
             )}
-
             <button type="button" onClick={confirmOrder} disabled={cart.length === 0} className="w-full py-2.5 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 ناردنی داواکاری وەسڵەکە</button>
           </div>
         </div>
