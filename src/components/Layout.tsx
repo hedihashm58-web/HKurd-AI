@@ -10,8 +10,51 @@ interface LayoutProps {
   setLanguage: React.Dispatch<React.SetStateAction<'ku' | 'ar'>>;
 }
 
+{/* 👑 مۆداڵی نوێی شاهانە بۆ پەیامی "بەم زوانە چالاک دەکرێت" */}
+interface VoiceComingSoonModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const VoiceComingSoonModal: React.FC<VoiceComingSoonModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[300] p-4" dir="rtl">
+      <div className="bg-[#121214] border border-zinc-800 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl relative animate-in zoom-in-95 duration-300">
+        
+        {/* 🎙️ ئایکۆنی درەوشاوەی دەنگ */}
+        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/30 animate-pulse">
+          <span className="text-2xl text-amber-400">🎙️</span>
+        </div>
+        
+        {/* 👑 ناونیشانی شاهانە */}
+        <div className="mb-2">
+          <h2 className="text-2xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none">
+            KurdAI Audio
+          </h2>
+        </div>
+        
+        <h3 className="text-lg font-bold text-white mb-2">بەم زوانە چالاک دەکرێت!</h3>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed px-2">
+          ئەم بەشە لە ئێستادا لە ژێر پەرەپێداندایە. بەم زوانە دەتوانیت بە پێشکەوتووترین سیستەمی ژیریی دەستکردی دەنگی، کارەکانت تەنها لە ڕێگەی ئاخاوتنەوە ئەنجام بدەیت.
+        </p>
+        
+        <button 
+          onClick={onClose} 
+          className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]"
+        >
+           چاوەڕوانم
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage }) => {
   const [isVaultOpen, setIsVaultOpen] = useState(false);
+  
+  {/* 👑 ستەیتی نوێ بۆ کۆنترۆڵکردنی مۆداڵەکە */}
+  const [isVoiceComingSoonOpen, setIsVoiceComingSoonOpen] = useState(false);
 
   // لیستی خزمەتگوزارییەکان بە پێڕستی نوێوە
   const navItems = [
@@ -81,6 +124,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
   ];
 
   const handleToolSelect = (id: View) => {
+    {/* 👑 لۆجیکی نوێ: ئەگەر بەکارهێنەر کلیکی لەسەر دەنگ کرد، ناچێتە ناو ڤیوەکە بەڵکو مۆداڵەکەی بۆ باز دەکات */}
+    if (id === View.VOICE) {
+      setIsVoiceComingSoonOpen(true);
+      return;
+    }
     onViewChange(id);
     setIsVaultOpen(false);
   };
@@ -203,6 +251,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
       <main className="flex-1 container mx-auto max-w-[1500px] p-4 lg:p-8 relative z-10">
         {children}
       </main>
+
+      {/* 👑 پیشاندانی مۆداڵی بەم زوانە لە خوارەوەی فایلەکە */}
+      <VoiceComingSoonModal 
+        isOpen={isVoiceComingSoonOpen} 
+        onClose={() => setIsVoiceComingSoonOpen(false)} 
+      />
     </div>
   );
 };

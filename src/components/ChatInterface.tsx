@@ -19,14 +19,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121214] border border-zinc-800 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
-        
-        {/* 👑 لۆگۆی شاهانەی گۆڵد */}
         <div className="mb-4 pt-2">
           <h2 className="text-3xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none drop-shadow-[0_2px_10px_rgba(245,158,11,0.15)]">
             KurdAI Pro
           </h2>
         </div>
-
         <h3 className="text-lg font-bold text-white mb-2">لیمیتی خۆڕایی تەواو بوو!</h3>
         <p className="text-zinc-400 text-xs mb-6">
           بۆ ئەوەی بە بێ سنوور چات بکەیت و هەموو بەشە پێشکەوتووەکانی KurdAI Pro بەکاربهێنیت، ببە بە ئەندامی پریمیم.
@@ -63,8 +60,6 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
             />
           </div>
         )}
-        
-        {/* 👑 بەشی دوگمە دڵڕفێن و نوێیەکان */}
         <div className="space-y-3 mt-2">
           <button
             disabled={!paymentMethod || phoneNumber.length < 10}
@@ -72,12 +67,8 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
           >
             پشڕاستکردنەوە و پارەدان
           </button>
-          
-          <button 
-            onClick={onClose} 
-            className="w-full bg-zinc-900/30 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700/80 text-zinc-400 hover:text-zinc-200 font-medium py-2.5 rounded-xl transition-all duration-200 text-xs active:scale-[0.98]"
-          >
-            دەوەستم تا ٢٤ کاتژمێری تر 
+          <button onClick={onClose} className="w-full bg-zinc-900/30 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700/80 text-zinc-400 hover:text-zinc-200 font-medium py-2.5 rounded-xl transition-all duration-200 text-xs active:scale-[0.98]">
+            دواتر دەیبەم
           </button>
         </div>
       </div>
@@ -103,7 +94,37 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
           بەشداریەکەت بە سەرکەوتوویی چالاککرا. بۆ ماوەی <span className="text-emerald-400 font-bold">یەک مانگ</span> دەتوانیت بە بێسنووری و بەرزترین خێرا KurdAI Pro بەکاربهێنیت. سوپاس بۆ پشتگیرییەکەت!
         </p>
         <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
-          دەستپێکردنی ئەزمוونی نوێ
+          دەستپێکردنی ئەزموونی نوێ
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface VoiceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#121214] border border-zinc-800 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
+        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/30 animate-pulse">
+          <span className="text-2xl text-amber-400">🎙️</span>
+        </div>
+        <div className="mb-2">
+          <h2 className="text-2xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none">
+            KurdAI Voice
+          </h2>
+        </div>
+        <h3 className="text-lg font-bold text-white mb-2">بەم زوانە چالاک دەکرێت!</h3>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">
+          پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی دەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.
+        </p>
+        <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]">
+          بەسەرچاو، چاوەڕوانم
         </button>
       </div>
     </div>
@@ -118,6 +139,14 @@ const ChatInterface: React.FC = () => {
   
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  
+  const [isUserPremium, setIsUserPremium] = useState<boolean>(true); 
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(true);
+  
+  const [otpCode, setOtpCode] = useState<string>('');
+  const [isSendingCode, setIsSendingCode] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
   
   const [msgCountInMinute, setMsgCountInMinute] = useState<number>(0);
   const [minuteStartTime, setMinuteStartTime] = useState<number>(Date.now());
@@ -137,26 +166,77 @@ const ChatInterface: React.FC = () => {
     const user = auth.currentUser;
     if (!user?.email) return;
 
+    handleNewChat();
+
     const unsubscribe = onSnapshot(doc(db, 'users', user.email), (docSnap) => {
+      const isAdmin = user.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
+      
+      if (isAdmin) {
+        setIsEmailVerified(true);
+        setIsUserPremium(true);
+        return;
+      }
+
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.isPremium === true) {
-          setIsPremiumModalOpen((wasOpen) => {
-            if (wasOpen) {
-              setIsSuccessModalOpen(true);
-            }
-            return false;
-          });
-        }
+        setIsEmailVerified(data.isEmailVerified === true);
+        setIsUserPremium(data.isPremium === true);
+      } else {
+        setIsUserPremium(false);
+        setIsEmailVerified(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth.currentUser?.email]);
 
-  useEffect(() => {
-    handleNewChat();
-  }, []);
+  const handleSendOTP = async () => {
+    const user = auth.currentUser;
+    if (!user?.email) return;
+    setIsSendingCode(true);
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email })
+      });
+      if (res.ok) {
+        alert("✉️ کۆدەکە بە سەرکەوتوویی بۆ ئیمەیڵەکەت ناردرا!");
+      } else {
+        alert("❌ کێشەیەک لە ناردنی کۆددا هەیە.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("❌ پەیوەندی بە سێرڤەرەوە نەکرا.");
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    const user = auth.currentUser;
+    if (!user?.email || !otpCode.trim()) return;
+    setIsVerifying(true);
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, code: otpCode.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("🎉 پیرۆزە! هەژمارەکەت بە سەرکەوتوویی چالاککرا.");
+        setIsEmailVerified(true);
+      } else {
+        alert(`❌ خەتا: ${data.detail || "کۆدەکە هەڵەیە"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("❌ پەیوەندی بە سێرڤەرەوە نەکرا.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -191,6 +271,7 @@ const ChatInterface: React.FC = () => {
     if (window.confirm("دڵنیای دەتەوێت لە ئەژمارەکەت بێیتە دەرەوە؟")) { 
       try {
         await signOut(auth); 
+        handleNewChat();
       } catch (error) {
         console.error("هەڵە لە کاتی چوونەدەرەوە:", error); 
         alert("کێشەیەک لە چوونەدەرەوەدا ڕوویدا!"); 
@@ -235,7 +316,10 @@ const ChatInterface: React.FC = () => {
   const handleSend = async () => { 
     if (!input.trim() || isLoading) return; 
 
-    if (messages.length >= 11) { 
+    const user = auth.currentUser;
+    const isAdmin = user?.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
+
+    if (!isAdmin && !isUserPremium && messages.length >= 11) { 
       setIsPremiumModalOpen(true);
       return;
     }
@@ -246,7 +330,7 @@ const ChatInterface: React.FC = () => {
       setMinuteStartTime(currentTime);
       setMsgCountInMinute(1);
     } else {
-      if (msgCountInMinute >= 3) {
+      if (!isAdmin && msgCountInMinute >= 3) {
         alert("⚠️ لێمیتی ناردنی خێرا! تۆ ناتوانیت لە ١ خولەکدا زیاتر لە ٣ نامە بنێریت. تکایە کەمێک بوەستە.");
         return;
       }
@@ -261,7 +345,6 @@ const ChatInterface: React.FC = () => {
     setInput(''); 
     setIsLoading(true); 
 
-    const user = auth.currentUser; 
     let activeChatId = currentChatId; 
 
     const saveUserMessageToDB = async () => { 
@@ -310,18 +393,11 @@ const ChatInterface: React.FC = () => {
     }
 
     let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
-ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.
-مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا, کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
-ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە, بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت, کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
+ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.\n\n`;
     
     const lastFewMessages = updatedMessages.slice(-6);
-    
     lastFewMessages.forEach(msg => {
-      if (msg.role === 'user') {
-        conversationHistory += `بەکارهێنەر: ${msg.text}\n`;
-      } else {
-        conversationHistory += `مۆدێل: ${msg.text}\n`;
-      }
+      conversationHistory += `${msg.role === 'user' ? 'بەکارهێنەر' : 'مۆدێل'}: ${msg.text}\n`;
     });
 
     try {
@@ -336,19 +412,18 @@ const ChatInterface: React.FC = () => {
 
       const data = await response.json();
 
-      if (response.status === 403) {
+      if (response.status === 403 && !isAdmin) {
         throw new Error("LIMIT_EXCEEDED_CHAT");
       } else if (response.status === 400) {
         throw new Error("داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.");
       }
 
       if (!response.ok) {
-        throw new Error(data.detail || `سێرڤەری مێشک وەڵامی نەدایەوە: ${response.status}`);
+        throw new Error(data.detail || `سێرڤەر وەڵامی نەدایەوە: ${response.status}`);
       }
 
       setIsLoading(false);
-
-      let aiAnswer = data.response ? data.response : "هیچ وەڵامێک لە مۆدێلەکەوە نەگەڕایەوە.";
+      let aiAnswer = data.response ? data.response : "هیچ وەڵامێک نەگەڕایەوە.";
       setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
       if (db && aiAnswer.trim()) {
@@ -370,19 +445,15 @@ const ChatInterface: React.FC = () => {
       }
     } catch (error: any) { 
       setIsLoading(false); 
-      
       let errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
-      
-      if (error.message === "داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.") {
-        errorMessage = `❌ ${error.message}`;
+      if (error.message.includes("❌")) errorMessage = error.message;
+
+      if (isAdmin) {
+        alert("خەتا ڕوویدا بەڵام تۆ ئادمینیت، لێمیت نییە.");
+        return;
       }
 
-      setMessages(prev => [...prev, {
-        role: 'model',
-        text: errorMessage,
-        timestamp: new Date()
-      }]);
-      
+      setMessages(prev => [...prev, { role: 'model', text: errorMessage, timestamp: new Date() }]);
       setIsPremiumModalOpen(true);
     }
   };
@@ -393,6 +464,32 @@ const ChatInterface: React.FC = () => {
       handleSend();
     }
   };
+
+  if (!isEmailVerified) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[75vh] backdrop-blur-2xl rounded-3xl border border-zinc-800 p-8 bg-slate-950/40 text-center" dir="rtl">
+        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4 border border-amber-500/30">
+          <span className="text-2xl text-amber-400">✉️</span>
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">پشتڕاستکردنەوەی هەژمار</h2>
+        <p className="text-zinc-400 text-xs max-w-sm mb-6 leading-relaxed">
+          بۆ پاراستنی ئاسایشی سیستەمەکە، پێویستە کۆدێکی سەلماندنی ٦ ژمارەیی بنێریت بۆ ئیمەیڵەکەت تا هەژمارەکەت چالاک ببێت.
+        </p>
+        <div className="space-y-4 w-full max-w-xs">
+          <button onClick={handleSendOTP} disabled={isSendingCode} className="w-full bg-slate-900 hover:bg-slate-800 border border-zinc-800 text-amber-400 font-bold py-2.5 rounded-xl text-xs transition-all">
+            {isSendingCode ? 'چاوەڕوان بە...' : '🔗 ناردنی کۆد بۆ ئیمەیڵەکەم'}
+          </button>
+          <input type="text" maxLength={6} placeholder="کۆدی ٦ ژمارەیی" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none" />
+          <button onClick={handleVerifyOTP} disabled={otpCode.length !== 6 || isVerifying} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm transition-all">
+            {isVerifying ? 'پشکنین...' : '✓ چالاککردنی هەژمار'}
+          </button>
+          <button onClick={handleLogout} className="text-xs text-red-400 hover:underline pt-2 block mx-auto">
+            چوونەدەرەوە لەم ئەکاونتە
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -453,6 +550,15 @@ const ChatInterface: React.FC = () => {
               placeholder="پرسیارەکەت لێرە بنووسە..." 
               disabled={isLoading} 
             />
+            
+            <button 
+              onClick={() => setIsVoiceModalOpen(true)}
+              className={`p-2.5 rounded-full shadow-md transition-all flex items-center justify-center shrink-0 mb-0.5 active:scale-95 ${isDarkMode ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-200 text-amber-600 hover:bg-slate-300'}`}
+              title="خزمەتگوزاری دەنگ"
+            >
+              🎙️
+            </button>
+
             <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-md shrink-0 mb-0.5">{isLoading ? '...' : 'ناردن'}</button>
           </div>
           <p className="text-[11px] text-center text-slate-500 font-medium mt-1">
@@ -461,15 +567,9 @@ const ChatInterface: React.FC = () => {
         </div>
       </div>
 
-      <PremiumModal 
-        isOpen={isPremiumModalOpen} 
-        onClose={() => setIsPremiumModalOpen(false)} 
-      />
-
-      <SuccessModal 
-        isOpen={isSuccessModalOpen} 
-        onClose={() => setIsSuccessModalOpen(false)} 
-      />
+      <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
+      <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} />
+      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
     </>
   );
 };
