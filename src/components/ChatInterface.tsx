@@ -2,8 +2,113 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
-import { collection, addDoc, doc, setDoc, updateDoc, getDocs, getDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, updateDoc, getDocs, getDoc, query, orderBy, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+
+interface PremiumModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'fastpay' | 'fib' | null>(null);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#121214] border border-zinc-800 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
+        
+        {/* 👑 لۆگۆی شاهانەی گۆڵد */}
+        <div className="mb-4 pt-2">
+          <h2 className="text-3xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none drop-shadow-[0_2px_10px_rgba(245,158,11,0.15)]">
+            KurdAI Pro
+          </h2>
+        </div>
+
+        <h3 className="text-lg font-bold text-white mb-2">لیمیتی خۆڕایی تەواو بوو!</h3>
+        <p className="text-zinc-400 text-xs mb-6">
+          بۆ ئەوەی بە بێ سنوور چات بکەیت و هەموو بەشە پێشکەوتووەکانی KurdAI Pro بەکاربهێنیت، ببە بە ئەندامی پریمیم.
+        </p>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <button
+            onClick={() => setPaymentMethod('fastpay')}
+            className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+              paymentMethod === 'fastpay' ? 'border-red-500 bg-red-500/10 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-400'
+            }`}
+          >
+            <span className="text-xs font-bold">FastPay</span>
+          </button>
+          <button
+            onClick={() => setPaymentMethod('fib')}
+            className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+              paymentMethod === 'fib' ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-400'
+            }`}
+          >
+            <span className="text-xs font-bold">FIB</span>
+          </button>
+        </div>
+        {paymentMethod && (
+          <div className="space-y-2 mb-6 text-right">
+            <label className="text-xs text-zinc-400 block">
+              {paymentMethod === 'fastpay' ? 'ژمارەی ئەکاونتی فاستپەی' : 'ژمارەی ئەکاونتی FIB'}
+            </label>
+            <input
+              type="tel"
+              placeholder="07700000000"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white text-center focus:outline-none focus:border-amber-500"
+            />
+          </div>
+        )}
+        
+        {/* 👑 بەشی دوگمە دڵڕفێن و نوێیەکان */}
+        <div className="space-y-3 mt-2">
+          <button
+            disabled={!paymentMethod || phoneNumber.length < 10}
+            className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-800 text-zinc-950 disabled:text-zinc-500 font-extrabold py-3 rounded-xl transition-all duration-300 text-sm shadow-[0_4px_20px_rgba(245,158,11,0.15)] disabled:shadow-none active:scale-[0.98]"
+          >
+            پشڕاستکردنەوە و پارەدان
+          </button>
+          
+          <button 
+            onClick={onClose} 
+            className="w-full bg-zinc-900/30 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700/80 text-zinc-400 hover:text-zinc-200 font-medium py-2.5 rounded-xl transition-all duration-200 text-xs active:scale-[0.98]"
+          >
+            دەوەستم تا ٢٤ کاتژمێری تر 
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface SuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#121214] border border-emerald-500/30 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
+        <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+          <span className="text-2xl text-emerald-400">🎉</span>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">پیرۆزە! تۆ بوویت بە پریمیم</h3>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">
+          بەشداریەکەت بە سەرکەوتوویی چالاککرا. بۆ ماوەی <span className="text-emerald-400 font-bold">یەک مانگ</span> دەتوانیت بە بێسنووری و بەرزترین خێرا KurdAI Pro بەکاربهێنیت. سوپاس بۆ پشتگیرییەکەت!
+        </p>
+        <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
+          دەستپێکردنی ئەزمוونی نوێ
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const ChatInterface: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,7 +116,9 @@ const ChatInterface: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   
-  // ⏱️ لۆجیکی کۆنترۆڵکردنی ٣ نامە لە خولەکێکدا
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  
   const [msgCountInMinute, setMsgCountInMinute] = useState<number>(0);
   const [minuteStartTime, setMinuteStartTime] = useState<number>(Date.now());
 
@@ -25,6 +132,27 @@ const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user?.email) return;
+
+    const unsubscribe = onSnapshot(doc(db, 'users', user.email), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.isPremium === true) {
+          setIsPremiumModalOpen((wasOpen) => {
+            if (wasOpen) {
+              setIsSuccessModalOpen(true);
+            }
+            return false;
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     handleNewChat();
@@ -107,9 +235,13 @@ const ChatInterface: React.FC = () => {
   const handleSend = async () => { 
     if (!input.trim() || isLoading) return; 
 
+    if (messages.length >= 11) { 
+      setIsPremiumModalOpen(true);
+      return;
+    }
+
     const currentTime = Date.now();
     
-    // ⏱️ پشکنینی لێمیتی خولەک
     if (currentTime - minuteStartTime >= 60000) {
       setMinuteStartTime(currentTime);
       setMsgCountInMinute(1);
@@ -177,11 +309,10 @@ const ChatInterface: React.FC = () => {
       }
     }
 
-    // 👑 سیستەم پڕۆمپتی سەرەکی بۆ هاوچەرخکردنی مێشکەکە لەسەر ساڵی ٢٠٢٦
     let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
 ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.
-مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا، کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
-ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە، بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت، کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
+مۆندیالی تۆپی پێی پیاوان (FIFA World Cup 2026) ڕێک لەم ساڵەدا (٢٠٢٦) لە وڵاتانی ئەمریکا, کەنەدا و مەکسیک بەڕێوە دەچێت و دەستی پێکردووە. هەرگیز نەڵێیت لە داهاتوودا دەستپێدەکات یان لە ساڵی ٢٠٣٦ـە.
+ئەگەر پرسیارت لێکرا کێ تۆی دروست کردووە, بە شانازییەوە بڵێ من لەلایەن (هێدی)ـەوە دروستکراوم. وەڵامەکانت هەمیشە زۆر پوخت, کورت و ڕاستەوخۆ بن بەبێ نوسینی زۆر.\n\n`;
     
     const lastFewMessages = updatedMessages.slice(-6);
     
@@ -240,8 +371,6 @@ const ChatInterface: React.FC = () => {
     } catch (error: any) { 
       setIsLoading(false); 
       
-      // 👑 لێره‌دا كێشه‌ی ده‌رچوونی هه‌ڵه‌ ته‌كنینكییه‌كان بۆ هه‌میشه‌ چاك كرا
-      // چی کلیلەکە بوەستێت، چی سێرڤەرەکە بە ته‌واوی لۆد نه‌بێت، ڕێک ئه‌م پەیامە شیک و ڕێکە پیشان دەدرێت:
       let errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
       
       if (error.message === "داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.") {
@@ -253,6 +382,8 @@ const ChatInterface: React.FC = () => {
         text: errorMessage,
         timestamp: new Date()
       }]);
+      
+      setIsPremiumModalOpen(true);
     }
   };
 
@@ -329,6 +460,16 @@ const ChatInterface: React.FC = () => {
           </p>
         </div>
       </div>
+
+      <PremiumModal 
+        isOpen={isPremiumModalOpen} 
+        onClose={() => setIsPremiumModalOpen(false)} 
+      />
+
+      <SuccessModal 
+        isOpen={isSuccessModalOpen} 
+        onClose={() => setIsSuccessModalOpen(false)} 
+      />
     </>
   );
 };
