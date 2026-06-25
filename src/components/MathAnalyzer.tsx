@@ -34,21 +34,19 @@ const MathAnalyzer: React.FC = () => {
       const promptText = query.trim() !== "" ? query : "تکایە شیکاری بۆ ئەم هاوکێشە یان پرسیارە زانستییە بکە.";
       const mathPrompt = `تۆ زانایەکی پسپۆڕیت لە بواری بیرکاری، فیزیا و کیمیا. وەک پرۆفیسۆرێک بە زمانی کوردیی فەرمی و زۆر ڕوون و کورت وەڵامی ئەم پرسیارە زانستییە بدەرەوە. ئەگەر وێنەیەک هاوپێچە (کە دەکرێت هاوکێشە، دیاگرام یان ڕستەیەکی زانستی بێت)، بە وردی سەیری بکە و شیکاری بکە. وەڵامەکەت زۆر درێژ نەبێت و ڕاستەوخۆ بچێتە سەر چارەسەر.\n\nپرسیار:\n${promptText}`;
 
-      // 📷 جیاکردنەوەی داتای وێنەکە لە پێشگری Base64 ئەگەر بوونی هەبێت
       let base64Clean = null;
       if (image) {
         base64Clean = image.split(',')[1];
       }
 
-      // 🚀 ڕاستکردنەوە: ناردنی پەیام + داتای وێنە و جۆرەکەی بۆ باکێند
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: mathPrompt,
           email: userEmail,
-          image: base64Clean, // داتای وێنەکە نێردرا
-          mimeType: mimeType  // جۆری وێنەکە نێردرا
+          image: base64Clean, 
+          mimeType: mimeType  
         }), 
       });
 
@@ -94,27 +92,23 @@ const MathAnalyzer: React.FC = () => {
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="هاوکێشەکە لێرە بنووسە یان وێنەکەی باربکە و بنووسە (ئەمەم بۆ شیکار بکە)..."
+                placeholder="هاوکێشەکە لێرە بنووسە یان وێنەکەی باربکە..."
                 className="w-full h-40 sm:h-48 p-6 sm:p-8 bg-white/[0.02] border border-white/10 rounded-2xl sm:rounded-[2.5rem] text-white text-base sm:text-xl font-['Noto_Sans_Arabic'] focus:outline-none focus:border-yellow-500/40 resize-none placeholder:opacity-20 transition-all leading-relaxed"
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                onChange={handleImageChange} 
-                className="hidden" 
-              />
+            {/* 📸 ڕێکخستنی دوگمەی بارکردنی وێنە بە شێوازێکی زۆر ناسک بۆ ئەوەی جێگا نەگرێت */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
+              
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className={`w-full sm:flex-1 py-4 sm:py-6 rounded-2xl sm:rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${image ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}
+                className={`w-full sm:w-auto px-6 py-4 rounded-xl border border-dashed transition-all flex items-center justify-center gap-2 ${image ? 'border-yellow-500/50 bg-yellow-500/5 text-yellow-500' : 'border-white/10 bg-white/[0.02] hover:bg-white/5 text-slate-400'}`}
               >
-                <span className="text-xl sm:text-2xl">{image ? '✅' : '📷'}</span>
-                <span className="text-[9px] font-black font-['Noto_Sans_Arabic'] uppercase tracking-widest text-slate-500">
-                  {image ? 'وێنەکە وەرگیرا' : 'بارکردنی وێنەی هاوکێشە'}
+                <span className="text-lg">{image ? '✅' : '📸'}</span>
+                <span className="text-xs font-bold font-['Noto_Sans_Arabic']">
+                  {image ? 'وێنەکە وەرگیرا' : 'بارکردنی وێنە'}
                 </span>
               </button>
 
@@ -122,7 +116,7 @@ const MathAnalyzer: React.FC = () => {
                 type="button"
                 onClick={handleAnalyze}
                 disabled={loading || (!query.trim() && !image)}
-                className="w-full sm:flex-[1.5] py-4 sm:py-6 bg-yellow-500 text-black rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg uppercase tracking-widest sm:tracking-[0.2em] font-['Noto_Sans_Arabic'] shadow-2xl shadow-yellow-500/10 hover:bg-yellow-400 disabled:opacity-20 transition-all active:scale-95"
+                className="w-full sm:flex-1 py-4 bg-yellow-500 text-black rounded-xl font-black text-sm uppercase font-['Noto_Sans_Arabic'] shadow-2xl shadow-yellow-500/10 hover:bg-yellow-400 disabled:opacity-20 transition-all active:scale-95"
               >
                 {loading ? 'خەریکی لێکدانەوەیە...' : 'دەستپێکردنی شیکار'}
               </button>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View } from '../types';
+// 👑 هاوردەکردنی فایربەیس بۆ ناسینەوەی ئیمەیڵی ئادمین
+import { auth } from '../firebase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -62,7 +64,6 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
 
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
-      {/* پانتاکەی کراوەتە max-w-xl بۆ ئەوەی زۆر گەورە و دزێو نەبێت */}
       <div className="bg-[#121215] border border-zinc-800 rounded-2xl max-w-xl w-full p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
         
         <h3 className="text-xl font-extrabold text-zinc-100 mb-1">
@@ -72,7 +73,6 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
           {language === 'ku' ? 'پلانێک هەڵبژێره بۆ چالاککردنی خزمەتگوزاری داهێنانی وێنە:' : 'اختر خطة لتفعيل خدمة إنتاج الصور:'}
         </p>
 
-        {/* 📊 کارتەکان: زۆر ناسک، دەقی ڕوون و سپی، چڕوپڕ */}
         <div className="grid grid-cols-2 gap-2.5 mb-6" dir="rtl">
           {SUBSCRIPTION_PLANS.map((plan) => {
             const isSelected = selectedPlan === plan.id;
@@ -96,7 +96,6 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
           })}
         </div>
 
-        {/* 💳 شێوازی پارەدان کورت و ڕوون */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             onClick={() => setPaymentMethod('fastpay')}
@@ -128,7 +127,6 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
           </div>
         )}
 
-        {/* 🚀 دوگمەکان ناسک و ڕێکن */}
         <div className="space-y-2 max-w-xs mx-auto">
           <button
             disabled={!paymentMethod || phoneNumber.length < 10}
@@ -160,18 +158,25 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
     { id: View.HEALTH, label: language === 'ku' ? 'خزمەتگوزاری تەندروستی' : 'الخدمة الصحية', icon: '🩺', desc: language === 'ku' ? 'شیکاریی نیشانەکان و زانیاریی دەرمان' : 'تحليل الأعراض ومعلومات الأدوية', meta: 'Medical AI' },
     { id: View.ART, label: language === 'ku' ? 'خزمەتگوزاری داهێنان' : 'خدمة الإبداع الفني', icon: '🎨', desc: language === 'ku' ? 'بەرهەمهێنانی بینراوی کوالیتی بەرز' : 'إنتاج البصريات عالية الجودة', meta: 'Creative AI' },
     { id: View.VIDEO, label: language === 'ku' ? 'پڕۆژەکانی نیشتەجێبوون' : 'المشاريع السكنية', icon: '🏢', desc: language === 'ku' ? 'ڕێبەری گشتی نرخ، قیست و خزمەتگوزاری سیتییەکان' : 'الدليل العام للأسعار، الأقساط وخدمات المجمعات', meta: 'Kurdistan Housing' },
-    { id: View.VOICE, label: language === 'ku' ? 'خزمەتگوزاری دەنگی' : 'الخدمة الصوتية', icon: '🔊', desc: language === 'ku' ? 'پەیوەندی دەنگیی ڕاستەوخۆ وamp; پارێزراو' : 'الاتصال الصوتي المباشر والآمن', meta: 'Audio AI' },
+    { id: View.VOICE, label: language === 'ku' ? 'خزمەتگوزاری دەنگی' : 'الخدمة الصوتية', icon: '🔊', desc: language === 'ku' ? 'پەیوەندی دەنگیی ڕاستەوخۆ و پارێزراو' : 'الاتصال الصوتي المباشر والآمن', meta: 'Audio AI' },
   ];
 
   const handleToolSelect = (id: View) => {
+    // 👑 هێنانی ئیمەیڵی بەکارهێنەری ئێستا و پشکنینی ئادمین
+    const userEmail = auth.currentUser?.email?.toLowerCase().trim();
+    const isAdmin = userEmail === "hedihashm58@gmail.com";
+
     if (id === View.VOICE) {
       setIsVoiceComingSoonOpen(true);
       return;
     }
-    if (id === View.ART) {
+    
+    // 🎨 ئەگەر کلیک لە داهێنان کرا و بەکارهێنەرەکە خۆت نەبوویت (ئادمین نەبوو)، ئۆفەرەکان پیشان دەدات
+    if (id === View.ART && !isAdmin) {
       setIsPremiumOffersOpen(true);
       return;
     }
+    
     onViewChange(id);
     setIsVaultOpen(false);
   };
