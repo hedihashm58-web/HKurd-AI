@@ -10,65 +10,114 @@ interface PremiumModalProps {
   onClose: () => void;
 }
 
+// 💰 لیستی پلانەکان بە ستایلی ناسک و پوخت
+const SUBSCRIPTION_PLANS = [
+  { id: '1_month', name: '١ مانگ', price: '٥,٠٠٠', desc: '٣ وێنە لە ڕۆژێکدا 🎨' },
+  { id: '3_months', name: '٣ مانگ', price: '١٢,٠٠٠', desc: '٥ وێنە لە ڕۆژێکدا 🔥' },
+  { id: '6_months', name: '٦ مانگ', price: '٢٥,٠٠٠', desc: '٧ وێنە لە ڕۆژێکدا 🚀' },
+  { id: '1_year', name: '١ ساڵ', price: '٥٠,٠٠٠', desc: '١٠ وێنە لە ڕۆژێکدا 👑' },
+];
+
 const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<string>('3_months');
   const [paymentMethod, setPaymentMethod] = useState<'fastpay' | 'fib' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
+  const handlePaymentSubmit = async () => {
+    if (!paymentMethod || phoneNumber.length < 10) return;
+    setIsSubmitting(true);
+    try {
+      console.log("پلان:", selectedPlan, "ڕێگا:", paymentMethod, "ژمارە:", phoneNumber);
+      alert("⏱️ داواکارییەکەت وەرگیرا، دوای پشکنینی بانک ئەکاونتەکەت پریمیم دەبێت.");
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("❌ کێشەیەک لە پڕۆسەی پارەداندا ڕوویدا.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121214] border border-zinc-800 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
-        <div className="mb-4 pt-2">
-          <h2 className="text-3xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none drop-shadow-[0_2px_10px_rgba(245,158,11,0.15)]">
-            KurdAI Pro
-          </h2>
-        </div>
-        <h3 className="text-lg font-bold text-white mb-2">لیمیتی خۆڕایی تەواو بوو!</h3>
-        <p className="text-zinc-400 text-xs mb-6">
-          بۆ ئەوەی بە بێ سنوور چات بکەیت و هەموو بەشە پێشکەوتووەکانی KurdAI Pro بەکاربهێنیت، ببە بە ئەندامی پریمیم.
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* max-w-xl بۆ ئەوەی قەبارەکەی زۆر گەورە و دزێو نەبێت */}
+      <div className="bg-[#121215] border border-zinc-800 rounded-2xl max-w-xl w-full p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+        
+        <h3 className="text-xl font-extrabold text-zinc-100 mb-1">لیمیتی خۆڕایی تەواو بوو!</h3>
+        <p className="text-zinc-300 text-xs mb-6">
+          بۆ لادانی لێمیتی چات و چالاککردنی خزمەتگوزاری وێنە، پلانێک هەڵبژێره:
         </p>
+
+        {/* 📊 کارتەکان: زۆر ناسک، دەقەکان کراونەتە سپی و ڕوون */}
+        <div className="grid grid-cols-2 gap-2.5 mb-6" dir="rtl">
+          {SUBSCRIPTION_PLANS.map((plan) => {
+            const isSelected = selectedPlan === plan.id;
+            return (
+              <div
+                key={plan.id}
+                onClick={() => setSelectedPlan(plan.id)}
+                className={`p-3.5 rounded-xl border text-right cursor-pointer transition-all duration-150 ${
+                  isSelected 
+                    ? 'border-amber-500 bg-amber-500/5 text-white' 
+                    : 'border-zinc-800/80 bg-zinc-900/30 text-zinc-300 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="text-xs font-bold text-zinc-100">{plan.name}</h4>
+                  <span className="text-[11px] font-black text-amber-400">{plan.price} د.ع</span>
+                </div>
+                <p className="text-[10px] text-zinc-300 font-medium">{plan.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 💳 شێوازی پارەدان کورت و ڕوون */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             onClick={() => setPaymentMethod('fastpay')}
-            className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-              paymentMethod === 'fastpay' ? 'border-red-500 bg-red-500/10 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-400'
+            className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${
+              paymentMethod === 'fastpay' ? 'border-red-500 bg-red-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'
             }`}
           >
-            <span className="text-xs font-bold">FastPay</span>
+            FastPay
           </button>
           <button
             onClick={() => setPaymentMethod('fib')}
-            className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-              paymentMethod === 'fib' ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-400'
+            className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${
+              paymentMethod === 'fib' ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'
             }`}
           >
-            <span className="text-xs font-bold">FIB</span>
+            FIB Bank
           </button>
         </div>
+
         {paymentMethod && (
-          <div className="space-y-2 mb-6 text-right">
-            <label className="text-xs text-zinc-400 block">
-              {paymentMethod === 'fastpay' ? 'ژمارەی ئەکاونتی فاستپەی' : 'ژمارەی ئەکاونتی FIB'}
-            </label>
+          <div className="mb-6 text-right animate-in fade-in duration-200">
             <input
               type="tel"
               placeholder="07700000000"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white text-center focus:outline-none focus:border-amber-500"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white text-center focus:outline-none focus:border-amber-500 text-xs font-mono tracking-wider"
             />
           </div>
         )}
-        <div className="space-y-3 mt-2">
+
+        {/* 🚀 دوگمەکان */}
+        <div className="space-y-2 max-w-xs mx-auto">
           <button
-            disabled={!paymentMethod || phoneNumber.length < 10}
-            className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-800 text-zinc-950 disabled:text-zinc-500 font-extrabold py-3 rounded-xl transition-all duration-300 text-sm shadow-[0_4px_20px_rgba(245,158,11,0.15)] disabled:shadow-none active:scale-[0.98]"
+            disabled={!paymentMethod || phoneNumber.length < 10 || isSubmitting}
+            onClick={handlePaymentSubmit}
+            className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-zinc-950 disabled:text-zinc-500 font-black py-2.5 rounded-xl transition-all text-xs active:scale-[0.98]"
           >
-            پشڕاستکردنەوە و پارەدان
+            {isSubmitting ? 'پرۆسەیە...' : 'پشڕاستکردنەوە و ناردن'}
           </button>
-          <button onClick={onClose} className="w-full bg-zinc-900/30 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700/80 text-zinc-400 hover:text-zinc-200 font-medium py-2.5 rounded-xl transition-all duration-200 text-xs active:scale-[0.98]">
-            دواتر دەیبەم
+          <button onClick={onClose} className="w-full bg-zinc-900/20 hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-bold py-2 rounded-xl transition-all text-[11px] block text-center">
+            گەڕانەوە
           </button>
         </div>
       </div>
@@ -91,7 +140,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
         </div>
         <h3 className="text-xl font-bold text-white mb-2">پیرۆزە! تۆ بوویت بە پریمیم</h3>
         <p className="text-zinc-400 text-xs mb-6 leading-relaxed">
-          بەشداریەکەت بە سەرکەوتوویی چالاککرا. بۆ ماوەی <span className="text-emerald-400 font-bold">یەک مانگ</span> دەتوانیت بە بێسنووری و بەرزترین خێرا KurdAI Pro بەکاربهێنیت. سوپاس بۆ پشتگیرییەکەت!
+          بەشداریەکەت بە سەرکەوتوویی چالاککرا. بەپێی پلانی هەڵبژێردراو دەتوانیت بە بێسنووری و بەرزترین خێرا KurdAI Pro بەکاربهێنیت. سوپاس بۆ پشتگیرییەکەت!
         </p>
         <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
           دەستپێکردنی ئەزموونی نوێ
@@ -124,7 +173,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
           پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی دەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.
         </p>
         <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]">
-          بەسەرچاو، چاوەڕوانم
+           چاوەڕوانم
         </button>
       </div>
     </div>
@@ -319,6 +368,7 @@ const ChatInterface: React.FC = () => {
     const user = auth.currentUser;
     const isAdmin = user?.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
 
+    // 🔗 لێرەدا پشکنین دەکات، ئەگەر گەیشتبووە ١٠ نامە ڕاستەوخۆ مۆداڵە ڕێک و ناسکەکەی پلانەکان دەکاتەوە
     if (!isAdmin && !isUserPremium && messages.length >= 11) { 
       setIsPremiumModalOpen(true);
       return;
@@ -449,7 +499,7 @@ const ChatInterface: React.FC = () => {
       if (error.message.includes("❌")) errorMessage = error.message;
 
       if (isAdmin) {
-        alert("خەتا ڕوویدا بەڵام تۆ ئادمینیت، لێمیت نییە.");
+        alert("خەتا ڕوویدا بەڵام تۆ ئادمینیت, لێمیت نییە.");
         return;
       }
 
