@@ -153,7 +153,6 @@ const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // 👑 دروستکردنی ڕێفرێنس بۆ کۆتا توخم تاوەکو سکڕۆڵەکەی لەسەر جێگیر بکەین
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -225,7 +224,6 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  // 🛠️ جێگیرکردنی لۆجیکی سکڕۆڵ بۆ خوارەوە بە شێوازی ١٠٠٪ پرۆفیشناڵ بێ بازدان لە کاتی نووسیندا
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -435,8 +433,8 @@ const ChatInterface: React.FC = () => {
     <>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onNewChat={handleNewChat} onSelectChat={handleSelectChat} />
       
-      {/* 👑 چارەسەری سەرەکی: کەمکردنەوەی بەرزی بۆ h-[76vh] بۆ ئەوەی لەگەڵ کیبۆرد ڕێژەیی بێت و نەتەقێتەوە */}
-      <div className={`flex flex-col h-[76vh] max-h-[76vh] backdrop-blur-2xl rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
+      {/* 👑 بەرزی کلاسی سەرەکی وەک خۆی هێڵدراوەتەوە بێ کەمکردنەوە */}
+      <div className={`flex flex-col h-full min-h-[75vh] backdrop-blur-2xl rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
         <div className={`flex justify-between items-center mb-4 border-b pb-3 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
           <div className="flex items-center gap-3">
             <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-9 h-9 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-amber-50 border-amber-200'}`}>{isDarkMode ? '☀️' : '🌙'}</button>
@@ -455,7 +453,6 @@ const ChatInterface: React.FC = () => {
           </div>
         </div>
 
-        {/* 🛠️ لێرەدا پێدانی کلاسی flex-1 و دڵنیابوونەوە لەوەی سکڕۆڵەکە تەنها لێرەدایە */}
         <div className="flex-1 overflow-y-auto space-y-4 px-2 pb-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
           {messages.map((msg, idx) => ( 
             <div key={idx} className={`flex w-full flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}>
@@ -479,7 +476,6 @@ const ChatInterface: React.FC = () => {
             </div>
           )}
           
-          {/* 👑 ئەم دێڕە جادوییەیە کە سکڕۆڵەکە ڕێک لێرەدا دەچەقێنێت بەبێ لادان */}
           <div ref={messagesEndRef} />
         </div>
 

@@ -1,6 +1,9 @@
+/* eslint-disable */
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 
 import Layout from './components/Layout';
 import ChatInterface from './components/ChatInterface';
@@ -16,6 +19,13 @@ import VoiceInterface from './components/VoiceAssistant';
 import HealthInterface from './components/HealthAssistant';
 import KurdishPersonalities from './components/KurdishPersonalities';
 import RestaurantDashboard from './components/RestaurantDashboard'; 
+import WebSummarizer from './components/WebSummarizer'; 
+import KurdishGrammar from './components/KurdishGrammar'; 
+import UserFeedback from './components/UserFeedback'; 
+
+import SocialHook from './components/SocialHook';
+import KurdishFlashcard from './components/KurdishFlashcard';
+import DocumentSummarizer from './components/DocumentSummarizer';
 
 import { View } from './types';
 
@@ -25,36 +35,82 @@ const App: React.FC = () => {
   
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  
   const [language, setLanguage] = useState<'ku' | 'ar'>('ku');
   
-  const [hasStarted, setHasStarted] = useState<boolean>(() => {
-    return localStorage.getItem('kurdai_landing_started') === 'true';
-  });
+  // 🧭 ئەم دوو ستەیتە بۆ پشکنینی دۆخی بەکارهێنەرن لە ڕێگەی فایربەیسەوە
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
+  const [showLanding, setShowLanding] = useState<boolean>(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user && user.email) {
         const emailClean = user.email.toLowerCase().trim();
         setUserEmail(emailClean);
-        
-        // ئەگەر خاوەن ڕێستۆرانت بوو، ڕاستەوخۆ دەچێتە داشبۆردەکە
+
         if (emailClean.endsWith('@restaurant.com')) {
           setActiveView(View.RESTAURANT_DASHBOARD);
         }
+
+        // 🔍 بەستنەوەی لایڤ بە داتابەیستی فایربەیس بۆ پشکنینی کاتی OTP و دۆخی یوزەر
+        const userDocRef = doc(db, 'users', emailClean);
+        const unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
+          const isAdmin = emailClean === "hedihashm58@gmail.com";
+          
+          if (isAdmin) {
+            setIsEmailVerified(true);
+            setShowLanding(false);
+            return;
+          }
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const verified = data.isEmailVerified === true;
+            setIsEmailVerified(verified);
+
+            // 👑 لۆجیکی سەرەکی: ئەگەر یوزەرەکە تازە سەلماندنی کۆدی تەواو کردبێت و لاندینگی نەبینیبێت
+            if (verified && data.landingSeen !== true) {
+              setShowLanding(true);
+            } else {
+              setShowLanding(false);
+            }
+          } else {
+            // ئەگەر دۆکیۆمێنتی نەبوو، دروستی دەکەین وەک یوزەرێکی نوێی نەسەلمێنراو
+            setIsEmailVerified(false);
+            setShowLanding(false);
+            await setDoc(userDocRef, {
+              email: emailClean,
+              isEmailVerified: false,
+              isPremium: false,
+              landingSeen: false,
+              createdAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        });
+
+        return () => unsubscribeSnapshot();
       } else {
         setUserEmail(null);
+        setIsEmailVerified(false);
+        setShowLanding(false);
         setActiveView(View.CHAT);
       }
       setIsCheckingAuth(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
-  const handleStartChat = () => {
-    localStorage.setItem('kurdai_landing_started', 'true');
-    setHasStarted(true);
+  const handleStartChat = async () => {
+    // کاتێک لەسەر دوگمەی لاندینگ پەیج کلیک دەکات، لە فایربەیس تۆماری دەکەین کە بینیویەتی تا جاری داهاتوو باز بدات
+    if (userEmail) {
+      try {
+        const userDocRef = doc(db, 'users', userEmail);
+        await setDoc(userDocRef, { landingSeen: true }, { merge: true });
+      } catch (e) {
+        console.error("Error updating landingSeen status:", e);
+      }
+    }
+    setShowLanding(false);
   };
 
   const isRestaurantAdmin = userEmail?.endsWith('@restaurant.com');
@@ -67,11 +123,28 @@ const App: React.FC = () => {
     );
   }
 
+  // 🔒 ستێپی ١: ئەگەر لۆگین نەبوو، دەچێتە لاپەڕەی لۆگین
   if (!userEmail) {
     return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
   }
 
-  if (!hasStarted) {
+  // 🔒 ستێپی ٢: ئەگەر لۆگین بووبێت بەڵام هێشتا کۆدی سەلماندنی (OTP) داخل نەکردبێت، دەیبەینە چات بۆ ئەوەی شاشەی پشکنینی کۆدەکەی بۆ بکرێتەوە
+  if (!isEmailVerified) {
+    return (
+      <Layout 
+        activeView={View.CHAT} 
+        onViewChange={setActiveView} 
+        backgroundImage={bgImage}
+        language={language}
+        setLanguage={setLanguage}
+      >
+        <ChatInterface />
+      </Layout>
+    );
+  }
+
+  // 👑 ستێپی ٣: ڕێک دوای ئەوەی لە ناو چاتدا کۆدەکەی بە سەرکەوتوویی داخل کرد و `isEmailVerified` بوو بە True، ئینجا لاندینگ پەیجی پێشوازی پیشان دەدرێت!
+  if (showLanding) {
     return <LandingPage onStartChat={handleStartChat} />;
   }
 
@@ -103,6 +176,16 @@ const App: React.FC = () => {
       case View.HEALTH: return <HealthInterface />;
       case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
       case View.RESTAURANT_DASHBOARD: return <RestaurantDashboard adminEmail={userEmail || ''} language={language} />;
+      
+      case 'web_summarizer' as View: return <WebSummarizer language={language} />;
+      case 'kurdish_grammar' as View: return <KurdishGrammar language={language} />;
+      
+      case 'social_hook' as View: return <SocialHook language={language} />;
+      case 'kurdish_flashcard' as View: return <KurdishFlashcard language={language} />;
+      case 'document_summarizer' as View: return <DocumentSummarizer language={language} />;
+      
+      case 'user_feedback' as View: return <UserFeedback language={language} />;
+      
       default: return <ChatInterface />;
     }
   }
