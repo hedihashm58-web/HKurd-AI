@@ -33,15 +33,12 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
     try {
       const userEmail = auth.currentUser?.email || "guest_user";
       
-      // 🧠 دروستکردنی پڕۆمپتێکی تایبەت بۆ باکێند تاوەکو مۆدێلەکە بزانێت ئەرکەکەی تەنها کورتکردنەوەیە
-      const summarizerPrompt = `تۆ پسپۆڕی لە کورتکردنەوە و شیکاریی بابەتەکاندا. تکایە تەواوی ناوەڕۆکی ئەم بەستەرەی خوارەوە بە وردی بخوێنەوە و کورتەیەکی زۆر پوخت، تێروتەسەل و چڕ بە زمانی کوردی (ئەگەر زمانی بەکارهێنەر کوردی بوو) لە سێ دێڕدا بنووسە. ڕاستەوخۆ بچۆ سەر کاکڵەی بابەتەکە بەبێ نووسینی پێشەکی یان تێبینی زیادە.\n\nبەستەر:\n${url.trim()}`;
-
-      // 🚀 ناردنی داواکاری بۆ باکێندەکەت
+      // 🚀 ناردنی ڕاستەوخۆی لێنکەکە بۆ باکێندەکەت (باکێند خۆی پشکنینی لێمیت دەکات و پڕۆمپتی بۆ ڕێکدەخات)
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: summarizerPrompt,
+          message: url.trim(), // لێنکەکە بە ڕووتی دەنێرین تا باکێند وەک وێب کورتکەرەوە بیناسێتەوە
           email: userEmail
         }), 
       });
@@ -49,6 +46,9 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_WEB_TRIAL")) {
+          throw new Error("LIMIT_EXCEEDED_WEB_TRIAL");
+        }
         throw new Error(data.detail || (language === 'ku' ? "سێرڤەر وەڵامی نەدایەوە." : "لم يتم الرد من السيرفر."));
       }
 
@@ -56,12 +56,20 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
 
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.message || 
-        (language === 'ku' 
-          ? "ببورا، هەڵەیەک لە کاتی پەیوەندیکردن بە مێشکی کورتکەرەوەدا ڕوویدا." 
-          : "عذراً، حدث خطأ أثناء الاتصال بنظام التلخيص.")
-      );
+      if (err.message.includes("LIMIT_EXCEEDED_WEB_TRIAL") || err.message.includes("تەواو بوو")) {
+        setError(
+          language === 'ku'
+            ? "⚠️ لێمیتی خۆڕایی کورتکەرەوەی وێب تەواو بوو! بۆ بەکارهێنانی بێسنوور تکایە بەشداری ئۆفەرەکان (Premium) بکە."
+            : "⚠️ انتهت فترة التجربة المجانية لتلخيص المواقع! يرجى الاشتراك في العروض للاستمرار."
+        );
+      } else {
+        setError(
+          err.message || 
+          (language === 'ku' 
+            ? "ببورا، هەڵەیەک لە کاتی پەیوەندیکردن بە مێشکی کورتکەرەوەدا ڕوویدا." 
+            : "عذراً، حدث خطأ أثناء الاتصال بنظام التلخيص.")
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -118,7 +126,7 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
             : (language === 'ku' ? 'دەستپێکردنی کورتکردنەوە' : 'بدء التلخيص الذكي')}
         </button>
 
-        {/* 📝 پانێڵی پیشاندانی ئەنجام لە ٣ دێڕدا */}
+        {/* 📝 پانێڵی پیشاندانی ئەنجام */}
         {result && (
           <div className="w-full bg-[#0d0d11]/90 rounded-2xl p-5 border border-zinc-800/60 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col space-y-2.5">
             <span className="text-[10px] font-black text-yellow-500 block text-right uppercase tracking-wider">

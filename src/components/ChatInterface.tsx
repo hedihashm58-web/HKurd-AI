@@ -4,8 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
-import { collection, addDoc, doc, setDoc, updateDoc, getDocs, getDoc, query, orderBy, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { collection, addDoc, doc, setDoc, updateDoc, getDocs, orderBy, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 interface PremiumModalProps {
   isOpen: boolean;
@@ -14,7 +13,7 @@ interface PremiumModalProps {
 
 const SUBSCRIPTION_PLANS = [
   { id: '1_month', name: '١ مانگ', price: '٥,٠٠٠', desc: '٣ وێنە لە ڕۆژێکدا 🎨' },
-  { id: '3_months', name: '٣ مانگ', price: '١٢,٠٠٠', desc: '٥ وێنە لە ڕۆژێکدا 🔥' },
+  { id: '3_months', name: '٣ مانگ', price: '١٢,٠٠0', desc: '٥ وێنە لە ڕۆژێکدا 🔥' },
   { id: '6_months', name: '٦ مانگ', price: '٢٥,٠٠0', desc: '٧ وێنە لە ڕۆژێکدا 🚀' },
   { id: '1_year', name: '١ ساڵ', price: '٥٠,٠٠٠', desc: '١٠ وێنە لە ڕۆژێکدا 👑' },
 ];
@@ -44,7 +43,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121215] border border-zinc-800 rounded-2xl max-w-xl w-full p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
-        <h3 className="text-xl font-extrabold text-zinc-100 mb-1">لیمیتی خۆڕایی تەواو بوو!</h3>
+        <h3 className="text-xl font-extrabold text-zinc-100 mb-1">پۆلێنی ئەندامێتی پریمیم</h3>
         <p className="text-zinc-300 text-xs mb-6">بۆ لادانی لێمیتی چات و چالاککردنی خزمەتگوزاری وێنە، پلانێک هەڵبژێره:</p>
         <div className="grid grid-cols-2 gap-2.5 mb-6" dir="rtl">
           {SUBSCRIPTION_PLANS.map((plan) => {
@@ -116,7 +115,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
         <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/30 animate-pulse"><span className="text-2xl text-amber-400">🎙️</span></div>
         <div className="mb-2"><h2 className="text-2xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none">KurdAI Voice</h2></div>
         <h3 className="text-lg font-bold text-white mb-2">بەم زوانە چالاک دەکرێت!</h3>
-        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی دەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.</p>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی dەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.</p>
         <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]">چاوەڕوانم</button>
       </div>
     </div>
@@ -134,18 +133,12 @@ const ChatInterface: React.FC = () => {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
   const [isUserPremium, setIsUserPremium] = useState<boolean>(true); 
-  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(true);
-  
-  const [otpCode, setOtpCode] = useState<string>('');
-  const [isSendingCode, setIsSendingCode] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  
   const [msgCountInMinute, setMsgCountInMinute] = useState<number>(0);
   const [minuteStartTime, setMinuteStartTime] = useState<number>(Date.now());
 
   const defaultMessage: Message = { 
     role: 'model', 
-    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەی پێدراوە، چۆن دەتوانم هاوکاریت بکەم؟", 
+    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەم پێدراوە، چۆن دەتوانم هاوکاریت بکەم؟", 
     timestamp: new Date() 
   };
 
@@ -164,65 +157,19 @@ const ChatInterface: React.FC = () => {
     const unsubscribe = onSnapshot(doc(db, 'users', user.email), (docSnap) => {
       const isAdmin = user.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
       if (isAdmin) {
-        setIsEmailVerified(true);
         setIsUserPremium(true);
         return;
       }
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setIsEmailVerified(data.isEmailVerified === true);
         setIsUserPremium(data.isPremium === true);
       } else {
         setIsUserPremium(false);
-        setIsEmailVerified(false);
       }
     });
 
     return () => unsubscribe();
   }, [auth.currentUser?.email]);
-
-  const handleSendOTP = async () => {
-    const user = auth.currentUser;
-    if (!user?.email) return;
-    setIsSendingCode(true);
-    try {
-      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email })
-      });
-      if (res.ok) alert("✉️ کۆدەکە بە سەرکەوتوویی بۆ ئیمەیڵەکەت ناردرا!");
-      else alert("❌ کێشەیەک لە ناردنی کۆددا هەیە.");
-    } catch (e) {
-      console.error(e);
-      alert("❌ پەیوەندی بە سێرڤەرەوە نەکرا.");
-    } finally {
-      setIsSendingCode(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    const user = auth.currentUser;
-    if (!user?.email || !otpCode.trim()) return;
-    setIsVerifying(true);
-    try {
-      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, code: otpCode.trim() })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert("🎉 پیرۆزە! هەژمارەکەت بە سەرکەوتوویی چالاککرا.");
-        setIsEmailVerified(true);
-      } else alert(`❌ خەتا: ${data.detail || "کۆدەکە هەڵەیە"}`);
-    } catch (e) {
-      console.error(e);
-      alert("❌ پەیوەندی بە سێرڤەرەوە نەکرا.");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -250,17 +197,6 @@ const ChatInterface: React.FC = () => {
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
       console.error(err); 
-    }
-  };
-
-  const handleLogout = async () => {
-    if (window.confirm("دڵنیای دەتەوێت لە ئەژمارەکەت بێیتە دەرەوە؟")) { 
-      try {
-        await signOut(auth); 
-        handleNewChat();
-      } catch (error) {
-        console.error(error); 
-      }
     }
   };
 
@@ -298,11 +234,6 @@ const ChatInterface: React.FC = () => {
 
     const user = auth.currentUser;
     const isAdmin = user?.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
-
-    if (!isAdmin && !isUserPremium && messages.length >= 11) { 
-      setIsPremiumModalOpen(true);
-      return;
-    }
 
     const currentTime = Date.now();
     if (currentTime - minuteStartTime >= 60000) {
@@ -351,8 +282,8 @@ const ChatInterface: React.FC = () => {
     const cacheKey = generateCacheKey(currentInput);
     if (db) {
       try {
-        const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
-        if (cacheSnap.exists()) {
+        const cacheSnap = await doc(db, 'global_chat_cache', cacheKey).get();
+        if (cacheSnap && cacheSnap.exists) {
           const cachedAnswer = cacheSnap.data().aiResponse;
           setIsLoading(false);
           setMessages(prev => [...prev, { role: 'model', text: cachedAnswer, timestamp: new Date() }]);
@@ -396,13 +327,12 @@ const ChatInterface: React.FC = () => {
     } catch (error: any) { 
       setIsLoading(false); 
       let errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
-      if (error.message.includes("❌")) errorMessage = error.message;
-      if (isAdmin) {
-        alert("خەتا ڕوویدا بەڵام تۆ ئادمینیت, لێمیت نییە.");
-        return;
-      }
+      if (error.message.includes("❌") || error.message.includes("ڕەتکرایەوە")) errorMessage = error.message;
+      
       setMessages(prev => [...prev, { role: 'model', text: errorMessage, timestamp: new Date() }]);
-      setIsPremiumModalOpen(true);
+      if (!error.message.includes("❌")) {
+        setIsPremiumModalOpen(true);
+      }
     }
   };
 
@@ -413,27 +343,10 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  if (!isEmailVerified) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[75vh] backdrop-blur-2xl rounded-3xl border border-zinc-800 p-8 bg-slate-950/40 text-center" dir="rtl">
-        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4 border border-amber-500/30"><span className="text-2xl text-amber-400">✉️</span></div>
-        <h2 className="text-2xl font-black text-white mb-2">پشتڕاستکردنەوەی هەژمار</h2>
-        <p className="text-zinc-400 text-xs max-w-sm mb-6 leading-relaxed">بۆ پاراستنی ئاسایشی سیستەمەکە، پێویستە کۆدێکی سەلماندنی ٦ ژمارەیی بنێریت بۆ ئیمەیڵەکەت تا هەژمارەکەت چالاک ببێت.</p>
-        <div className="space-y-4 w-full max-w-xs">
-          <button onClick={handleSendOTP} disabled={isSendingCode} className="w-full bg-slate-900 hover:bg-slate-800 border border-zinc-800 text-amber-400 font-bold py-2.5 rounded-xl text-xs transition-all">{isSendingCode ? 'چاوەڕوان بە...' : '🔗 ناردنی کۆد بۆ ئیمەیڵەکەم'}</button>
-          <input type="text" maxLength={6} placeholder="کۆدی ٦ ژمارەیی" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-center text-lg font-bold focus:outline-none" />
-          <button onClick={handleVerifyOTP} disabled={otpCode.length !== 6 || isVerifying} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm transition-all">{isVerifying ? 'پشکنین...' : '✓ چالاککردنی هەژمار'}</button>
-          <button onClick={handleLogout} className="text-xs text-red-400 hover:underline pt-2 block mx-auto">چوونەدەرەوە لەم ئەکاونتە</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onNewChat={handleNewChat} onSelectChat={handleSelectChat} />
       
-      {/* 👑 بەرزی کلاسی سەرەکی وەک خۆی هێڵدراوەتەوە بێ کەمکردنەوە */}
       <div className={`flex flex-col h-full min-h-[75vh] backdrop-blur-2xl rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
         <div className={`flex justify-between items-center mb-4 border-b pb-3 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
           <div className="flex items-center gap-3">
@@ -441,9 +354,6 @@ const ChatInterface: React.FC = () => {
             <h3 className="font-bold text-sm tracking-wide">KurdAI Chat</h3>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleLogout} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500'}`}>
-              <svg xmlns="http://www.w3.org/2000/xl" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            </button>
             <button onClick={handleClearCurrentChat} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
@@ -506,8 +416,10 @@ const ChatInterface: React.FC = () => {
 
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
       <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} />
+      {/* 👑 چارەسەری کۆتایی: مەرجەکە بە تەواوی لێرە جێگیر کرا بێ کێشە */}
       <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
     </>
   );
 };
+
 export default ChatInterface;

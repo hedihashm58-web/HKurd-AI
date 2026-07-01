@@ -1,4 +1,5 @@
 export enum View {
+  HOME = 'home', // 👈 لێرەدا زیادکرا بۆ دیزاینە نوێیەکە
   CHAT = 'chat',
   EXPLORE = 'explore',
   ART = 'art',

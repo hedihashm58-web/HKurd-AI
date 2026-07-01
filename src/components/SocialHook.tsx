@@ -37,13 +37,25 @@ const SocialHook: React.FC<SocialHookProps> = ({ language }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        // 📥 خوێندنەوەی خەتای لێمیتی داڕشتنی پۆست لە باکێندەوە
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_SOCIAL")) {
+          throw new Error("LIMIT_EXCEEDED_SOCIAL");
+        }
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
       setGeneratedPost(data.response);
     } catch (err: any) {
       console.error(err);
-      setError(language === 'ku' ? "ببوورە، کێشەیەک لە بەرهەمهێنانی پۆستەکەدا هەبوو." : "عذراً، حدث خطأ أثناء إنشاء المنشور.");
+      if (err.message.includes("LIMIT_EXCEEDED_SOCIAL") || err.message.includes("تەواو بوو")) {
+        setError(
+          language === 'ku' 
+            ? "⚠️ لێمیتی ٥ پۆستی خۆڕایی تۆ تەواو بوو! بۆ نووسینی پۆستی زیاتر، تکایە بەشداری ئۆفەرەکانی پریمیم بکە." 
+            : "⚠️ انتهت فترة التجربة المجانية لصانع المنشورات! يرجى الاشتراك في العروض للاستمرار."
+        );
+      } else {
+        setError(language === 'ku' ? "ببوورە، کێشەیەک لە بەرهەمهێنانی پۆستەکەدا هەبوو." : "عذراً، حدث خطأ أثناء إنشاء المنشور.");
+      }
     } finally {
       setLoading(false);
     }
@@ -121,7 +133,7 @@ const SocialHook: React.FC<SocialHookProps> = ({ language }) => {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
           {error}
         </div>
       )}

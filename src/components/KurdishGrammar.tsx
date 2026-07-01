@@ -25,21 +25,12 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
     try {
       const userEmail = auth.currentUser?.email || "guest_user";
       
-      const grammarPrompt = `تۆ پسپۆڕی سەرەکی زمان و ڕێنووسی کوردی (سۆرانی) یت. تکایە ئەم دەقەی خوارەوە بە وردی بپشکنە و تەواوی خەتاکانی ڕێنووس، خاڵبەندی، جیاکردنەوەی پیتەکانی وەک (ڕ، ڵ)، پاشگرەکان و خەتاکانی زمانەوانی ڕاست بکەرەوە. 
-وەڵامەکەت تەنها و تەنها بەم فۆرماتە جەیسۆنە (JSON) بگەڕێنەوە و هیچ تێکستێکی تری لەگەڵدا مەنووسە چونکە من ڕاستەوخۆ لە ناو کۆددا پارسی دەکەم:
-{
-  "corrected": "لێرەدا تەنها دەقە ڕاستکراوەکە بنووسە",
-  "explanation": "لێرەدا بە کورتی لە دوو خاڵدا ڕوون بکەرەوە چ خەتایەک هەبوو و بۆچی چاکت کردووە"
-}
-
-دەقەکە:
-${text.trim()}`;
-
+      // 🚀 ناردنی تەنها دەقە ڕووتەکە بۆ باکێند (باکێند خۆی پشکنینی لێمیت دەکات و پڕۆمپتی شاهانە بەکاردێنێت)
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/kurdish-grammar', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          text: grammarPrompt, 
+          text: text.trim(), 
           email: userEmail
         }), 
       });
@@ -47,6 +38,9 @@ ${text.trim()}`;
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_GRAMMAR")) {
+          throw new Error("LIMIT_EXCEEDED_GRAMMAR");
+        }
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
@@ -60,7 +54,15 @@ ${text.trim()}`;
 
     } catch (err: any) {
       console.error(err);
-      setError(language === 'ku' ? "ببورا، هەڵەیەک لە کاتی ڕاستکردنەوەی دەقەکەدا ڕوویدا." : "عذراً، حدث خطأ أثناء تصحيح النص.");
+      if (err.message.includes("LIMIT_EXCEEDED_GRAMMAR") || err.message.includes("تەواو بوو")) {
+        setError(
+          language === 'ku' 
+            ? "⚠️ لێمیتی ٣ پشکنینی خۆڕایی ڕێنووس تەواو بوو! بۆ بەکارهێنانی بێسنوور تکایە بەشداری ئۆفەرەکان بکە." 
+            : "⚠️ انتهت فترة التجربة المجانية لمصحح القواعد! يرجى الاشتراك في العروض للاستمرار."
+        );
+      } else {
+        setError(language === 'ku' ? "ببورا، هەڵەیەک لە کاتی ڕاستکردنەوەی دەقەکەدا ڕوویدا." : "عذراً، حدث خطأ أثناء تصحيح النص.");
+      }
     } finally {
       setLoading(false);
     }
@@ -76,21 +78,16 @@ ${text.trim()}`;
     return JSON.parse(cleanStr.trim());
   };
 
-  // 🕵️ سیستەمی نوێی هاوتاکردنی وشەکان بۆ دۆزینەوەی جیاوازییەکان بە وردی ١٠٠٪
   const renderDiff = () => {
     if (!text || !correctedText) return null;
 
-    // دابەشکردنی دەقەکان بەپێی بۆشاییەکان بۆ وشەکان
     const originalWords = text.trim().split(/\s+/);
     const correctedWords = correctedText.trim().split(/\s+/);
 
     return (
       <div className="flex flex-wrap gap-x-2 gap-y-3 text-right justify-start leading-relaxed select-text font-medium text-sm w-full" dir="rtl">
         {correctedWords.map((word, idx) => {
-          // هێنانەوەی وشەی هاوتا لە دەقە کۆنەکەدا لەسەر بنەمای هەمان ئیندێکس
           const originalWord = originalWords[idx] || "";
-          
-          // ئەگەر وشەکە گۆڕانکاری بەسەردا هاتبێت
           const isChanged = originalWord !== word;
 
           if (isChanged) {
@@ -106,7 +103,6 @@ ${text.trim()}`;
             );
           }
           
-          // وشەی بێ کێشە و نەگۆڕاو
           return <span key={idx} className="text-zinc-300 py-1">{word}</span>;
         })}
       </div>
@@ -127,7 +123,6 @@ ${text.trim()}`;
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start w-full">
         
-        {/* 📥 بۆکسی داخڵکردنی دەق */}
         <div className="flex flex-col space-y-2 w-full">
           <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider pr-1">✍️ دەقی بنەڕەتی (خاوەن خەتا):</label>
           <div className="p-4 rounded-2xl bg-[#0e0e12]/90 border border-zinc-800 focus-within:border-emerald-500/40 shadow-xl min-h-[180px] flex flex-col justify-between">
@@ -143,7 +138,6 @@ ${text.trim()}`;
           </div>
         </div>
 
-        {/* 📤 بۆکسی پیشاندانی دەقی ڕاستکراوە */}
         <div className="flex flex-col space-y-2 w-full">
           <label className="text-[10px] font-black text-emerald-500 uppercase tracking-wider pr-1">✨ دەقی ڕاستکراوە و خاوێن:</label>
           <div className="p-4 rounded-2xl bg-[#0b0b0e]/90 border border-zinc-800 shadow-xl min-h-[180px] flex flex-col justify-between relative">
@@ -171,12 +165,11 @@ ${text.trim()}`;
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
           {error}
         </div>
       )}
 
-      {/* 🚀 دوگمەی ڕاستکردنەوە */}
       <button
         type="button"
         onClick={handleFixGrammar}
@@ -186,7 +179,6 @@ ${text.trim()}`;
         {loading ? 'خەریکی چاککردنی زمانەوانییە...' : 'پشکنین و ڕاستکردنەوەی دەق'}
       </button>
 
-      {/* 📊 پانێڵی دۆزینەوەی جیاوازییەکان (Diff Visualizer) */}
       {correctedText && !loading && (
         <div className="w-full bg-[#0d0d11]/90 rounded-2xl p-5 border border-zinc-800/80 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-3">
           <span className="text-[10px] font-black text-yellow-500 block text-right uppercase tracking-wider">🔍 نەخشەی جیاوازی لاینەکان (سەوز: ڕاستکراوە / خەتی سوور: هەڵەی کۆن):</span>
@@ -196,7 +188,6 @@ ${text.trim()}`;
         </div>
       )}
 
-      {/* 💡 کارتی ڕوونکردنەوەی زمانەوانی */}
       {explanation && !loading && (
         <div className="w-full bg-[#0d0d11]/90 rounded-2xl p-5 border border-zinc-800/60 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col space-y-2">
           <span className="text-[10px] font-black text-emerald-400 block text-right uppercase tracking-wider">💡 گۆڕانکاری و تێبینییە زمانەوانییەکان:</span>

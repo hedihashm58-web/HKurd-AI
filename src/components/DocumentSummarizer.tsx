@@ -96,6 +96,10 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
       const data = await response.json();
 
       if (!response.ok) {
+        // 📥 خوێندنەوەی ڕاستەوخۆی نامەی خەتای تایبەت بە لێمیتەکانی باکێند تا یەکسەر مۆداڵی پریمیم لۆد ببێت
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_PDF_TRIAL")) {
+          throw new Error("LIMIT_EXCEEDED_PDF_TRIAL");
+        }
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
@@ -104,7 +108,12 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
       saveToHistory(selectedFile.name, resultText);
     } catch (err: any) {
       console.error(err);
-      setError(language === 'ku' ? "ببوورە، کێشەیەک لە کورتکردنەوەی فایلی PDFەکەدا هەبوو." : "عذراً, حدث خطأ أثناء تلخيص ملف الـ PDF.");
+      if (err.message.includes("LIMIT_EXCEEDED_PDF_TRIAL") || err.message.includes("تەواو بوو")) {
+        setError(language === 'ku' ? "⚠️ لێمیتی خۆڕایی کورتکردنەوەی PDF تەواو بوو! تکایە بۆ بەکارهێنانی بێسنوور بەشداری ئۆفەرەکان بکە." : "⚠️ انتهت فترة التجربة المجانية لتلخيص الملفات! يرجى الاشتراك في العروض للاستمرار.");
+        // 👑 لێرەدا دەتوانیت فەنکشنێک بانگ بکەیت بۆ کردنەوەی ڕاستەوخۆی مۆداڵی ئۆفەرەکان ئەگەر ویستت
+      } else {
+        setError(err.message || (language === 'ku' ? "ببوورە، کێشەیەک لە کورتکردنەوەی فایلی PDFەکەدا هەبوو." : "عذراً, حدث خطأ أثناء تلخيص ملف الـ PDF."));
+      }
     } finally {
       setLoading(false);
     }
@@ -167,6 +176,12 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs font-bold text-center animate-in fade-in duration-300">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start w-full">
         

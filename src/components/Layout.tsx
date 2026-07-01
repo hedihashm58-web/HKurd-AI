@@ -1,8 +1,9 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from '../types';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,76 @@ interface LayoutProps {
   language: 'ku' | 'ar';
   setLanguage: React.Dispatch<React.SetStateAction<'ku' | 'ar'>>;
 }
+
+// 🔔 مۆدێلی ئاگادارییەکان
+interface NotificationListModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language: 'ku' | 'ar';
+}
+
+const NotificationListModal: React.FC<NotificationListModalProps> = ({ isOpen, onClose, language }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 👑 چاککردنی گەورەترین کێشەی React کە دەبووە هۆی شاشە شینەکە (Rule of Hooks)
+  useEffect(() => {
+    // تەنها کاتێک داتا بهێنە کە مۆدێلەکە کراوەیە، بەڵام نابێت هۆکەکە لە دوای return ەوە بێت
+    if (!isOpen) return; 
+
+    const q = query(collection(db, "global_notifications"), orderBy("createdAt", "desc"), limit(5));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setNotifications(list);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [isOpen]);
+
+  // 👑 مەرجی داخستنەکە دەبێت لێرە بێت بۆ ئەوەی ڕیاکت کراش نەکات
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[300] p-4" dir="rtl">
+      <div className="bg-[#0f172a] border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+        <h3 className="text-sm font-black text-white mb-4 flex items-center gap-1.5 justify-center">
+          <span>📢</span> {language === 'ku' ? 'ئاگاداری و نامەکان' : 'الإشعارات'}
+        </h3>
+
+        <div className="space-y-2 max-h-[50vh] overflow-y-auto mb-4 pr-1">
+          {loading ? (
+            <p className="text-xs text-zinc-500 py-4 animate-pulse">لە لۆدبووندایە...</p>
+          ) : notifications.length === 0 ? (
+            <p className="text-xs text-zinc-500 py-6">{language === 'ku' ? 'هیچ ئاگادارییەک نییە.' : 'لا توجد إشعارات حالياً.'}</p>
+          ) : (
+            notifications.map((notif) => (
+              <div key={notif.id} className="bg-slate-900/60 border border-zinc-800/80 rounded-xl p-3 text-right">
+                <h4 className="text-xs font-black text-amber-400 mb-1">{notif.title}</h4>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">{notif.body}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* دوگمەی گەڕانەوە کە هەمیشە کار دەکات */}
+        <button 
+          onClick={onClose} 
+          className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-bold py-2 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 active:scale-95 border border-zinc-800/50 shadow-md"
+        >
+          <span>⚡</span>
+          <span>{language === 'ku' ? 'گەڕانەوە' : 'العودة'}</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface VoiceComingSoonModalProps {
   isOpen: boolean;
@@ -53,7 +124,7 @@ const SUBSCRIPTION_PLANS = [
   { id: '1_month', name: '١ مانگ', price: '٥,٠٠٠', desc: '٣ وێنە لە ڕۆژێکدا 🎨' },
   { id: '3_months', name: '٣ مانگ', price: '١٢,٠٠٠', desc: '٥ وێنە لە ڕۆژێکدا 🔥' },
   { id: '6_months', name: '٦ مانگ', price: '٢٥,٠٠٠', desc: '٧ وێنە لە ڕۆژێکدا 🚀' },
-  { id: '1_year', name: '١ ساڵ', price: '٥٠,٠٠٠', desc: '١٠ وێنە لە ڕۆژێکدا 👑' },
+  { id: '1_year', name: '١ ساڵ', price: '٥٠,٠٠0', desc: '١٠ وێنە لە ڕۆژێکدا 👑' },
 ];
 
 const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose, language }) => {
@@ -114,91 +185,216 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
   );
 };
 
+interface ProfileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language: 'ku' | 'ar';
+}
+
+const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }) => {
+  if (!isOpen) return null;
+  const user = auth.currentUser;
+  const emailClean = user?.email?.toLowerCase().trim() || "";
+  const isAdmin = emailClean === "hedihashm58@gmail.com";
+
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifBody, setNotifBody] = useState('');
+  const [isSendingNotif, setIsSendingNotif] = useState(false);
+
+  const handleLogoutClick = async () => {
+    if (window.confirm(language === 'ku' ? "دڵنیای دەتەوێت لە ئەژمارەکەت بێیتە دەرەوە؟" : "هل أنت متأكد من تسجيل الخروج؟")) {
+      try {
+        await auth.signOut();
+        window.location.reload();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  const handleSendPushNotification = async () => {
+    if (!notifTitle.trim() || !notifBody.trim()) return;
+    setIsSendingNotif(true);
+
+    try {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const tokens = [];
+      querySnapshot.forEach((doc) => {
+        if (doc.data().fcmToken) tokens.push(doc.data().fcmToken);
+      });
+
+      if (tokens.length === 0) {
+        alert("⚠️ هیچ بەکارهێنەرێک تۆکنی نۆتیفیکەیشنی چالاک نییە.");
+        setIsSendingNotif(false);
+        return;
+      }
+
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: notifTitle,
+          body: notifBody,
+          tokens: tokens
+        }),
+      });
+
+      if (response.ok) {
+        alert("🎉 نۆتیفیکەیشنەکە بە سەرکەوتوویی بۆ سەر شاشەی تەواوی بەکارهێنەران ناردرا!");
+        setNotifTitle('');
+        setNotifBody('');
+      } else {
+        alert("❌ کێشەیەک لە سێرڤەردا هەیە.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("❌ خەتایەک لە ناردندا ڕوویدا.");
+    } finally {
+      setIsSendingNotif(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[300] p-4" dir="rtl">
+      <div className="bg-[#0f172a] border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-center shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-white/5 shadow-lg text-slate-950 font-black text-lg">
+          ⚙️
+        </div>
+        
+        {isAdmin && <h3 className="text-xs font-black text-amber-500 mb-1">{language === 'ku' ? "بەرێوبەری گشتی پڕۆژە" : "مدير النظام"}</h3>}
+        
+        <p className="text-zinc-200 text-[11px] font-mono mb-3 bg-slate-950/60 py-2 px-3 rounded-xl border border-white/[0.03] break-all tracking-wide shadow-inner">
+          {user?.email || "guest@kurdai.pro"}
+        </p>
+
+        {isAdmin && (
+          <div className="bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3 mb-4 text-right animate-in fade-in duration-300">
+            <h4 className="text-xs font-black text-amber-400 mb-2 flex items-center gap-1">🔔 ناردنی ڕاگەیاندنی بەپەلە (Push)</h4>
+            <div className="space-y-2">
+              <input 
+                type="text" 
+                placeholder="ناونیشانی نامەکە..." 
+                value={notifTitle}
+                onChange={(e) => setNotifTitle(e.target.value)}
+                className="w-full bg-slate-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500"
+              />
+              <textarea 
+                placeholder="دەقی نامەکە لێرە بنووسە..." 
+                value={notifBody}
+                onChange={(e) => setNotifBody(e.target.value)}
+                rows={2}
+                className="w-full bg-slate-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
+              />
+              <button 
+                onClick={handleSendPushNotification}
+                disabled={isSendingNotif || !notifTitle.trim() || !notifBody.trim()}
+                className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-slate-950 disabled:text-zinc-500 text-[11px] font-black py-2 rounded-xl transition-all active:scale-[0.98]"
+              >
+                {isSendingNotif ? 'لە پڕۆسەی ناردندایە...' : 'بڵاوکردنەوە بۆ هەمووان 🚀'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-slate-900/50 border border-zinc-800/60 rounded-2xl p-3 mb-4 text-right">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-zinc-400">{language === 'ku' ? 'دۆخی هەژمار:' : 'حالة الحساب:'}</span>
+            <span className="font-black text-amber-400">
+              {isAdmin ? "پریمیم پڵەس 👑" : "پلانی ئاسایی 👤"}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <button onClick={handleLogoutClick} className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl border border-red-500/20 transition-all text-xs active:scale-[0.97]">
+            {language === 'ku' ? 'چوونەدەرەوە لە ئەژمار 🚪' : 'تسجيل الخروج'}
+          </button>
+          <button onClick={onClose} className="w-full bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-bold py-1.5 rounded-xl transition-all text-xs block text-center">
+            {language === 'ku' ? 'داخستن' : 'إغلاق'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage }) => {
-  const [isVaultOpen, setIsVaultOpen] = useState(false);
   const [isVoiceComingSoonOpen, setIsVoiceComingSoonOpen] = useState(false);
   const [isPremiumOffersOpen, setIsPremiumOffersOpen] = useState(false);
-
-  // 👑 لێرەدا تەواوی خزمەتگوزارییە نوێیەکان لە پێش بەشی تێبینی بە تەواوی ڕێکخران
-  const navItems = [
-    { id: View.CHAT, label: language === 'ku' ? 'خزمەتگوزاری گفتوگۆ' : 'خدمة المحادثة', icon: '🏛️', desc: language === 'ku' ? 'ژیریی شیکاری و ڕاوێژکاری ئەکادیمی' : 'الذكاء التحليلي والاستشاري الأكاديمي', meta: 'Consultation AI' },
-    { id: View.TRANSLATE, label: language === 'ku' ? 'خزمەتگوزاری زمان' : 'خدمة اللغة الترجمة', icon: '📜', desc: language === 'ku' ? 'وەرگێڕانی فەرمی و پسپۆڕی دیالەکتەکان' : 'الترجمة الرسمية والمتخصصة اللهجات', meta: 'Linguistic AI' },
-    { id: View.EXPLORE, label: language === 'ku' ? 'نەخشەی کوردستان' : 'خارطة كوردستان', icon: '🗺️', desc: language === 'ku' ? 'گەڕان بەدوای پارێزگاکان و شوێنەوارەکان' : 'استكشاف المحافظات والمعالم التاريخية', meta: 'Spatial AI' },
-    { id: View.PERSONALITIES, label: language === 'ku' ? 'کەسایەتییەکانی کورد' : 'شخصيات كوردية', icon: '👥', desc: language === 'ku' ? 'ئاشنابوون بە مێژوو و کەسایەتییە ناودارەکان' : 'التعرف على التاريخ والشخصيات الشهيرة', meta: 'Historical AI' }, 
-    { id: View.MATH, label: language === 'ku' ? 'خزمەتگوزاری زانستی' : 'الالخدمة العلمية', icon: '📐', desc: language === 'ku' ? 'شیکاریی داتا و هاوکێشە ئاڵۆزەکان' : 'تحليل البيانات والمعادلات المعقدة', meta: 'Analytical AI' },
-    { id: View.HEALTH, label: language === 'ku' ? 'خزمەتگوزاری تەندروستی' : 'الالخدمة الصحية', icon: '🩺', desc: language === 'ku' ? 'شیکاریی نیشانەکان و زانیاریی دەرمان' : 'تحليل الأعراض ومعلومات الأدوية', meta: 'Medical AI' },
-    { id: 'web_summarizer', label: language === 'ku' ? 'کورتکەرەوەی وێب' : 'ملخص المواقع', icon: '🔗', desc: language === 'ku' ? 'خوێندنەوە و کورتکردنەوەی سایتەکان ' : 'قراءة وتلخيص المواقع ', meta: 'Web Link AI' },
-    { id: 'kurdish_grammar', label: language === 'ku' ? 'ڕێنووسی کوردی' : 'التدقيق الكوردي', icon: '✍️', desc: language === 'ku' ? 'ڕاستکردنەوەی خەتاکانی نووسین و پاشگرەکان' : 'تصحيح الأخطاء الإملائية والقواعدية للغة الكوردية', meta: 'Grammar AI' },
-    
-    // 📱 خزمەتگوزارییە نوێیەکان لە پێش تێبینی جێگیر کران
-    { id: 'social_hook', label: language === 'ku' ? 'داڕشتنی پۆست' : 'صانع المنشورات', icon: '📱', desc: language === 'ku' ? 'دروستکردنی خۆکاری پۆستی سۆشیاڵ میدیا' : 'صياغة منشورات السوشيال ميديا باحترافية', meta: 'Marketing AI' },
-    { id: 'kurdish_flashcard', label: language === 'ku' ? 'فلاشکارتی زمان' : 'فلاش كارد اللغة', icon: '🧠', desc: language === 'ku' ? 'فێربوونی وشە دەگمەنەکان بە دیالێکتەکانەوە' : 'تعلم الكلمات الكوردية النادرة بجميع اللهجات', meta: 'Education AI' },
-    { id: 'document_summarizer', label: language === 'ku' ? 'کورتکەرەوەی فایل' : 'ملخص الملفات', icon: '📄', desc: language === 'ku' ? 'کورتکردنەوەی خێرای دەق و فایلە درێژەکان' : 'تلخيص النصوص والوثائق الطويلة في ثوانٍ', meta: 'Document AI' },
-    
-    { id: View.ART, label: language === 'ku' ? 'خزمەتگوزاری داهێنان' : 'خدمة الإبداع الفني', icon: '🎨', desc: language === 'ku' ? 'بەرهەمهێنانی بینراوی کوالیتی بەرز' : 'إنتاج البصريات عالية الجودة', meta: 'Creative AI' },
-    { id: View.VIDEO, label: language === 'ku' ? 'پڕۆژەکانی نیشتەجێبوون' : 'المشاريع السكنية', icon: '🏢', desc: language === 'ku' ? 'ڕێبەری گشتی نرخ، قیست و خزمەتگوزاری سیتییەکان' : 'الدليل العام للأسعار، الأقساط وخدمات المجمعات', meta: 'Kurdistan Housing' },
-    { id: 'user_feedback', label: language === 'ku' ? 'تێبینی و ڕاپۆرت' : 'الملاحظات والشكاوي', icon: '📥', desc: language === 'ku' ? 'ناردنی پێشنیار، بیرۆکە یان ڕاپۆرتکردنی کێشەکان' : 'إرسال الاقتراحات أو الإبلاغ عن المشاكل التقنية', meta: 'Support AI' },
-    { id: View.VOICE, label: language === 'ku' ? 'خزمەتگوزاری دەنگی' : 'الالخدمة الصوتية', icon: '🔊', desc: language === 'ku' ? 'پەیوەندی دەنگیی ڕاستەوخۆ و پارێزراو' : 'الاتصال الصوتي المباشر والآمن', meta: 'Audio AI' }
-  ];
-
-  const handleToolSelect = (id: any) => {
-    const userEmail = auth.currentUser?.email?.toLowerCase().trim();
-    const isAdmin = userEmail === "hedihashm58@gmail.com";
-
-    if (id === View.VOICE) {
-      setIsVoiceComingSoonOpen(true);
-      return;
-    }
-    if (id === View.ART && !isAdmin) {
-      setIsPremiumOffersOpen(true);
-      return;
-    }
-    onViewChange(id);
-    setIsVaultOpen(false);
-  };
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-1000">
         {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[80px] scale-150" />}
       </div>
-      <div className="h-1 flex fixed top-0 left-0 right-0 z-[100]"><div className="flex-1 bg-red-700"></div><div className="flex-1 bg-slate-100"></div><div className="flex-1 bg-green-800"></div></div>
 
-      <header className="glass-header sticky top-1 z-50 px-4 lg:px-12 py-5 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
-        <div className="flex items-center gap-3 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.CHAT)}>
-          <div className="w-11 h-11 lg:w-14 lg:h-14 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50"><img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" /></div>
+      <header className="glass-header sticky top-1 z-50 px-3 sm:px-4 lg:px-12 py-3 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.HOME)}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50"><img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" /></div>
           <div className="flex flex-col text-right">
-            <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight leading-none">KurdAI <span className="text-yellow-500 italic text-xs lg:text-sm ml-1">PRO</span></h1>
-            <div className="flex items-center gap-2 mt-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div><p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'ku' ? 'کورد زیندووە' : 'كوردستان حيّة'}</p></div>
+            <h1 className="text-sm sm:text-lg lg:text-2xl font-black text-white tracking-tight leading-none">KurdAI <span className="text-yellow-500 italic text-[9px] lg:text-xs ml-0.5">PRO</span></h1>
+            <div className="flex items-center gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div><p className="text-[6px] sm:text-[7px] font-black text-slate-400 uppercase tracking-wider">{language === 'ku' ? 'کورد زیندووە' : 'كوردستان حيّة'}</p></div>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button type="button" onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} className="px-3.5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-yellow-500/40 rounded-xl transition-all text-xs font-black text-yellow-500 flex items-center gap-1.5 shadow-md active:scale-95"><span>🌐</span><span>{language === 'ku' ? 'العربية' : 'کوردی'}</span></button>
-          <button onClick={() => setIsVaultOpen(true)} className="group flex items-center gap-3 lg:gap-8 px-4 lg:px-10 py-2.5 lg:py-4 bg-slate-800/50 border border-slate-700 rounded-2xl hover:bg-slate-700/60 active:bg-slate-700 transition-all shadow-xl active:scale-[0.98]"><div className="hidden sm:flex flex-col items-end"><span className="text-xs font-black text-white tracking-widest">{language === 'ku' ? 'خزمەتگوزارییەکان' : 'الخدمات الذكية'}</span><span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Portal</span></div><div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">⚡</div></button>
+        
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 🔔 دوگمەی نۆتیفیکەیشن */}
+          <button 
+            onClick={() => setIsNotificationListOpen(true)}
+            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
+          >
+            <div className="text-zinc-300 group-hover:text-white transition-colors text-xs sm:text-sm group-hover:animate-bounce">
+              🔔
+            </div>
+          </button>
+
+          {/* 🌐 دوگمەی زمان */}
+          <button 
+            type="button" 
+            onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} 
+            className="px-2.5 sm:px-3 h-8 sm:h-9 bg-slate-800/40 border border-slate-800 hover:border-slate-700 rounded-xl transition-all text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1 shadow-sm active:scale-95"
+          >
+            <span>🌐</span>
+            <span>{language === 'ku' ? 'AR' : 'KU'}</span>
+          </button>
+          
+          {/* ⚙️ دوگمەی پڕۆفایل */}
+          <button 
+            onClick={() => setIsProfileOpen(true)} 
+            className="group flex items-center gap-1 px-2 sm:px-3 h-8 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
+          >
+            <span className="hidden sm:inline text-[11px] font-bold text-zinc-300 group-hover:text-white transition-colors">
+              {language === 'ku' ? 'پرۆفایل' : 'الحساب'}
+            </span>
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs group-hover:rotate-45 transition-transform duration-300">
+              ⚙️
+            </div>
+          </button>
         </div>
       </header>
 
-      {isVaultOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 lg:p-12 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setIsVaultOpen(false)}></div>
-          <div className="relative w-full max-w-6xl animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh]">
-            <div className="text-center mb-8 sm:mb-12 shrink-0"><h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">{language === 'ku' ? 'خزمەتگوزارییەکان ' : 'الخدمات ' }<span className="text-transparent bg-clip-text bg-gradient-to-l from-indigo-400 to-emerald-400">{language === 'ku' ? 'زیرەکەکان' : 'الذكية'}</span></h2></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 overflow-y-auto px-2 pb-6 shrink">
-              {navItems.map((item) => (
-                <button key={item.id} onClick={() => handleToolSelect(item.id)} className="group relative p-6 bg-slate-900/80 border border-slate-800 rounded-3xl text-right transition-all hover:bg-slate-800 active:bg-slate-700 flex flex-col justify-between h-56 sm:h-64">
-                  <div className="flex justify-between items-start w-full"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.meta}</span><div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl">{item.icon}</div></div>
-                  <div className="mt-auto pt-4 border-t border-slate-800/50"><h3 className="text-lg sm:text-xl font-bold text-slate-100 mb-2">{item.label}</h3><p className="text-slate-400 text-xs font-medium leading-relaxed">{item.desc}</p></div>
-                </button>
-              ))}
-            </div>
-            <div className="shrink-0 mt-6 pt-4 text-center"><button onClick={() => setIsVaultOpen(false)} className="mx-auto px-12 py-4 border border-slate-700 rounded-full text-slate-400 font-bold text-xs hover:text-white active:bg-slate-800 transition-all">{language === 'ku' ? 'داخستنی پێڕست' : 'إغلاق القائمة'}</button></div>
+      {/* بەشی سەرەکی ناوەڕۆک */}
+      <main className="flex-1 container mx-auto max-w-[1500px] px-4 pt-2 pb-6 relative z-10">
+        {activeView !== View.HOME && (
+          <div className="w-full max-w-5xl mx-auto mb-2 flex justify-start animate-in fade-in slide-in-from-top-1 duration-200">
+            <button 
+              onClick={() => onViewChange(View.HOME)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-[11px] font-bold text-slate-300 transition-all active:scale-95 hover:border-slate-700 shadow-md"
+            >
+              <span className="text-xs">⚡</span>
+              <span>{language === 'ku' ? 'گەڕانەوە' : 'العودة للمنصة الرئيسية'}</span>
+            </button>
           </div>
-        </div>
-      )}
-
-      <main className="flex-1 container mx-auto max-w-[1500px] p-4 lg:p-8 relative z-10">{children}</main>
+        )}
+        {children}
+      </main>
+      
       <VoiceComingSoonModal isOpen={isVoiceComingSoonOpen} onClose={() => setIsVoiceComingSoonOpen(false)} />
       <PremiumOffersModal isOpen={isPremiumOffersOpen} onClose={() => setIsPremiumOffersOpen(false)} language={language} />
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} language={language} />
+      <NotificationListModal isOpen={isNotificationListOpen} onClose={() => setIsNotificationListOpen(false)} language={language} />
     </div>
   );
 };

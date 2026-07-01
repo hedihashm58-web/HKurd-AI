@@ -36,6 +36,13 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        // 📥 خوێندنەوەی خەتاکانی لێمیتی ڕۆژانەی فلاشکارت لە باکێندەوە
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_FLASHCARD_DAILY")) {
+          throw new Error("LIMIT_EXCEEDED_FLASHCARD_DAILY");
+        }
+        if (data.detail && data.detail.includes("LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")) {
+          throw new Error("LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY");
+        }
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
@@ -43,7 +50,21 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
       setCard(parsedCard);
     } catch (err: any) {
       console.error(err);
-      setError(language === 'ku' ? "ببوورە، کێشەیەک لە لۆدکردنی فلاشکارتەکەدا هەبوو." : "عذراً، حدث خطأ أثناء تحميل الفلاش كارد.");
+      if (err.message.includes("LIMIT_EXCEEDED_FLASHCARD_DAILY")) {
+        setError(
+          language === 'ku' 
+            ? "⚠️ لێمیتی ڕۆژانەی فلاشکارتی خۆڕایی تۆ تەواو بووە! (ڕۆژانە ١ وشە). بۆ بینینی زیاتر تکایە بەشداری ئۆفەرەکان بکە." 
+            : "⚠️ انتهت فترة التجربة المجانية اليومية للفلاش كارد! (١ كلمة يومياً). يرجى الاشتراك في العروض للاستمرار."
+        );
+      } else if (err.message.includes("LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")) {
+        setError(
+          language === 'ku' 
+            ? "⚠️ پلانی ١ مانگی ڕێگەت پێدەدات ڕۆژانە ٣ فلاشکارت ببینی. بۆ بینینی بێسنوور پلانەکەت بەرزبکەرەوە!" 
+            : "⚠️ الباقة الشهرية تتيح لك ٣ فلاش كارد يومياً فقط. لفتح الليميت بالكامل يرجى ترقية الاشتراك!"
+        );
+      } else {
+        setError(language === 'ku' ? "ببوورە، کێشەیەک لە لۆدکردنی فلاشکارتەکەدا هەبوو." : "عذراً، حدث خطأ أثناء تحميل الفلاش كارد.");
+      }
     } finally {
       setLoading(false);
     }
@@ -128,12 +149,12 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
           {error}
         </div>
       )}
 
-      {/* 👑 دوگمەی شاهانە و درەوشاوەی نوێ (Glow and High Contrast UI) */}
+      {/* 🚀 دوگمەی بەرهەمهێنان */}
       <button
         onClick={handleGenerateCard}
         disabled={loading}

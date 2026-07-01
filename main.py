@@ -88,12 +88,55 @@ def validate_content(text: str):
         if word in text_lower:
             raise HTTPException(status_code=400, detail="داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.")
 
-def check_user_limit(email: str, limit_type: str):
-    # 👑 تەواو بێسنوورکردنی هەمیشەیی بۆ ئیمەیڵەکەی خۆت چ لە ڕووی لێمیتی چات و چ لە ڕووی ڤێریفایەوە
+# 🛡️ لۆجیکی پشکنینی لێمیتە توندەکان (قفڵی هەمیشەیی)
+def check_one_time_and_premium_limits(email: str, service_type: str):
     if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
-        return
+        return {"isPremium": True, "activePlan": "yearly"}
 
-    # 🎙️ لۆجیکی ڕاگرتنی خزمەتگوزاری دەنگی ڕێستۆرانتەکان بە شێوازێکی جوان لە پشتەوە
+    user_ref = db.collection('users').document(email)
+    user_doc = user_ref.get()
+
+    if not user_doc.exists:
+        raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+
+    data = user_doc.to_dict()
+    is_premium = data.get("isPremium", False)
+
+    if is_premium:
+        return data
+
+    if service_type == "social_hook":
+        used_count = data.get("socialHookUsed", 0)
+        if used_count >= 5:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_SOCIAL")
+        user_ref.update({"socialHookUsed": used_count + 1})
+
+    elif service_type == "pdf_summarizer":
+        used_count = data.get("pdfUsed", 0)
+        if used_count >= 2:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_PDF_TRIAL")
+        user_ref.update({"pdfUsed": used_count + 1})
+
+    elif service_type == "kurdish_grammar":
+        used_count = data.get("grammarUsed", 0)
+        if used_count >= 3:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_GRAMMAR")
+        user_ref.update({"grammarUsed": used_count + 1})
+
+    elif service_type == "web_summarizer":
+        used_count = data.get("webUsed", 0)
+        if used_count >= 3:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_WEB_TRIAL")
+        user_ref.update({"webUsed": used_count + 1})
+
+    return data
+
+
+# ⏳ لۆجیکی پشکنینی لێمیتە ڕۆژانەکان (کە کاتژمێر ١٢ی شەو reset دەبن)
+def check_user_limit(email: str, limit_type: str):
+    if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
+        return {"isPremium": True, "activePlan": "yearly", "flashcardCount": 0}
+
     if email == "voice_ordering_service":
         raise HTTPException(
             status_code=503,
@@ -101,8 +144,8 @@ def check_user_limit(email: str, limit_type: str):
         )
 
     if not email or email == "guest_user" or email == "translator_service":
-        if limit_type == "image":
-            raise HTTPException(status_code=403, detail="داهێنانی وێنە پێویستی بە ئەکاونتی پریمیم هەیە!")
+        if limit_type == "image" or limit_type == "flashcard":
+            raise HTTPException(status_code=403, detail="ئەم خزمەتگوزارییە پێویستی بە ئەکاونتی فەرمی هەیە!")
         return
 
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
@@ -117,7 +160,16 @@ def check_user_limit(email: str, limit_type: str):
             "activePlan": "",
             "chatCount": 0,
             "imageCount": 0,
-            "lastResetDate": today_str
+            "flashcardCount": 0, # 👈 ڕێکخستنی ڕۆژانەی فلاشکارت
+            "lastResetDate": today_str,
+            "socialHookUsed": 0,
+            "flashcardUsed": 0,
+            "pdfUsed": 0,
+            "grammarUsed": 0,
+            "webUsed": 0,
+            "pdfCountThisMonth": 0,
+            "webCountThisMonth": 0,
+            "socialCountThisMonth": 0
         }
         user_ref.set(user_data)
         raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
@@ -127,22 +179,20 @@ def check_user_limit(email: str, limit_type: str):
     if not data.get("isEmailVerified", False):
         raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
     
-    # پشکنینی بەسەرچوونی ماوەی پریمیم
     is_premium = data.get("isPremium", False)
     if is_premium:
         premium_until_str = data.get("premiumUntil", "")
         if premium_until_str and today_str > premium_until_str:
             user_ref.update({"isPremium": False, "premiumUntil": "", "activePlan": ""})
             is_premium = False
+            data["isPremium"] = False
+            data["activePlan"] = ""
 
-    # 🛑 ئەگەر داواکارییەکە بۆ وێنە (image) بوو و بەکارهێنەر پریمیم نەبوو، ڕاستەوخۆ بلۆک دەبێت
-    if limit_type == "image" and not is_premium:
-        raise HTTPException(status_code=403, detail="داهێنانی وێنە تایبەتە بە ئەندامانی پریمیم! تکایە سەرەتا بەشداری بکە.")
-
-    # ڕێستکردنەوەی لێمیتی ڕۆژانە
+    # 🔄 لۆجیکی پاککردنەوەی ژمارەکان لە چرکەی یەکەمی ڕۆژی نوێدا
     if data.get("lastResetDate") != today_str:
         data["chatCount"] = 0
         data["imageCount"] = 0
+        data["flashcardCount"] = 0 # 👈 سفرکردنەوەی فلاشکارت لە ڕۆژی نوێدا
         data["lastResetDate"] = today_str
         user_ref.update(data)
 
@@ -152,8 +202,9 @@ def check_user_limit(email: str, limit_type: str):
         user_ref.update({"chatCount": data.get("chatCount", 0) + 1})
         
     elif limit_type == "image":
-        # دیاریکردنی لێمیتی وێنە بەپێی جۆری پلانەکەی
-        user_plan = data.get("activePlan", "1_month") # ئەگەر نەبوو بە دیفۆڵت دەیخاتە سەر یەک مانگ
+        if not is_premium:
+            raise HTTPException(status_code=403, detail="داهێنانی وێنە تایبەتە بە ئەندامانی پریمیم!")
+        user_plan = data.get("activePlan", "1_month")
         plan_config = SUBSCRIPTION_PLANS.get(user_plan, {"image_limit": 3})
         max_images_allowed = plan_config["image_limit"]
 
@@ -163,6 +214,8 @@ def check_user_limit(email: str, limit_type: str):
                 detail=f"⚠️ لێمیتی وێنەی ئەمڕۆت تەواو بوو! پلانی تۆ ڕێگەت پێدەدات ڕۆژانە {max_images_allowed} وێنە دروست بکەیت."
             )
         user_ref.update({"imageCount": data.get("imageCount", 0) + 1})
+
+    return data
 
 class ChatRequest(BaseModel):
     message: str
@@ -202,6 +255,28 @@ class SendCodeRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     email: str
     code: str
+
+class GrammarRequest(BaseModel):
+    text: str
+    email: str
+
+class FeedbackRequest(BaseModel):
+    email: str
+    feedbackType: str  
+    message: str
+
+class SocialHookRequest(BaseModel):
+    idea: str
+    email: str
+
+class FlashcardRequest(BaseModel):
+    email: str
+
+class DocumentSummarizerRequest(BaseModel):
+    content: Optional[str] = None
+    pdfBase64: Optional[str] = None
+    email: str
+
 
 def send_otp_email(target_email: str, code: str):
     if not SMTP_EMAIL or not SMTP_PASSWORD:
@@ -259,14 +334,23 @@ async def send_verification_code(request: SendCodeRequest):
             "activePlan": "",
             "chatCount": 0,
             "imageCount": 0,
+            "flashcardCount": 0,
             "lastResetDate": datetime.utcnow().strftime('%Y-%m-%d'),
             "verificationCode": otp_code,
-            "codeSentAt": datetime.utcnow().isoformat()
+            "codeSentAt": datetime.utcnow().isoformat(),
+            "socialHookUsed": 0,
+            "flashcardUsed": 0,
+            "pdfUsed": 0,
+            "grammarUsed": 0,
+            "webUsed": 0,
+            "pdfCountThisMonth": 0,
+            "webCountThisMonth": 0,
+            "socialCountThisMonth": 0
         })
 
     email_success = send_otp_email(email_clean, otp_code)
     if not email_success:
-        return {"status": "success", "message": "داواکاری ناردنی کۆد وەرگیرا. ئەگەر ئیمەیڵەکەت پێ نەگەیشت، کۆدی تاقیکردنی ستۆر بەکاربهێنە."}
+        return {"status": "success", "message": "داواکاری ناردنی کۆد وەرگیرا. ئەگەر ئیمەیڵەکەت پێ نەگەیشت, کۆدی تاقیکردنی ستۆر بەکاربهێنە."}
 
     return {"status": "success", "message": "کۆدی سەلماندن بە سەرکەوتوویی بۆ ئیمەیڵەکەت ناردرا!"}
 
@@ -285,7 +369,16 @@ async def verify_verification_code(request: VerifyCodeRequest):
                 "activePlan": "1_year",
                 "chatCount": 0,
                 "imageCount": 0,
-                "lastResetDate": datetime.utcnow().strftime('%Y-%m-%d')
+                "flashcardCount": 0,
+                "lastResetDate": datetime.utcnow().strftime('%Y-%m-%d'),
+                "socialHookUsed": 0,
+                "flashcardUsed": 0,
+                "pdfUsed": 0,
+                "grammarUsed": 0,
+                "webUsed": 0,
+                "pdfCountThisMonth": 0,
+                "webCountThisMonth": 0,
+                "socialCountThisMonth": 0
             })
         else:
             user_ref.update({
@@ -337,36 +430,269 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
     validate_content(request.message)
-    check_user_limit(request.email, "chat")
     
-    is_real_creator = (request.email.lower().strip() == ADMIN_EMAIL.lower().strip())
+    raw_message = request.message.strip()
+    email_clean = request.email.lower().strip()
+    
+    # ١. لۆجیکی کورتکەرەوەی وێب (ئەگەر لینک بوو)
+    if raw_message.startswith("http://") or raw_message.startswith("https://") or "بەستەر:" in raw_message:
+        user_data = check_one_time_and_premium_limits(request.email, "web_summarizer")
+        
+        if user_data.get("isPremium", False):
+            plan_id = user_data.get("activePlan", "")
+            if plan_id == "1_month" and email_clean != ADMIN_EMAIL:
+                web_monthly_count = user_data.get("webCountThisMonth", 0)
+                if web_monthly_count >= 15:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="⚠️ لێمیتی ١٥ وێب کورتکەرەوەی ئەم مانگەت تەواو بوو! بۆ بەکارهێنانی بێ سنوور، پلانەکەت بەرزبکەرەوە."
+                    )
+                db.collection('users').document(email_clean).update({"webCountThisMonth": web_monthly_count + 1})
+        
+        extracted_url = raw_message.split("\n")[-1] if "\n" in raw_message else raw_message
+        extracted_url = extracted_url.replace("بەستەر:", "").strip()
+        
+        enhanced_prompt = (
+            "تۆ مۆدێلی پسپۆڕی کورتکەرەوەی وێبی KurdAI Pro یت. "
+            f"تکایە بڕۆ ناو ئەم بەستەرەی خوارەوە، تەواوی ناوەڕۆکەکەی بە تەواوی بخوێنەوە و شیکاری بکە:\n👉 {extracted_url}\n\n"
+            "پاشان کورتەیەکی زۆر دەوڵەمەند، پڕۆفیشناڵ و پڕ لە زانیاری بە زمانی کوردیی سۆرانیی شارەزا بنووسە. "
+            "تکایە خاڵە سەرەکی و گرنگەکان بە شێوازی خاڵبەندی (Bullet Points - 🔹) ڕێکبخە. "
+            "ڕاستەوخۆ بەبێ پێشەکیی کڵێشەیی و بەبێ دووبارەکردنەوەی ناونیشان دەستپێبکە."
+        )
+        
+        response_text = generate_content_with_fallback(
+            model_name='gemini-2.5-flash', 
+            text_prompt=enhanced_prompt,
+            base64_image=request.image,
+            mime_type=request.mimeType
+        )
+        return {"response": response_text}
 
-    if is_real_creator:
-        enhanced_prompt = (
-            "تۆ مۆدێلی KurdAI Pro یت. بەکارهێنەری ئێستا (هێدی) خۆیەتی؛ ئەو ئەندازیارە بلیمەتەی کە تۆی دروستکردووە. "
-            "زۆر بە ڕێز و دڵسۆزییەوە وەڵامی بدەرەوە. گرنگە کورت و پوخت بیت، بە زمانی کوردیی سۆرانیی ستاندارد و پاراو قسە بکە. "
-            "دوور بکەوە لە دەستەواژەی وەرگێڕدراوی عاتیفی و نامۆ وەک 'بە دڵێکی زۆرەوە'، 'خۆشحاڵم بە یارمەتیدانت' یان 'بە دڵنیاییەوە برام'. "
-            "وەڵامەکانت با ڕاستەوخۆ، پڕۆفیشناڵ و پڕ لە زانیاری بن.\n\n"
-            f"{request.message}"
-        )
+    # ٢. لۆجیکی چاتی ئاسایی بە سیستەمی Semantic Caching (خەزنکردنی مێشک)
     else:
-        enhanced_prompt = (
-            "تۆ مۆدێلی KurdAI Pro یت، یاریدەدەرێکی زیرەک و پڕۆفیشناڵ بۆ بەکارهێنەرانی کوردستان. ساڵی ئێستا ٢٠٢٦ە. "
-            "یاساکانی زمانەوانیی تۆ بەم شێوەیەیە:\n"
-            "١. تەنها بە زمانی کوردیی سۆرانیی ڕەوان، ستاندارد و خاوێن وەڵام بدەرەوە.\n"
-            "٢. بە چڕی دوور بکەوە لە وەرگێڕانی دەقاودەقی ئینگلیزی (بۆ نموونە هەرگیز مەنووسە: 'بە دڵێکی زۆرەوە'، 'سوپاس بۆ پرسیارەکەت'، 'چۆن دەتوانم یارمەتیت بدەم ئەمڕۆ').\n"
-            "٣. وەڵامەکەت ڕاستەوخۆ لە دێڕی یەکەمەوە دەست پێبکە بەبێ پێشەکیی دووبارەبووەوە و بێزارکەر.\n"
-            "٤. شێوازی قسەکردنت با وەک مرۆڤێکی کوردی زمان بێت نەک ڕۆبۆتێکی وەرگێڕاو.\n\n"
-            f"{request.message}"
+        check_user_limit(request.email, "chat")
+        
+        # 🧠 پشکنینی کۆگای داتابەیس: ئەگەر پرسیارەکە پێشتر کرابێت وێنەی لەگەڵ نەبێت
+        if not request.image:
+            cache_ref = db.collection('chat_cache').document(raw_message)
+            cache_doc = cache_ref.get()
+            if cache_doc.exists:
+                # 🚀 وەڵامەکە ڕاستەوخۆ لە فایربەیسەوە دەخوێنێتەوە بەبێ بەکارهێنانی API
+                return {"response": cache_doc.to_dict().get("response")}
+
+        # ئەگەر پرسیارەکە نوێ بوو یان وێنەی لەگەڵ بوو، دەنێردرێت بۆ مۆدێلەکە
+        is_real_creator = (email_clean == ADMIN_EMAIL)
+        if is_real_creator:
+            enhanced_prompt = (
+                "تۆ مۆدێلی KurdAI Pro یت. بەکارهێنەری ئێستا (هێدی) خۆیەتی؛ ئەو ئەندازیارە بلیمەتەی کە تۆی دروستکردووە. "
+                "زۆر بە ڕێز و دڵسۆزییەوە وەڵامی بدەرەوە. گرنگە کورت و پوخت بیت، بە زمانی کوردیی سۆرانیی ستاندارد و پاراو قسە بکە. "
+                "دوور بکەوە لە دەستەواژەی وەرگێڕدراوی عاتیفی و نامۆ وەک 'بە دڵنیاییەوە برام'. "
+                "وەڵامەکانت با ڕاستەوخۆ، پڕۆفیشناڵ و پڕ لە زانیاری بن.\n\n"
+                f"{request.message}"
+            )
+        else:
+            enhanced_prompt = (
+                "تۆ مۆدێلی KurdAI Pro یت, یاریدەدەرێکی زیرەک و پڕۆفیشناڵ بۆ بەکارهێنەرانی کوردستان. ساڵی ئێستا ٢٠٢٦ە. "
+                "یاساکانی زمانەوانیی تۆ بەم شێوەیەیە:\n"
+                "١. تەنها بە زمانی کوردیی سۆرانیی ڕەوان، ستاندارد و خاوێن وەڵام بدەرەوە.\n"
+                "٢. بە چڕی دوور بکەوە لە وەرگێڕانی دەقاودەقی ئینگلیزی (بۆ نموونە هەرگیز مەنووسە: 'سوپاس بۆ پرسیارەکەت '، 'چۆن دەتوانم یارمەتیت بدەم ئەمڕۆ').\n"
+                "٣. وەڵامەکەت ڕاستەوخۆ لە دێڕی یەکەمەوە دەست پێبکە بەبێ پێشەکیی دووبارەبووەوە.\n"
+                "٤. شێوازی قسەکردنت با وەک مرۆڤێکی کوردی زمان بێت نەک ڕۆبۆتێکی وەرگێڕاو.\n\n"
+                f"{request.message}"
+            )
+        
+        response_text = generate_content_with_fallback(
+            model_name='gemini-2.5-flash', 
+            text_prompt=enhanced_prompt,
+            base64_image=request.image,
+            mime_type=request.mimeType
         )
+        
+        # 💾 پاشەکەوتکردنی پرسیار و وەڵامە نوێیەکە بۆ داهاتوو (تەنها ئەگەر وێنەی لەگەڵ نەبێت)
+        if not request.image and response_text:
+            try:
+                db.collection('chat_cache').document(raw_message).set({
+                    "response": response_text,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            except Exception as cache_err:
+                print(f"Cache save error: {str(cache_err)}")
+                
+        return {"response": response_text}
+
+@app.post("/api/kurdish-grammar")
+async def kurdish_grammar_endpoint(request: GrammarRequest):
+    validate_content(request.text)
+    check_one_time_and_premium_limits(request.email, "kurdish_grammar")
+    
+    grammar_prompt = (
+        "تۆ پسپۆڕی سەرەکی زمان و ڕێنووسی کوردی (سۆرانی) یت. تکایە ئەم دەقەی خوارەوە بە وردی بپشکنە و تەواوی خەتاکانی ڕێنووس, خاڵبەندی, جیاکردنەوەی پیتەکانی وەک (ڕ, ڵ), پاشگرەکان و خەتاکانی زمانەوانی ڕاست بکەرەوە. "
+        "وەڵامەکەت تەنها و تەنها بەم فۆرماتە جەیسۆنە (JSON) بگەڕێنەوە و هیچ تێکستێکی تری لەگەڵدا مەنووسە:\n"
+        "{\n"
+        '  "corrected": "لێرەدا تەنها دەقە ڕاستکراوەکە بنووسە",\n'
+        '  "explanation": "لێرەدا بە کورتی لە دوو خاڵدا ڕوون بکەرەوە چ خەتایەک هەبوو و بۆچی چاکت کردووە"\n'
+        "}\n\n"
+        f"دەقەکە:\n{request.text.strip()}"
+    )
     
     response_text = generate_content_with_fallback(
         model_name='gemini-2.5-flash', 
-        text_prompt=enhanced_prompt,
-        base64_image=request.image,
-        mime_type=request.mimeType
+        text_prompt=grammar_prompt
     )
     return {"response": response_text}
+
+@app.post("/api/submit-feedback")
+async def submit_feedback_endpoint(request: FeedbackRequest):
+    try:
+        validate_content(request.message)
+        feedback_data = {
+            "email": request.email.lower().strip(),
+            "feedbackType": request.feedbackType,
+            "message": request.message.strip(),
+            "status": "unread",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        db.collection('user_feedbacks').add(feedback_data)
+        return {"status": "success", "message": "📥 سوپاس، تێبینییەکەت بە سەرکەوتوویی گەیشتە دەست پەرەپێدەرانی KurdAI Pro!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خەتا لە تۆمارکردنی تێبینی: {str(e)}")
+
+@app.post("/api/social-hook")
+async def social_hook_endpoint(request: SocialHookRequest):
+    validate_content(request.idea)
+    user_data = check_one_time_and_premium_limits(request.email, "social_hook")
+    
+    if user_data.get("isPremium", False):
+        plan_id = user_data.get("activePlan", "")
+        email_clean = request.email.lower().strip()
+        if plan_id == "1_month" and email_clean != ADMIN_EMAIL:
+            social_monthly_count = user_data.get("socialCountThisMonth", 0)
+            if social_monthly_count >= 15:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="⚠️ لێمیتی ١٥ دەقی ڕیکلامی ئەم مانگەت تەواو بوو! بۆ بەکارهێنانی بێ سنوور، پلانەکەت بەرزبکەرەوە."
+                )
+            db.collection('users').document(email_clean).update({"socialCountThisMonth": social_monthly_count + 1})
+
+    hook_prompt = (
+        "تۆ پسپۆڕی سەرەکی مارکێتینگ و نووسینی دەقی ڕیکلامیت (Copywriter) بە زمانی کوردی. "
+        "تکایە ئەم بیرۆکەیەی خوارەوە وەربگرە و پۆستێکی زۆر سەرنجڕاکێش بۆ سۆشیاڵ میدیا (تیکتۆک/ئینستاگرام/فەیسبووک) دابڕێژە. "
+        "یاساکان:\n"
+        "١. بە دێڕێکی سەرنجڕاکێش و سەرنجڕاکێش (Hook) دەستپێبکە کە خوێنەر ناچار بکات بوەستێت.\n"
+        "٢. زانیارییەکان بە شێوازی خاڵبەندی جوان و بەکارهێنانی ئیمۆجی گونجاو ڕێکبخە.\n"
+        "٣. لە کۆتاییدا هاستاگی زۆر بەهێز و گونجاو بە زمانی کوردی و ئینگلیزی دروست بکە.\n\n"
+        f"بیرۆکەی پۆستەکە:\n{request.idea.strip()}"
+    )
+    
+    response_text = generate_content_with_fallback(
+        model_name='gemini-2.5-flash',
+        text_prompt=hook_prompt
+    )
+    return {"response": response_text}
+
+# 🧠 خزمەتگوزاری فلاشکارتی داینامیکی زمان (لێمیتی ڕۆژانەی پۆڵایین)
+@app.post("/api/kurdish-flashcard")
+async def kurdish_flashcard_endpoint(request: FlashcardRequest):
+    # پشکنینی داتای گشتی و ئەپدێتی کاتی ڕۆژەکە
+    user_data = check_user_limit(request.email, "chat")
+    email_clean = request.email.lower().strip()
+    
+    is_premium = user_data.get("isPremium", False)
+    plan_id = user_data.get("activePlan", "")
+    current_count = user_data.get("flashcardCount", 0)
+
+    # 🛡️ ١. مەرجی بەکارهێنەرانی خۆڕایی: تەنها ١ دانە لە ڕۆژێکدا
+    if not is_premium and email_clean != ADMIN_EMAIL:
+        if current_count >= 1:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_FLASHCARD_DAILY")
+        db.collection('users').document(email_clean).update({"flashcardCount": current_count + 1})
+
+    # 👑 ٢. مەرجی پلانی ١ مانگی: تەنها ٣ دانە لە ڕۆژێکدا
+    elif is_premium and plan_id == "1_month" and email_clean != ADMIN_EMAIL:
+        if current_count >= 3:
+            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")
+        db.collection('users').document(email_clean).update({"flashcardCount": current_count + 1})
+        
+    # 💎 پلانەکانی تر (٣ مانگ، ٦ مانگ، ساڵانە): بە تەواوی فڕی و بێ لێمیتە!
+
+    flashcard_prompt = (
+        "تۆ پسپۆڕی فەرهەنگ و زمانەوانی کوردیتی. وشەیەکی بەنرخ، دەگمەن یان زانستی بە زمانی کوردی (سۆرانی) هەڵبژێره. "
+        "تکایە وەڵامەکەت تەنها و تەنها بەم فۆرماتە جەیسۆنە (JSON) بنووسە تا ڕاستەوخۆ لە فرۆنتێند لۆدی بکەم:\n"
+        "{\n"
+        '  "word": "وشە کوردییەکە لێرە بنووسە",\n'
+        '  "english": "ماناکەی بە ئینگلیزی",\n'
+        '  "arabic": "ماناکەی بە عەرەبی",\n'
+        '  "dialects": "شێوازی گوتنی وشەکە بە کرمانجی یان هەورامی ئەگەر هەبێت",\n'
+        '  "example": "ڕستەیەکی نموونەیی سەرنجڕاکێش بە کوردی کە ئەم وشەیەی تێدا بەکارهاتبێت"\n'
+        "}\n"
+    )
+    
+    response_text = generate_content_with_fallback(
+        model_name='gemini-2.5-flash',
+        text_prompt=flashcard_prompt
+    )
+    return {"response": response_text}
+
+@app.post("/api/summarize-document")
+async def summarize_document_endpoint(request: DocumentSummarizerRequest):
+    user_data = check_one_time_and_premium_limits(request.email, "pdf_summarizer")
+    
+    if user_data.get("isPremium", False):
+        plan_id = user_data.get("activePlan", "")
+        email_clean = request.email.lower().strip()
+        
+        if plan_id == "1_month" and email_clean != ADMIN_EMAIL:
+            pdf_monthly_count = user_data.get("pdfCountThisMonth", 0)
+            if pdf_monthly_count >= 15:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="⚠️ لێمیتی ١٥ فایلی ئەم مانگەت تەواو بوو! بۆ بەکارهێنانی بێ سنوور، پلانەکەت بەرزبکەرەوە."
+                )
+            db.collection('users').document(email_clean).update({"pdfCountThisMonth": pdf_monthly_count + 1})
+
+    doc_prompt = (
+        "تۆ پسپۆڕی باڵای شیکاریی بەڵگەنامە و کتێبەکانیت لە KurdAI Pro. "
+        "ئەم فایل یان دەقەی هاوپێچکراوە (کە ڕەنگە زۆر درێژ بێت) بە قووڵی بخوێنەوە و شیکاری بکە. "
+        "تکایە کورتەکەی بە فۆرماتێکی دەوڵەمەند و ڕێکخراو بە زمانی کوردییسۆرانیی پاراو پێشکەش بکە بەپێی ئەم بەشانەی خوارەوە:\n\n"
+        "١. 📌 پوختەی گشتی بابەتەکە (کورتەیەکی چڕ لە ٣ بۆ ٤ دێڕدا دەربارەی کرۆکی فایلەکە).\n"
+        "٢. 🔑 تەوەرە و بەشە سەرەکییەکان (شیکردنەوەی بەش بە بەشی فایلەکە بەپێی گرنگی، زانیارییە کلیلەکان بە وردی بە شێوازی خاڵبەندی 🔹 بنووسە).\n"
+        "٣. 🎯 ئەنجام و خاڵە گرنگەکان (گرنگترین ئەو بڕیار، داتا، یان ڕاسپاردانەی کە لە کۆتایی فایلەکەدا هاتوون).\n\n"
+        "یاسا تەکنیکییەکان:\n"
+        "- بە هیچ شێوەیەک زانیارییە گرنگەکان پشتگوێ مەخە و تەنها کورتەی سەرپێیی مەنوسە.\n"
+        "- ئەگەر فایلەکە زۆر درێژ بوو، وەڵامەکەت با بەپێی پێویست درێژ و دەوڵەمەند بێت.\n"
+        "- ڕاستەوخۆ بەبێ پێشەکی کڵێشەیی دەست پێبکە."
+    )
+    
+    if request.pdfBase64:
+        try:
+            pdf_bytes = base64.b64decode(request.pdfBase64)
+            if not pdf_bytes or b"%PDF" not in pdf_bytes[:1024]:
+                return {"response": "❌ خەتا: ئەم فایلە تێکچووە یان فۆرماتەکەی فایلی ڕاستەقینەی PDF نییە. تکایە فایلەکە بپشکنە و دووبارە تاقیکەرەوە."}
+
+            pdf_part = types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf")
+            contents_payload = [doc_prompt, pdf_part]
+            
+            for key in API_KEYS:
+                try:
+                    temp_client = genai.Client(api_key=key)
+                    response = temp_client.models.generate_content(model='gemini-2.5-flash', contents=contents_payload)
+                    return {"response": response.text}
+                except Exception as api_ex:
+                    if "invalid" in str(api_ex).lower() or "password" in str(api_ex).lower():
+                        return {"response": "🔒 خەتا: ئەم فایلی PDFـە پارێزراوە (Password-protected) یان کۆدەکانی ناوەوەی تێکچوون، KurdAI ناتوانێت بیخوێنێتەوە."}
+                    continue
+            raise HTTPException(status_code=429, detail="تەواوی کلیلەکان لێمیتیان تەواو بووە.")
+        except Exception:
+            return {"response": "❌ خەتا لە خوێندنەوەی بەڵگەنامەکە! فایلەکە لەوانەیە زیانی پێگەیشتبێت."}
+            
+    elif request.content:
+        validate_content(request.content)
+        full_prompt = f"{doc_prompt}\n\nدەقی فایلەکە:\n{request.content.strip()}"
+        response_text = generate_content_with_fallback(model_name='gemini-2.5-flash', text_prompt=full_prompt)
+        return {"response": response_text}
+        
+    else:
+        raise HTTPException(status_code=400, detail="تکایە دەقێک داخڵ بکە یان فایلێکی PDF لۆد بکە.")
 
 @app.post("/api/art-studio")
 async def art_studio_endpoint(request: ArtRequest):
@@ -383,10 +709,8 @@ async def art_studio_endpoint(request: ArtRequest):
     response_text = generate_content_with_fallback('gemini-2.5-pro', full_prompt)
     return {"art_response": response_text}
 
-# 👑 ئاسایش و بەستنەوەی فەرمی بە کلیلەکانی ناو .env
 @app.post("/api/payment-success")
 async def payment_success_endpoint(request: PaymentSuccessRequest):
-    # 🔐 خوێندنەوەی گۆڕاوی نهێنی لە .env بۆ ئەوەی کۆدەکە بە تەواوی پارێزراو بێت
     MY_PAYMENT_SECRET = os.getenv("MY_PAYMENT_SECRET", "KurdAI_Pro_Secret_2026_Auth")
     
     if request.secretToken != MY_PAYMENT_SECRET:
@@ -401,15 +725,19 @@ async def payment_success_endpoint(request: PaymentSuccessRequest):
     try:
         today = datetime.utcnow()
         expire_date = (today + timedelta(days=days_to_add)).strftime('%Y-%m-%d')
+        email_clean = request.email.lower().strip()
 
-        user_ref = db.collection('users').document(request.email.lower().strip())
+        user_ref = db.collection('users').document(email_clean)
         user_doc = user_ref.get()
 
         if user_doc.exists:
             user_ref.update({
                 "isPremium": True,
                 "premiumUntil": expire_date,
-                "activePlan": request.planId  
+                "activePlan": request.planId,
+                "pdfCountThisMonth": 0,
+                "webCountThisMonth": 0,
+                "socialCountThisMonth": 0
             })
         else:
             user_data = {
@@ -419,12 +747,21 @@ async def payment_success_endpoint(request: PaymentSuccessRequest):
                 "activePlan": request.planId,
                 "chatCount": 0,
                 "imageCount": 0,
-                "lastResetDate": today.strftime('%Y-%m-%d')
+                "flashcardCount": 0,
+                "lastResetDate": today.strftime('%Y-%m-%d'),
+                "socialHookUsed": 0,
+                "flashcardUsed": 0,
+                "pdfUsed": 0,
+                "grammarUsed": 0,
+                "webUsed": 0,
+                "pdfCountThisMonth": 0,
+                "webCountThisMonth": 0,
+                "socialCountThisMonth": 0
             }
             user_ref.set(user_data)
 
         db.collection('premium_sales').add({
-            "email": request.email.lower().strip(),
+            "email": email_clean,
             "planId": request.planId,
             "amount": request.amount,
             "transactionId": request.transactionId,

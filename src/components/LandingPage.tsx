@@ -1,148 +1,182 @@
 /* eslint-disable */
 // @ts-nocheck
-import React from 'react';
+import React, { useState } from 'react';
 
 interface LandingPageProps {
   onStartChat: () => void;
 }
 
+interface ServiceCard {
+  title: string;
+  icon: string;
+  normal: string;
+  premium: string;
+  color: string;
+}
+
 const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
+  const [currentSlide, setCurrentStep] = useState(0);
+
+  // 👑 لیستی تەواوی ١٤ خزمەتگوزارییەکە بە جیاکاری وردی ئاسایی و پریمیم
+  const allServices: ServiceCard[] = [
+    // سڵایدی ١: چات، زمان و ڕێنووس
+    { title: "خزمەتگوزاری گفتوگۆ (Chat AI)", icon: "🏛️", normal: "١٠ نامە لە ڕۆژێکدا ⏳", premium: "بێ سنوور + خێراتر 👑", color: "from-amber-400 to-yellow-500" },
+    { title: "خزمەتگوزاری زمان", icon: "🗣️", normal: "ئاسایی و ستاندارد 🌟", premium: "پێشکەوتوو و بێ لێمیت 🔥", color: "from-blue-400 to-indigo-500" },
+    { title: "ڕێنووسی کوردی (Grammar)", icon: "✨", normal: "تەنها ٣ پشکنین (بۆ هەمیشە) 🔒", premium: "بە تەواوی فڕی و بێ سنوور 🚀", color: "from-rose-400 to-red-500" },
+    
+    // سڵایدی ٢: کورتکردنەوە و شیکاری
+    { title: "کورتکەرەوەی فایل (PDF)", icon: "📘", normal: "تەنها ٢ فایل (بۆ هەمیشە) 🔒", premium: "پلانی مانگانە: ١٥ فایل 🗓️ | پلانەکانی تر: بێسنوور 👑", color: "from-emerald-400 to-teal-500" },
+    { title: "کورتکەرەوەی وێب (لینک)", icon: "🔗", normal: "تەنها ٣ لینک (بۆ هەمیشە) ⏳", premium: "پلانی مانگانە: ١٥ لینک 🗓️ | پلانەکانی تر: بێسنوور 🚀", color: "from-yellow-400 to-amber-500" },
+    { title: "خزمەتگوزاری زانستی", icon: "🎯", normal: "کۆنتڕۆڵکراو بە لێمیتی چات 🧬", premium: "بەرزترین کوالێتی و بێ سنوور 👑", color: "from-cyan-400 to-blue-500" },
+    
+    // سڵایدی ٣: بازرگانی، داهێنان و فلاشکارت
+    { title: "داڕشتنی پۆست (Social)", icon: "✍️", normal: "تەنها ٥ پۆست (بۆ هەمیشە) 📱", premium: "پلانی مانگانە: ١٥ پۆست 🗓️ | پلانەکانی تر: بێسنوور 🔥", color: "from-indigo-400 to-purple-500" },
+    { title: "خزمەتگوزاری داهێنان (Art)", icon: "🎨", normal: "داخراوە بۆ یوزەری ئاسایی 🔒", premium: "دروستکردنی وێنەی ڕۆژانە بەپێی جۆری پلانەکە 🎨", color: "from-orange-400 to-amber-500" },
+    { title: "فلاشکارتی زمان", icon: "🧠", normal: "١ فلاشکارت لە ڕۆژێکدا ⏳", premium: "پلانی مانگانە: ٣ دانە لە ڕۆژێکدا 📆 | پلانەکانی تر: بێسنوور 👑", color: "from-purple-400 to-pink-500" },
+
+    // سڵایدی ٤: کلتور، منداڵان و نیشتەجێبوون
+    { title: "خزمەتگوزاری کەسایەتییەکان", icon: "👥", normal: "بە تەواوی فڕی و کراوەیە ✨", premium: "بە تەواوی فڕی و کراوەیە ✨", color: "from-amber-400 to-yellow-600" },
+    { title: "ژیریی منداڵان 🧸", icon: "🧸", normal: "کۆنتڕۆڵکراو بە لێمیتی چات 🎈", premium: "١ مانگ: لێمیتی ڕۆژانە ⏳ | پلانەکانی تر: بێسنوور 👑", color: "from-pink-400 to-rose-500" },
+    { title: "پڕۆژەکانی نیشتەجێبوون", icon: "🏢", normal: "فڕییە (ڕێبەری کڕینی خانوو و شوقە) 🏢", premium: "فڕییە (ڕێبەری کڕینی خانوو و شوقە) 🏢", color: "from-slate-400 to-zinc-500" },
+
+    // سڵایدی ٥: داهاتوو، نەخشە و پشتیوانی
+    { title: "نەخشەی کوردستان", icon: "🗺️", normal: "کراوەیە بۆ گەڕان لە شوێنەوارەکان 🗺️", premium: "کراوەیە بۆ گەڕان لە شوێنەوارەکان 🗺️", color: "from-teal-400 to-emerald-600" },
+    { title: "تێبینی و ڕاپۆرت", icon: "📥", normal: "بێ لێمیتە (ناردنی پێشنیارەکان) 📥", premium: "بێ لێمیتە (ناردنی پێشنیارەکان) 📥", color: "from-red-400 to-rose-500" },
+    { title: "خزمەتگوزاری دەنگی (بەم زوانە)", icon: "🎙️", normal: "ناچالاکە 🔒", premium: "بەم زوانە بۆ پریمیم چالاک دەکرێت! 🎙️", color: "from-indigo-400 to-cyan-500" }
+  ];
+
+  const slidesData = [
+    { title: "بەخێربێیت بۆ KurdAI Pro 👑", desc: "پێشکەوتووترین کاربەرنامەی نیشتمانیی ژیریی دەستکرد لە کوردستان.", services: [] },
+    { title: "چات، زمان و ڕێنووس 🗣️", desc: "سەرەتای گەشتەکە لەگەڵ مێشکی کوردیی KurdAI Pro.", services: allServices.slice(0, 3) },
+    { title: "شیکاری، کورتکردنەوە و زانست 📘", desc: "ئامرازە زیرەکەکان بۆ خێراکردنی خوێندنەوە و توێژینەوە.", services: allServices.slice(3, 6) },
+    { title: "مارکێتینگ، داهێنان و فلاشکارت 🎨", desc: "پەرەپێدانی بزنس و فێربوونی زمان بە شێوازی مۆدێرن.", services: allServices.slice(6, 9) },
+    { title: "کلتور، ژیریی منداڵان و لۆکاڵ 🧸", desc: "جیهانی تایبەتی پەروەردەی منداڵان و ناسنامەی نیشتمانی.", services: allServices.slice(9, 12) },
+    { title: "پشتیوانی، نەخشە و داهاتووی دەنگی 🎙️", desc: "نوێکارییە بەردەوامەکان و گەڕان بەناو شوێنەوارەکان.", services: allServices.slice(12, 15) }
+  ];
+
+  const activeSlide = slidesData[currentSlide];
+  const isLastStep = currentSlide === slidesData.length - 1;
+
+  const handleNext = () => {
+    if (isLastStep) {
+      onStartChat();
+    } else {
+      setCurrentStep((prev) => prev + 1);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#030303] text-white flex flex-col justify-between relative overflow-hidden select-none" dir="rtl">
-      {/* ڕووناکی و تەمومژی زێڕینی شاهانە لە باکگراوند */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(212,175,55,0.08)_0,transparent_50%)] z-0" />
-      <div className="absolute top-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-amber-500/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-yellow-600/5 rounded-full blur-[140px] pointer-events-none" />
+    <div className="min-h-screen bg-[#030303] text-white flex flex-col justify-center items-center relative overflow-hidden select-none p-4" dir="rtl">
+      {/* 🌌 تەمومژی شاهانە لە باکگراونددا */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.04)_0,transparent_60%)] z-0" />
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-amber-500/5 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-yellow-600/5 rounded-full blur-[130px] pointer-events-none" />
 
-      {/* هێدەر / لۆگۆ بە ستایلی گۆڵد */}
-      <header className="container mx-auto px-4 md:px-6 py-5 md:py-6 flex justify-between items-center relative z-10">
-        <div className="flex items-center gap-2 md:gap-3">
-          <img 
-            src="/logo.png.jpg" 
-            alt="Rwanin Logo" 
-            className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover ml-2 md:ml-3 shadow-lg shadow-amber-500/20 border border-amber-300/30 transition-transform duration-300 hover:scale-105" 
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-          
-          <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-sm shadow-inner">
-            <span className="font-black text-sm md:text-lg tracking-wide bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text]">
-              KurdAI Pro
-            </span>
-          </div>
-        </div>
+      {/* 💎 کارتی سەرەکی پێشوازی */}
+      <div className="w-full max-w-md bg-[#0d0d11] border border-zinc-800/80 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden relative z-10 flex flex-col justify-between min-h-[640px] transition-all duration-300">
         
-        <div className="text-[10px] md:text-sm font-bold text-amber-400 border border-amber-500/30 px-3 py-1.5 md:px-4 md:py-1.5 rounded-full bg-amber-950/40 backdrop-blur-md tracking-widest uppercase">
-          کورد زیندووە
+        {/* 🟥 هێدەری کارتەکە */}
+        <div className="p-6 bg-gradient-to-b from-amber-600/15 to-amber-950/5 border-b border-zinc-900/60 relative overflow-hidden flex justify-between items-center min-h-[120px]">
+          <div className="space-y-1 max-w-[75%] text-right">
+            <h2 className="text-base font-black text-white font-['Noto_Sans_Arabic'] tracking-tight">
+              {activeSlide.title}
+            </h2>
+            <p className="text-zinc-500 text-[11px] font-medium leading-relaxed">
+              {activeSlide.desc}
+            </p>
+          </div>
+
+          {/* 🔘 لۆگۆی فەرمی بەرنامەکەت بە شێوازی بازنەیی (خڕ) */}
+          <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800 shrink-0 overflow-hidden shadow-xl">
+            <img 
+              src="/logo.png.jpg" 
+              alt="Logo" 
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentNode.innerHTML = "<div className='text-amber-400 font-black text-xs'>AI</div>";
+              }}
+            />
+          </div>
         </div>
-      </header>
 
-      {/* بەشی سەرەکی - Hero Section */}
-      <main className="container mx-auto px-4 md:px-6 py-8 md:py-12 flex flex-col items-center text-center my-auto relative z-10 max-w-6xl">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] md:text-sm font-extrabold mb-6 shadow-sm">
-          <span>بەخێربێیت بۆ یەکەمین ژیریی دەستکردی نیشتمانیی کوردی</span>
-        </div>
-
-        <h1 className="text-2xl md:text-6xl font-black leading-snug md:leading-snug mb-6 md:mb-8 tracking-tight text-white px-2">
-          هێزی ژیریی دەستکرد لەژێر کۆنتڕۆڵی <br className="hidden md:block" />
-          <span className="bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text] drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] block mt-2 md:inline">
-            زمانی شیرینی وێژەی کوردیدا 
-          </span>
-        </h1>
-
-        <p className="text-slate-300 text-xs md:text-lg max-w-3xl leading-relaxed mb-8 md:mb-10 font-medium px-2 md:px-4 opacity-90">
-          سەکۆی <span className="text-amber-400 font-bold">KurdAI Pro</span> نەوەیەکی نوێی ژیریی دەستکردی نیشتمانییە کە بۆ یەکەمین جار لەسەر ئاستی پیشەیی و ئەکادیمی دیزاین کراوە بۆ ڕاوێژکاری، پەرەپێدان و داهێنان.
-        </p>
-
-        {/* دوگمەی دەستپێکردنی گفتوگۆ */}
-        <button
-          type="button"
-          onClick={onStartChat}
-          className="group relative px-8 py-3.5 md:px-10 md:py-4 rounded-xl md:rounded-2xl bg-[#09090b] font-black text-sm md:text-base tracking-wider overflow-hidden transition-all duration-300 border border-amber-500/40 hover:border-amber-400 shadow-xl shadow-amber-500/5 active:scale-95 mb-12"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <span className="relative z-10 flex items-center gap-2 justify-center bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-amber-300 [webkit-background-clip:text] group-hover:text-amber-200 transition-colors">
-            دەستپێکردنی گفتوگۆی شاهانە
-          </span>
-        </button>
-
-        {/* 🛠️ گریدێکی ڕێکخراو بە فۆرماتی هاوسەنگی 6 کارتی تەواو */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full mt-4 px-2 md:px-0">
+        {/* 📜 ناوەڕۆک */}
+        <div className="p-5 flex-1 flex flex-col justify-center space-y-3.5">
           
-          {/* ١. خزمەتگوزاری گفتوگۆ (Chat AI) - خرایە یەکەم کارت */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-amber-500/10 text-right backdrop-blur-md hover:border-amber-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-              🏛️
+          {/* ئەگەر لاپەڕەی یەکەم بوو (پێشوازی و بەخێرهاتن) */}
+          {currentSlide === 0 && (
+            <div className="text-center py-6 space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="w-24 h-24 mx-auto rounded-full bg-zinc-950 border border-zinc-900 flex items-center justify-center p-1 shadow-2xl relative group overflow-hidden">
+                <div className="absolute inset-0 bg-amber-500/10 rounded-full blur-xl opacity-70" />
+                <img 
+                  src="/logo.png.jpg" 
+                  alt="KurdAI Pro Welcome" 
+                  className="w-full h-full object-cover rounded-full relative z-10 border border-zinc-800/80 shadow-inner"
+                />
+              </div>
+              <div className="space-y-2.5">
+                <h1 className="text-2xl font-black bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 text-transparent">بەخێربێیت بۆ لوتکەی ژیری 👑</h1>
+                <p className="text-zinc-400 text-xs leading-[1.8] font-medium max-w-sm mx-auto">
+                  سوپاس بۆ چالاککردنی ئەکاونتەکەت لە سیستەمی نیشتمانیی <span className="text-amber-400 font-bold">KurdAI Pro</span>. تکایە سڵایدەکانی دواتر تەماشا بکە تا بە تەواوی ئاشنای لێمیت و خزمەتگوزارییەکان بیت پێش چوونە ژوورەوە.
+                </p>
+              </div>
             </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-amber-300">خزمەتگوزاری گفتوگۆ</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-                  ڕاوێژکاری ئەکادیمی، تاقیکردنەوەی لۆجیک، و وەڵامدانەوەی خێرا بە زمانی کوردی.
-            </p>
-          </div>
+          )}
 
-          {/* ٢. کورتکەرەوەی هۆشمەندی PDF */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-emerald-500/10 text-right backdrop-blur-md hover:border-emerald-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
-              📄
+          {/* ئەگەر لاپەڕەکانی تری خزمەتگوزاری بوو */}
+          {currentSlide > 0 && activeSlide.services.map((service, idx) => (
+            <div 
+              key={idx} 
+              className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/70 hover:border-zinc-700/80 transition-all duration-150 flex flex-col space-y-2.5 text-right animate-in slide-in-from-right-4 duration-300"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${service.color} bg-opacity-10 flex items-center justify-center text-xs shadow-inner shrink-0`}>
+                  {service.icon}
+                </div>
+                <span className="text-xs font-black text-zinc-100">{service.title}</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-1.5 border-t border-zinc-900/80 pt-2 text-[11px] font-medium">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <span className="text-zinc-600 text-[9px]">⚪</span>
+                  <span><strong>ئاسایی:</strong> {service.normal}</span>
+                </div>
+                <div className="flex items-center gap-1 text-amber-400">
+                  <span className="text-amber-600 text-[9px]">👑</span>
+                  <span><strong>پریمیم:</strong> {service.premium}</span>
+                </div>
+              </div>
             </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-emerald-300">کورتکەرەوەی فایلی PDF</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-              کتێب و بەڵگەنامە درێژەکان لۆد بکە و پوختەی تەواوی بابەتەکە بەش بە بەش بە کوردییەکی پاراو وەرگرە.
-            </p>
-          </div>
-
-          {/* ٣. داڕشتنی پۆستی سۆشیاڵ میدیا */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-indigo-500/10 text-right backdrop-blur-md hover:border-indigo-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-indigo-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-black transition-all">
-              📱
-            </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-indigo-300">نووسینی دەقی ڕیکلامی</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-              تەنها بیرۆکەکەت بنووسە، KurdAI Pro پۆستێکی سەرنجڕاکێش لەگەڵ هۆک، ئیمۆجی و هاشتاگی بەهێزت بۆ دادەنێت.
-            </p>
-          </div>
-
-          {/* ٤. فلاشکارتی وشە و زاراوەکان */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-yellow-500/10 text-right backdrop-blur-md hover:border-yellow-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-yellow-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-yellow-400 border border-yellow-500/20 group-hover:bg-yellow-500 group-hover:text-black transition-all">
-              🧠
-            </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-yellow-300">فلاشکارتی زمان</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-              ئاشنابوون بە وشە دەگمەنە کوردییەکان بە دیالێکتە جیاوازەکان و هاوتاکانیان بە ئینگلیزی و عەرەبی.
-            </p>
-          </div>
-
-          {/* ٥. بەشی پڕۆژەکانی نیشتەجێبوون */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-amber-500/10 text-right backdrop-blur-md hover:border-amber-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-              🏢
-            </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-amber-300">پڕۆژەکانی نیشتەجێبوون</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-              ڕێبەر و ڕاوێژکاری متمانەپێکراوی کڕینی خانوو، ڤێلا، و شوقەکان لە تەواوی شارەکانی کوردستان بە نرخ و قیست.
-            </p>
-          </div>
-
-          {/* ٦. بەشی کەسایەتییەکانی کورد */}
-          <div className="p-5 md:p-6 rounded-2xl bg-[#09090b] border border-amber-500/10 text-right backdrop-blur-md hover:border-amber-500/40 transition-all duration-300 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/5 flex items-center justify-center text-base md:text-xl mb-3 md:mb-4 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-              👥
-            </div>
-            <h4 className="font-bold text-sm md:text-lg mb-1 md:mb-2 text-amber-300">کەسایەتییەکانی کورد</h4>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
-              ئاشنابوون بە ژیاننامەی نووسەران، ئەدیبان، شاعیران و سەرکردە کاریگەر و مێژووییەکانی گەلی کورد.
-            </p>
-          </div>
-
+          ))}
         </div>
-      </main>
 
-      {/* فووتەر */}
-      <footer className="container mx-auto px-6 py-4 text-center text-amber-500/40 text-[10px] md:text-xs relative z-10 border-t border-amber-500/5 font-medium tracking-wide">
-        پەرەپێدراوە لەلایەن هێدی بۆ کوردستان • مافی کۆپیکردن پارێزراوە بۆ ڕوانین © {new Date().getFullYear()}
-      </footer>
+        {/* 📊 فووتەری کارتەکە - خاڵەکانی Pagination و دوگمەی ڕێڕەو (RTL) */}
+        <div className="p-6 border-t border-zinc-900/80 flex flex-col items-center gap-4 bg-zinc-950/20">
+          
+          <div className="flex flex-row-reverse items-center gap-1.5">
+            {slidesData.map((_, index) => (
+              <div
+                key={index}
+                onClick={() => setCurrentStep(index)}
+                className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${currentSlide === index ? 'w-5 bg-amber-500' : 'w-1.5 bg-zinc-700 hover:bg-zinc-600'}`}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            className={`w-full py-3.5 rounded-xl font-black text-xs tracking-wider transition-all duration-200 border transform active:scale-[0.98] ${isLastStep ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-zinc-950 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-zinc-900 hover:bg-zinc-800 text-amber-400 border-zinc-800 hover:border-zinc-700'}`}
+          >
+            {isLastStep ? "تەواو و دەستپێکردنی کاربەرنامە 🚀" : "دواتر ←"}
+          </button>
+        </div>
+
+      </div>
+
+      <div className="mt-4 text-[10px] text-zinc-600 font-medium tracking-wide relative z-10">
+        پەرەپێدراوە بۆ کوردستان • مافی پارێزراوە © {new Date().getFullYear()}
+      </div>
     </div>
   );
 };

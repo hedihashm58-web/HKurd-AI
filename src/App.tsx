@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { getMessaging, getToken } from "firebase/messaging"; // 👈 هاوردەکردنی مێتۆدەکانی نۆتیفیکەیشن
 
 import Layout from './components/Layout';
+import HomeDashboard from './components/HomeDashboard'; 
 import ChatInterface from './components/ChatInterface';
 import LandmarkExplorer from './components/LandmarkExplorer';
 import Login from './components/Login';
@@ -26,20 +28,43 @@ import UserFeedback from './components/UserFeedback';
 import SocialHook from './components/SocialHook';
 import KurdishFlashcard from './components/KurdishFlashcard';
 import DocumentSummarizer from './components/DocumentSummarizer';
+import KurdishKidsAI from './components/KurdishKidsAI';
 
 import { View } from './types';
 
 const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<View>(View.CHAT);
+  const [activeView, setActiveView] = useState<View>(View.HOME);
   const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop');
   
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [language, setLanguage] = useState<'ku' | 'ar'>('ku');
   
-  // 🧭 ئەم دوو ستەیتە بۆ پشکنینی دۆخی بەکارهێنەرن لە ڕێگەی فایربەیسەوە
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
-  const [showLanding, setShowLanding] = useState<boolean>(false);
+  const [hasSeenLanding, setHasSeenLanding] = useState<boolean>(false);
+
+  // 🔔 فەنکشنی تایبەت بە داواکردنی مۆڵەت و خەزنکردنی تۆکنی فایربەیس
+  const requestNotificationPermission = async (email: string) => {
+    try {
+      if (!('Notification' in window)) return;
+      
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        const messaging = getMessaging();
+        // ⚠️ کلیلە گشتییەکەی کۆنسۆڵی فایربەیسەکەت لێرە دابنێ (VAPID Key)
+        const currentToken = await getToken(messaging, { vapidKey: 'D6OgH5ATuXByEmEseL3udyEE4yudcey3CpAVEU_06aE' });
+        
+        if (currentToken) {
+          // تۆکنەکە لە داتابەیس دەبەستینەوە بە ئیمەیڵی یوزەرەکەوە
+          await updateDoc(doc(db, "users", email), {
+            fcmToken: currentToken
+          });
+        }
+      }
+    } catch (error) {
+      console.error("خەتایەک لە نۆتیفیکەیشندا هەیە:", error);
+    }
+  };
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -47,36 +72,31 @@ const App: React.FC = () => {
         const emailClean = user.email.toLowerCase().trim();
         setUserEmail(emailClean);
 
+        // 🔔 هەر کاتێک بەکارهێنەر بە سەرکەوتوویی لە ئەپەکە بوو، مۆڵەتی لێ وەردەگرین
+        requestNotificationPermission(emailClean);
+
         if (emailClean.endsWith('@restaurant.com')) {
           setActiveView(View.RESTAURANT_DASHBOARD);
         }
 
-        // 🔍 بەستنەوەی لایڤ بە داتابەیستی فایربەیس بۆ پشکنینی کاتی OTP و دۆخی یوزەر
         const userDocRef = doc(db, 'users', emailClean);
         const unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
           const isAdmin = emailClean === "hedihashm58@gmail.com";
           
           if (isAdmin) {
             setIsEmailVerified(true);
-            setShowLanding(false);
+            setHasSeenLanding(true); 
+            setIsCheckingAuth(false);
             return;
           }
 
           if (docSnap.exists()) {
             const data = docSnap.data();
-            const verified = data.isEmailVerified === true;
-            setIsEmailVerified(verified);
-
-            // 👑 لۆجیکی سەرەکی: ئەگەر یوزەرەکە تازە سەلماندنی کۆدی تەواو کردبێت و لاندینگی نەبینیبێت
-            if (verified && data.landingSeen !== true) {
-              setShowLanding(true);
-            } else {
-              setShowLanding(false);
-            }
+            setIsEmailVerified(data.isEmailVerified === true);
+            setHasSeenLanding(data.landingSeen === true);
           } else {
-            // ئەگەر دۆکیۆمێنتی نەبوو، دروستی دەکەین وەک یوزەرێکی نوێی نەسەلمێنراو
             setIsEmailVerified(false);
-            setShowLanding(false);
+            setHasSeenLanding(false);
             await setDoc(userDocRef, {
               email: emailClean,
               isEmailVerified: false,
@@ -85,66 +105,50 @@ const App: React.FC = () => {
               createdAt: new Date().toISOString()
             }, { merge: true });
           }
+          setIsCheckingAuth(false);
+        }, (error) => {
+          console.error("Firestore error:", error);
+          setIsCheckingAuth(false);
         });
-
         return () => unsubscribeSnapshot();
       } else {
         setUserEmail(null);
         setIsEmailVerified(false);
-        setShowLanding(false);
-        setActiveView(View.CHAT);
+        setHasSeenLanding(false);
+        setActiveView(View.HOME); 
+        setIsCheckingAuth(false);
       }
-      setIsCheckingAuth(false);
     });
-
     return () => unsubscribeAuth();
   }, []);
 
   const handleStartChat = async () => {
-    // کاتێک لەسەر دوگمەی لاندینگ پەیج کلیک دەکات، لە فایربەیس تۆماری دەکەین کە بینیویەتی تا جاری داهاتوو باز بدات
     if (userEmail) {
       try {
         const userDocRef = doc(db, 'users', userEmail);
         await setDoc(userDocRef, { landingSeen: true }, { merge: true });
+        setHasSeenLanding(true); 
       } catch (e) {
-        console.error("Error updating landingSeen status:", e);
+        console.error("Error saving landing status:", e);
       }
     }
-    setShowLanding(false);
   };
 
   const isRestaurantAdmin = userEmail?.endsWith('@restaurant.com');
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#020617]" dir="rtl">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#030303]" dir="rtl">
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  // 🔒 ستێپی ١: ئەگەر لۆگین نەبوو، دەچێتە لاپەڕەی لۆگین
   if (!userEmail) {
     return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
   }
 
-  // 🔒 ستێپی ٢: ئەگەر لۆگین بووبێت بەڵام هێشتا کۆدی سەلماندنی (OTP) داخل نەکردبێت، دەیبەینە چات بۆ ئەوەی شاشەی پشکنینی کۆدەکەی بۆ بکرێتەوە
-  if (!isEmailVerified) {
-    return (
-      <Layout 
-        activeView={View.CHAT} 
-        onViewChange={setActiveView} 
-        backgroundImage={bgImage}
-        language={language}
-        setLanguage={setLanguage}
-      >
-        <ChatInterface />
-      </Layout>
-    );
-  }
-
-  // 👑 ستێپی ٣: ڕێک دوای ئەوەی لە ناو چاتدا کۆدەکەی بە سەرکەوتوویی داخل کرد و `isEmailVerified` بوو بە True، ئینجا لاندینگ پەیجی پێشوازی پیشان دەدرێت!
-  if (showLanding) {
+  if (!hasSeenLanding) {
     return <LandingPage onStartChat={handleStartChat} />;
   }
 
@@ -166,6 +170,7 @@ const App: React.FC = () => {
     }
 
     switch (activeView) {
+      case View.HOME: return <HomeDashboard onViewChange={setActiveView} language={language} />; 
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
       case View.ART: return <ArtInterface />;
@@ -183,10 +188,11 @@ const App: React.FC = () => {
       case 'social_hook' as View: return <SocialHook language={language} />;
       case 'kurdish_flashcard' as View: return <KurdishFlashcard language={language} />;
       case 'document_summarizer' as View: return <DocumentSummarizer language={language} />;
+      case 'kids_ai' as View: return <KurdishKidsAI language={language} />;
       
       case 'user_feedback' as View: return <UserFeedback language={language} />;
       
-      default: return <ChatInterface />;
+      default: return <HomeDashboard onViewChange={setActiveView} language={language} />;
     }
   }
 };
