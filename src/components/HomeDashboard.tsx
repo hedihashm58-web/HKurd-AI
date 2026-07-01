@@ -14,67 +14,67 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
     { 
       id: View.CHAT, 
       label: language === 'ku' ? 'گفتوگۆی ژییر' : 'محادثة ذكية', 
-      image: 'chat.png'
+      image: 'chat.webp'
     },
     { 
       id: View.TRANSLATE, 
       label: language === 'ku' ? 'وەرگێڕانی زیرەک' : 'الترجمة الذكية', 
-      image: 'translate.png'
+      image: 'translate.webp'
     },
     { 
       id: 'kurdish_grammar', 
       label: language === 'ku' ? 'ڕاستکردنەوەی نووسین' : 'التدقيق اللغوي', 
-      image: 'gramar.png'
+      image: 'gramar.webp'
     },
     { 
       id: 'document_summarizer', 
       label: language === 'ku' ? 'فایلی پی دی ئێف' : 'ملخص الملفات', 
-      image: 'pdf.png'
+      image: 'pdf.webp'
     },
     { 
       id: 'web_summarizer', 
       label: language === 'ku' ? 'کورتکەرەوەی وێب' : 'ملخص المواقع', 
-      image: 'web.png'
+      image: 'web.webp'
     },
     { 
       id: 'kids_ai', 
       label: language === 'ku' ? 'جیهانی منداڵان' : 'عالم الأطفال', 
-      image: 'baby.png'
+      image: 'baby.webp'
     },
     { 
       id: View.ART, 
       label: language === 'ku' ? 'داهێنان و وێنە' : 'توليد الصور', 
-      image: 'dahenan.png'
+      image: 'dahenan.webp'
     },
     { 
       id: 'social_hook', 
       label: language === 'ku' ? 'کاری ڕیکلامی' : 'صانع الإعلانات', 
-      image: 'post.png'
+      image: 'post.webp'
     },
     { 
       id: 'kurdish_flashcard', 
       label: language === 'ku' ? 'وشەی کوردی پەتی' : 'فلاش كارد اللغة', 
-      image: 'mind.png'
+      image: 'mind.webp'
     },
     { 
       id: View.PERSONALITIES, 
       label: language === 'ku' ? 'کەسایەتییەکانی کورد' : 'شخصيات كوردية', 
-      image: 'syasi.png'
+      image: 'syasi.webp'
     },
     { 
       id: View.EXPLORE, 
       label: language === 'ku' ? 'نەخشەی کوردستان' : 'خارطة كوردستان', 
-      image: 'kurdstan1.png'
+      image: 'kurdstan1.webp'
     },
     { 
       id: View.MATH, 
       label: language === 'ku' ? 'یاریدەدەری زانستی' : 'المساعد العلمي', 
-      image: 'math.png'
+      image: 'math.webp'
     },
     { 
       id: View.HEALTH, 
       label: language === 'ku' ? 'یاریدەدەری تەندروستی' : 'المساعد الصحي', 
-      image: 'doctor.png'
+      image: 'doctor.webp'
     },
   ];
 
@@ -88,11 +88,13 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
             onClick={() => onViewChange(item.id as View)}
             className="group relative overflow-hidden rounded-2xl border border-slate-800/80 h-32 flex flex-col justify-end transition-all duration-300 hover:scale-[1.02] hover:border-slate-700 active:scale-[0.98] shadow-lg bg-slate-950"
           >
-            {/* 👑 وێنە ئەسڵییەکەت وەک باکگراوند لێرە ڕێندەر دەبێت */}
+            {/* 👑 لێرەدا ڕێکخستنی پۆڵایین بۆ لۆدبوونی خێرای وێنەکە کرا تا کێشەی خاوبوونەوەی نەمێنێت */}
             <img 
               src={item.image} 
               alt={item.label}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none z-0"
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none z-0 bg-slate-900"
             />
             
             {/* 👑 داپۆشینی ڕەش (Gradient Overlay) بۆ تێکەڵبوونی نازداری وێنەکە و زەقبوونی نووسینەکان */}
