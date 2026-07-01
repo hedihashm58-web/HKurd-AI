@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
-import { collection, addDoc, doc, setDoc, updateDoc, getDocs, orderBy, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, getDoc, updateDoc, getDocs, orderBy, serverTimestamp, onSnapshot, query } from 'firebase/firestore';
 
 interface PremiumModalProps {
   isOpen: boolean;
@@ -115,7 +115,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
         <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/30 animate-pulse"><span className="text-2xl text-amber-400">🎙️</span></div>
         <div className="mb-2"><h2 className="text-2xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none">KurdAI Voice</h2></div>
         <h3 className="text-lg font-bold text-white mb-2">بەم زوانە چالاک دەکرێت!</h3>
-        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی dەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.</p>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی دەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.</p>
         <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]">چاوەڕوانم</button>
       </div>
     </div>
@@ -282,8 +282,9 @@ const ChatInterface: React.FC = () => {
     const cacheKey = generateCacheKey(currentInput);
     if (db) {
       try {
-        const cacheSnap = await doc(db, 'global_chat_cache', cacheKey).get();
-        if (cacheSnap && cacheSnap.exists) {
+        // 👑 چاککردنی نوێ لێرەدایە: بەکارهێنانی getDoc(doc(...)) لە جیاتی doc(...).get()
+        const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
+        if (cacheSnap && cacheSnap.exists()) {
           const cachedAnswer = cacheSnap.data().aiResponse;
           setIsLoading(false);
           setMessages(prev => [...prev, { role: 'model', text: cachedAnswer, timestamp: new Date() }]);
@@ -416,7 +417,6 @@ const ChatInterface: React.FC = () => {
 
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
       <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} />
-      {/* 👑 چارەسەری کۆتایی: مەرجەکە بە تەواوی لێرە جێگیر کرا بێ کێشە */}
       <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
     </>
   );
