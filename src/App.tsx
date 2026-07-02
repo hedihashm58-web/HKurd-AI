@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
-import { getMessaging, getToken } from "firebase/messaging"; // 👈 هاوردەکردنی مێتۆدەکانی نۆتیفیکەیشن
+import { getMessaging, getToken } from "firebase/messaging"; 
 
 import Layout from './components/Layout';
 import HomeDashboard from './components/HomeDashboard'; 
@@ -32,6 +32,120 @@ import KurdishKidsAI from './components/KurdishKidsAI';
 
 import { View } from './types';
 
+interface VerificationModalProps {
+  isOpen: boolean;
+  email: string;
+  onVerified: () => void;
+}
+
+const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, onVerified }) => {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSendCode = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      setMessage(data.message || "کۆدەکە ناردرا. تکایە سەیری نامەکانت بکە.");
+    } catch (e) {
+      setMessage("❌ کێشەیەک لە ناردنی کۆدەکەدا هەیە.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (code.length < 6) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onVerified();
+      } else {
+        setMessage(data.detail || "❌ کۆدی داخڵکراو هەڵەیە.");
+      }
+    } catch (e) {
+      setMessage("❌ خەتایەک لە پشکنینی کۆدەکەدا ڕوویدا.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
+      <div className="bg-slate-900/60 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+        
+        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        {/* 👑 لێرەدا بازنەکە بە تەواوی سڕایەوە بۆ دیزاینێکی تەواو مۆدێرن و خاوێن */}
+
+        <h2 className="text-xl font-black bg-gradient-to-r from-zinc-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent mb-2 tracking-tight">
+          چالاککردنی سیستەم
+        </h2>
+        
+        <p className="text-zinc-400 text-[11px] leading-relaxed mb-6 px-3">
+          کۆدی سەلماندنی نیشتمانی دەنێردرێت بۆ ناونیشانی ئیمەیڵی هێژا:
+          <span className="block font-mono text-amber-400/90 font-bold mt-1 text-xs select-all bg-amber-500/5 py-1 px-2 rounded-xl border border-amber-500/10 tracking-wide break-all">
+            {email}
+          </span>
+        </p>
+
+        <div className="space-y-4 relative z-10">
+          <button 
+            onClick={handleSendCode} 
+            disabled={loading}
+            className="w-full bg-slate-950/80 hover:bg-slate-900 text-zinc-300 hover:text-white font-extrabold py-2.5 rounded-2xl transition-all text-xs border border-zinc-800/80 hover:border-amber-500/30 shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <span>{loading ? '🔔 لە پڕۆسەدایە...' : 'ناردنی کۆدی چالاککردن'}</span>
+            {!loading && <span className="text-xs">🚀</span>}
+          </button>
+
+          <div className="relative">
+            <input 
+              type="text" 
+              maxLength={6}
+              placeholder="••••••" 
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full bg-slate-950/90 border border-zinc-800/80 rounded-2xl px-4 py-3 text-white text-center font-mono tracking-[0.4em] font-black text-xl focus:outline-none focus:border-amber-500 focus:shadow-[0_0_15px_rgba(245,158,11,0.15)] placeholder:text-zinc-700 transition-all"
+            />
+          </div>
+
+          <button 
+            onClick={handleVerifyCode}
+            disabled={loading || code.length < 6}
+            className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 disabled:from-zinc-900 disabled:to-zinc-900 text-slate-950 disabled:text-zinc-600 font-black py-3 rounded-2xl transition-all text-xs shadow-lg shadow-amber-500/10 active:scale-[0.97]"
+          >
+            {loading ? 'پشکنینی داتا...' : 'پشڕاستکردنەوە و چوونەژوورەوە ⚡'}
+          </button>
+
+          {message && (
+            <div className="text-[11px] font-bold text-zinc-300 mt-2 bg-slate-950/60 py-2 px-3 rounded-xl border border-zinc-800/60 animate-in fade-in duration-200">
+              {message}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.HOME);
   const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop');
@@ -43,22 +157,15 @@ const App: React.FC = () => {
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [hasSeenLanding, setHasSeenLanding] = useState<boolean>(false);
 
-  // 🔔 فەنکشنی تایبەت بە داواکردنی مۆڵەت و خەزنکردنی تۆکنی فایربەیس
   const requestNotificationPermission = async (email: string) => {
     try {
       if (!('Notification' in window)) return;
-      
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
         const messaging = getMessaging();
-        // ⚠️ کلیلە گشتییەکەی کۆنسۆڵی فایربەیسەکەت لێرە دابنێ (VAPID Key)
         const currentToken = await getToken(messaging, { vapidKey: 'D6OgH5ATuXByEmEseL3udyEE4yudcey3CpAVEU_06aE' });
-        
         if (currentToken) {
-          // تۆکنەکە لە داتابەیس دەبەستینەوە بە ئیمەیڵی یوزەرەکەوە
-          await updateDoc(doc(db, "users", email), {
-            fcmToken: currentToken
-          });
+          await updateDoc(doc(db, "users", email), { fcmToken: currentToken });
         }
       }
     } catch (error) {
@@ -72,7 +179,6 @@ const App: React.FC = () => {
         const emailClean = user.email.toLowerCase().trim();
         setUserEmail(emailClean);
 
-        // 🔔 هەر کاتێک بەکارهێنەر بە سەرکەوتوویی لە ئەپەکە بوو، مۆڵەتی لێ وەردەگرین
         requestNotificationPermission(emailClean);
 
         if (emailClean.endsWith('@restaurant.com')) {
@@ -146,6 +252,16 @@ const App: React.FC = () => {
 
   if (!userEmail) {
     return <Login onLoginSuccess={(email) => setUserEmail(email)} />;
+  }
+
+  if (!isEmailVerified) {
+    return (
+      <VerificationModal 
+        isOpen={true} 
+        email={userEmail} 
+        onVerified={() => setIsEmailVerified(true)} 
+      />
+    );
   }
 
   if (!hasSeenLanding) {

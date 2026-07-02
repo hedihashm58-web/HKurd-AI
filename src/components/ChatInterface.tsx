@@ -41,10 +41,10 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121215] border border-zinc-800 rounded-2xl max-w-xl w-full p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
-        <h3 className="text-xl font-extrabold text-zinc-100 mb-1">پۆلێنی ئەندامێتی پریمیم</h3>
-        <p className="text-zinc-300 text-xs mb-6">بۆ لادانی لێمیتی چات و چالاککردنی خزمەتگوزاری وێنە، پلانێک هەڵبژێره:</p>
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-xl flex items-center justify-center z-[500] p-4">
+      <div className="bg-[#0f172a]/90 border border-zinc-800/80 rounded-[2.5rem] max-w-xl w-full p-6 text-center shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+        <h3 className="text-xl font-black bg-gradient-to-r from-zinc-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent mb-1">پۆلێنی ئەندامێتی پریمیم</h3>
+        <p className="text-zinc-400 text-xs mb-6">بۆ لادانی لێمیتی چات و چالاککردنی خزمەتگوزاری وێنە، پلانێک هەڵبژێره:</p>
         <div className="grid grid-cols-2 gap-2.5 mb-6" dir="rtl">
           {SUBSCRIPTION_PLANS.map((plan) => {
             const isSelected = selectedPlan === plan.id;
@@ -52,31 +52,102 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
               <div
                 key={plan.id}
                 onClick={() => setSelectedPlan(plan.id)}
-                className={`p-3.5 rounded-xl border text-right cursor-pointer transition-all duration-150 ${isSelected ? 'border-amber-500 bg-amber-500/5 text-white' : 'border-zinc-800/80 bg-zinc-900/30 text-zinc-300 hover:border-zinc-700'}`}
+                className={`p-3.5 rounded-2xl border text-right cursor-pointer transition-all duration-150 ${isSelected ? 'border-amber-500 bg-amber-500/5 text-white shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'border-zinc-800/50 bg-slate-950/40 text-zinc-300 hover:border-zinc-700'}`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <h4 className="text-xs font-bold text-zinc-100">{plan.name}</h4>
                   <span className="text-[11px] font-black text-amber-400">{plan.price} د.ع</span>
                 </div>
-                <p className="text-[10px] text-zinc-300 font-medium">{plan.desc}</p>
+                <p className="text-[10px] text-zinc-400 font-medium">{plan.desc}</p>
               </div>
             );
           })}
         </div>
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <button onClick={() => setPaymentMethod('fastpay')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'fastpay' ? 'border-red-500 bg-red-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'}`}>FastPay</button>
-          <button onClick={() => setPaymentMethod('fib')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'fib' ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'}`}>FIB Bank</button>
+          <button onClick={() => setPaymentMethod('fastpay')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'fastpay' ? 'border-red-500/30 bg-red-500/10 text-white' : 'border-zinc-800/60 bg-slate-950/40 text-zinc-400 hover:border-zinc-700'}`}>FastPay</button>
+          <button onClick={() => setPaymentMethod('fib')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'fib' ? 'border-cyan-500/30 bg-cyan-500/10 text-white' : 'border-zinc-800/60 bg-slate-950/40 text-zinc-400 hover:border-zinc-700'}`}>FIB Bank</button>
         </div>
         {paymentMethod && (
           <div className="mb-6 text-right animate-in fade-in duration-200">
-            <input type="tel" placeholder="07700000000" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white text-center focus:outline-none focus:border-amber-500 text-xs font-mono tracking-wider" />
+            <input type="tel" placeholder="07700000000" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full bg-slate-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white text-center focus:outline-none focus:border-amber-500 text-xs font-mono tracking-wider" />
           </div>
         )}
         <div className="space-y-2 max-w-xs mx-auto">
-          <button disabled={!paymentMethod || phoneNumber.length < 10 || isSubmitting} onClick={handlePaymentSubmit} className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-zinc-950 disabled:text-zinc-500 font-black py-2.5 rounded-xl transition-all text-xs active:scale-[0.98]">
-            {isSubmitting ? 'پرۆسەیە...' : 'پشڕاستکردنەوە و ناردن'}
+          <button disabled={!paymentMethod || phoneNumber.length < 10 || isSubmitting} onClick={handlePaymentSubmit} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 disabled:from-zinc-900 disabled:to-zinc-900 text-slate-950 disabled:text-zinc-600 font-black py-2.5 rounded-xl transition-all text-xs shadow-lg">
+            {isSubmitting ? 'لە پڕۆسەدایە...' : 'پشڕاستکردنەوە و ناردن'}
           </button>
-          <button onClick={onClose} className="w-full bg-zinc-900/20 hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-bold py-2 rounded-xl transition-all text-[11px] block text-center">گەڕانەوە</button>
+          <button onClick={onClose} className="w-full bg-slate-950 text-zinc-400 hover:text-zinc-200 font-bold py-2 rounded-xl transition-all text-xs border border-zinc-900">گەڕانەوە</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 👑 مۆدێلی پڕۆفایل بە دیزاینی تەواو پڕۆفیشناڵ و هاوتای وێنەکەت (بێ ئایکۆن و بازنەی کۆن)
+interface ProfileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isPremium: boolean;
+}
+
+const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, isPremium }) => {
+  if (!isOpen) return null;
+
+  const handleLogout = async () => {
+    if (window.confirm("دڵنیای دەتەوێت لە هەژمارەکەت بچیتە دەرەوە؟")) {
+      await auth.signOut();
+      window.location.reload();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="bg-slate-900/40 border border-zinc-800/60 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.02)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+        
+        {/* هێمای پڕۆفایلی پڕۆفیشناڵ لە ناو کارتی چوارگۆشەی خاوێن بەبێ بازنە */}
+        <div className="w-12 h-12 bg-slate-950 border border-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+        </div>
+
+        <div className="space-y-4 relative z-10">
+          {/* کارتی ناونیشانی ئیمەیڵ */}
+          <div className="bg-slate-950/90 border border-zinc-800/80 rounded-2xl py-3 px-4 text-center shadow-lg">
+            <p className="font-mono text-zinc-200 text-xs tracking-wide select-all break-all">
+              {auth.currentUser?.email || "user@kurdai.pro"}
+            </p>
+          </div>
+
+          {/* بەشی دۆخی هەژمار بە ستایلی مۆدێرن و تێکستی زێڕینی درەوشاوە */}
+          <div className="bg-slate-950/40 border border-zinc-800/40 rounded-2xl py-3.5 px-4 flex justify-between items-center">
+            <span className="text-zinc-400 text-xs font-black">دۆخی هەژمار:</span>
+            {isPremium ? (
+              <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30">
+                پلانی تایبەت
+              </span>
+            ) : (
+              <span className="text-xs font-black text-amber-400 bg-amber-500/5 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                پلانی ئاسایی
+              </span>
+            )}
+          </div>
+
+          {/* دوگمەی چوونەدەرەوەی سووری خاوێن بەبێ ئیمۆجی */}
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 font-black py-3 rounded-2xl transition-all text-xs border border-red-500/20 hover:border-red-500/30 active:scale-[0.98]"
+          >
+            چوونەدەرەوە له هەژمار
+          </button>
+
+          {/* دوگمەی داخستن */}
+          <button 
+            onClick={onClose}
+            className="w-full bg-slate-950 hover:bg-slate-900 text-zinc-400 hover:text-zinc-200 font-extrabold py-3 rounded-2xl transition-all text-xs border border-zinc-800/80 active:scale-[0.98]"
+          >
+            داخستن
+          </button>
         </div>
       </div>
     </div>
@@ -95,7 +166,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
       <div className="bg-[#121214] border border-emerald-500/30 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
         <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30"><span className="text-2xl text-emerald-400">🎉</span></div>
         <h3 className="text-xl font-bold text-white mb-2">پیرۆزە! تۆ بوویت بە پریمیم</h3>
-        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">بەشداریەکەت بە سەرکەوتوویی چالاککرا. بەپێی پلانی هەڵبژێردراو دەتوانیت بە بێسنووری و بەرزترین خێرا KurdAI Pro بەکاربهێنیت. سوپاس بۆ پشتگیرییەکەت!</p>
+        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">بەشداریەکەت بە سەرکەوتوویی چالاککرا. سوپاس بۆ پشتگیرییەکەت!</p>
         <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm">دەستپێکردنی ئەزموونی نوێ</button>
       </div>
     </div>
@@ -115,8 +186,115 @@ const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
         <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/30 animate-pulse"><span className="text-2xl text-amber-400">🎙️</span></div>
         <div className="mb-2"><h2 className="text-2xl font-black tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-mono select-none">KurdAI Voice</h2></div>
         <h3 className="text-lg font-bold text-white mb-2">بەم زوانە چالاک دەکرێت!</h3>
-        <p className="text-zinc-400 text-xs mb-6 leading-relaxed">پەرەپێدەرانی KurdAI Pro بە چڕی کار لەسەر مۆدێلی دەنگی نیشتمانی دەکەن. لە نوێکاری داهاتوودا دەتوانیت بە دەنگ پرسیار بکەیت و بە دەنگی کوردی وەڵام وەربگریتەوە.</p>
-        <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm active:scale-[0.98]">چاوەڕوانم</button>
+        <button onClick={onClose} className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-zinc-950 font-extrabold py-2.5 rounded-xl transition-all text-sm">چاوەڕوانم</button>
+      </div>
+    </div>
+  );
+};
+
+interface VerificationModalProps {
+  isOpen: boolean;
+  email: string;
+  onVerified: () => void;
+}
+
+const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, onVerified }) => {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSendCode = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      setMessage(data.message || "کۆدەکە بە سەرکەوتوویی ناردرا.");
+    } catch (e) {
+      setMessage("❌ کێشەیەک لە ناردنی کۆدەکەدا هەیە.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (code.length < 6) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("🎉 هەژمارەکەت بە سەرکەوتوویی چالاککرا!");
+        onVerified();
+      } else {
+        setMessage(data.detail || "❌ کۆدی داخڵکراو هەڵەیە.");
+      }
+    } catch (e) {
+      setMessage("❌ خەتایەک لە پشکنینی کۆدەکەدا ڕوویدا.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
+      <div className="bg-slate-900/60 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <h2 className="text-xl font-black bg-gradient-to-r from-zinc-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent mb-2 tracking-tight">
+          چالاککردنی سیستەم
+        </h2>
+        
+        <p className="text-zinc-400 text-[11px] leading-relaxed mb-6 px-3">
+          کۆدی سەلماندنی نیشتمانی دەنێردرێت بۆ ناونیشانی ئیمەیڵی هێژا:
+          <span className="block font-mono text-amber-400/90 font-bold mt-1 text-xs select-all bg-amber-500/5 py-1 px-2 rounded-xl border border-amber-500/10 tracking-wide break-all">
+            {email}
+          </span>
+        </p>
+
+        <div className="space-y-4 relative z-10">
+          <button 
+            onClick={handleSendCode} 
+            disabled={loading}
+            className="w-full bg-slate-950/80 hover:bg-slate-900 text-zinc-300 hover:text-white font-extrabold py-2.5 rounded-2xl transition-all text-xs border border-zinc-800/80 hover:border-amber-500/30 shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <span>{loading ? '🔔 لە پڕۆسەدایە...' : 'ناردنی کۆدی چالاککردن'}</span>
+            {!loading && <span className="text-xs">🚀</span>}
+          </button>
+
+          <div className="relative">
+            <input 
+              type="text" 
+              maxLength={6}
+              placeholder="••••••" 
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full bg-slate-950/90 border border-zinc-800/80 rounded-2xl px-4 py-3 text-white text-center font-mono tracking-[0.4em] font-black text-xl focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          <button 
+            onClick={handleVerifyCode}
+            disabled={loading || code.length < 6}
+            className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 disabled:from-zinc-900 disabled:to-zinc-900 text-slate-950 disabled:text-zinc-600 font-black py-3 rounded-2xl transition-all text-xs shadow-lg shadow-amber-500/10 active:scale-[0.97]"
+          >
+            {loading ? 'پشکنینی داتا...' : 'پشڕاستکردنەوە و چوونەژوورەوە ⚡'}
+          </button>
+
+          {message && <p className="text-[11px] font-bold text-zinc-300 mt-2 bg-slate-950/60 py-2 px-3 rounded-xl border border-zinc-800/60">{message}</p>}
+        </div>
       </div>
     </div>
   );
@@ -131,6 +309,8 @@ const ChatInterface: React.FC = () => {
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false); 
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); 
   
   const [isUserPremium, setIsUserPremium] = useState<boolean>(true); 
   const [msgCountInMinute, setMsgCountInMinute] = useState<number>(0);
@@ -138,7 +318,7 @@ const ChatInterface: React.FC = () => {
 
   const defaultMessage: Message = { 
     role: 'model', 
-    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکرد کە لە لایەن (هێدی)ـەوە پەرەم پێدراوە، چۆن دەتوانم هاوکاریت بکەم؟", 
+    text: "سڵاو! من KurdAI Pro م، پێشکەوتووترین سیستەمی ژیریی دەستکردی نیشتمانی کە لە لایەن (هێدی)ـەوە پەرەم پێدراوە، چۆن دەتوانم هاوکاریت بکەم؟", 
     timestamp: new Date() 
   };
 
@@ -158,13 +338,20 @@ const ChatInterface: React.FC = () => {
       const isAdmin = user.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
       if (isAdmin) {
         setIsUserPremium(true);
+        setIsVerificationModalOpen(false);
         return;
       }
       if (docSnap.exists()) {
         const data = docSnap.data();
         setIsUserPremium(data.isPremium === true);
+        if (data.isEmailVerified === false) {
+          setIsVerificationModalOpen(true);
+        } else {
+          setIsVerificationModalOpen(false);
+        }
       } else {
         setIsUserPremium(false);
+        setIsVerificationModalOpen(true);
       }
     });
 
@@ -282,7 +469,6 @@ const ChatInterface: React.FC = () => {
     const cacheKey = generateCacheKey(currentInput);
     if (db) {
       try {
-        // 👑 چاککردنی نوێ لێرەدایە: بەکارهێنانی getDoc(doc(...)) لە جیاتی doc(...).get()
         const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
         if (cacheSnap && cacheSnap.exists()) {
           const cachedAnswer = cacheSnap.data().aiResponse;
@@ -351,15 +537,18 @@ const ChatInterface: React.FC = () => {
       <div className={`flex flex-col h-full min-h-[75vh] backdrop-blur-2xl rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
         <div className={`flex justify-between items-center mb-4 border-b pb-3 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-9 h-9 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-amber-50 border-amber-200'}`}>{isDarkMode ? '☀️' : '🌙'}</button>
+            <button onClick={() => setIsProfileModalOpen(true)} className={`w-9 h-9 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-amber-50 border-amber-200'}`}>
+              👤
+            </button>
             <h3 className="font-bold text-sm tracking-wide">KurdAI Chat</h3>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>{isDarkMode ? '☀️' : '🌙'}</button>
             <button onClick={handleClearCurrentChat} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
             <button onClick={() => setIsSidebarOpen(true)} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg xmlns="http://www.w3.org/2000/xl" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
         </div>
@@ -418,6 +607,18 @@ const ChatInterface: React.FC = () => {
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
       <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} />
       <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
+      
+      <VerificationModal 
+        isOpen={isVerificationModalOpen} 
+        email={auth.currentUser?.email || ""} 
+        onVerified={() => setIsVerificationModalOpen(false)} 
+      />
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+        isPremium={isUserPremium}
+      />
     </>
   );
 };

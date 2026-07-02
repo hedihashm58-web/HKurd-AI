@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { View } from '../types';
 import { auth, db } from '../firebase';
 import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import UserFeedback from './UserFeedback'; // 👈 هاوردەکردنی بەشی تێبینی بە دروستی
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,9 +26,7 @@ const NotificationListModal: React.FC<NotificationListModalProps> = ({ isOpen, o
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 👑 چاککردنی گەورەترین کێشەی React کە دەبووە هۆی شاشە شینەکە (Rule of Hooks)
   useEffect(() => {
-    // تەنها کاتێک داتا بهێنە کە مۆدێلەکە کراوەیە، بەڵام نابێت هۆکەکە لە دوای return ەوە بێت
     if (!isOpen) return; 
 
     const q = query(collection(db, "global_notifications"), orderBy("createdAt", "desc"), limit(5));
@@ -46,7 +45,6 @@ const NotificationListModal: React.FC<NotificationListModalProps> = ({ isOpen, o
     return () => unsubscribe();
   }, [isOpen]);
 
-  // 👑 مەرجی داخستنەکە دەبێت لێرە بێت بۆ ئەوەی ڕیاکت کراش نەکات
   if (!isOpen) return null;
 
   return (
@@ -71,7 +69,6 @@ const NotificationListModal: React.FC<NotificationListModalProps> = ({ isOpen, o
           )}
         </div>
 
-        {/* دوگمەی گەڕانەوە کە هەمیشە کار دەکات */}
         <button 
           onClick={onClose} 
           className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-bold py-2 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 active:scale-95 border border-zinc-800/50 shadow-md"
@@ -255,17 +252,25 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[300] p-4" dir="rtl">
-      <div className="bg-[#0f172a] border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-center shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
-        <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-white/5 shadow-lg text-slate-950 font-black text-lg">
-          ⚙️
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="bg-slate-900/40 border border-zinc-800/60 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.02)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+        
+        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="w-12 h-12 bg-slate-950 border border-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
         </div>
         
         {isAdmin && <h3 className="text-xs font-black text-amber-500 mb-1">{language === 'ku' ? "بەرێوبەری گشتی پڕۆژە" : "مدير النظام"}</h3>}
         
-        <p className="text-zinc-200 text-[11px] font-mono mb-3 bg-slate-950/60 py-2 px-3 rounded-xl border border-white/[0.03] break-all tracking-wide shadow-inner">
-          {user?.email || "guest@kurdai.pro"}
-        </p>
+        <div className="bg-slate-950/80 border border-zinc-800/60 rounded-xl py-2.5 px-4 text-center mb-4">
+          <p className="font-mono text-zinc-300 text-xs tracking-wide select-all break-all">
+            {user?.email || "guest@kurdai.pro"}
+          </p>
+        </div>
 
         {isAdmin && (
           <div className="bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3 mb-4 text-right animate-in fade-in duration-300">
@@ -296,23 +301,52 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
           </div>
         )}
 
-        <div className="bg-slate-900/50 border border-zinc-800/60 rounded-2xl p-3 mb-4 text-right">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-zinc-400">{language === 'ku' ? 'دۆخی هەژمار:' : 'حالة الحساب:'}</span>
-            <span className="font-black text-amber-400">
-              {isAdmin ? "پریمیم پڵەس 👑" : "پلانی ئاسایی 👤"}
-            </span>
-          </div>
+        <div className="bg-slate-950/40 border border-zinc-800/40 rounded-xl py-3 px-4 flex justify-between items-center mb-4">
+          <span className="text-zinc-400 text-xs font-bold">{language === 'ku' ? 'دۆخی هەژمار:' : 'حالة الحساب:'}</span>
+          <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)] tracking-tight">
+            {isAdmin ? "پریمیم پڵەس" : "پلانی ئاسایی"}
+          </span>
         </div>
 
-        <div className="space-y-1.5">
-          <button onClick={handleLogoutClick} className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl border border-red-500/20 transition-all text-xs active:scale-[0.97]">
-            {language === 'ku' ? 'چوونەدەرەوە لە ئەژمار 🚪' : 'تسجيل الخروج'}
+        <div className="space-y-2">
+          <button 
+            onClick={handleLogoutClick} 
+            className="w-full bg-red-500/5 hover:bg-red-500/10 active:bg-red-500/20 text-red-400 hover:text-red-300 font-extrabold py-2.5 rounded-xl transition-all text-xs border border-red-500/20 hover:border-red-500/40 shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            <span>{language === 'ku' ? 'چوونەدەرەوە لە هەژمار' : 'تسجيل الخروج'}</span>
+            <span className="text-xs">🚪</span>
           </button>
-          <button onClick={onClose} className="w-full bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-bold py-1.5 rounded-xl transition-all text-xs block text-center">
-            {language === 'ku' ? 'داخستن' : 'إغلاق'}
+          <button 
+            onClick={onClose} 
+            className="w-full bg-slate-950 hover:bg-slate-900/80 text-zinc-400 hover:text-zinc-200 font-bold py-2.5 rounded-xl transition-all text-xs border border-zinc-800/40 active:scale-[0.98]"
+          >
+            {language === 'ku' ? 'داخستن' : 'إإغلاق'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// 👑 مۆدێلی تێبینی لۆکاڵی شیک بۆ کاتێک کلیک لەسەر دوگمە نوێیەکەی سەرەوە دەکرێت
+interface LocalFeedbackModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language: 'ku' | 'ar';
+}
+
+const LocalFeedbackModal: React.FC<LocalFeedbackModalProps> = ({ isOpen, onClose, language }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center z-[400] p-4">
+      <div className="bg-[#0f172a] border border-zinc-800 rounded-[2rem] max-w-lg w-full p-2 relative shadow-2xl animate-in zoom-in-95 duration-200">
+        <UserFeedback language={language} />
+        <button 
+          onClick={onClose}
+          className="absolute top-4 left-4 bg-slate-950 hover:bg-slate-900 text-zinc-400 hover:text-white px-3 py-1 rounded-xl border border-zinc-800 text-[10px] font-bold transition-all"
+        >
+          {language === 'ku' ? 'داخستن' : 'إغلاق'}
+        </button>
       </div>
     </div>
   );
@@ -323,6 +357,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
   const [isPremiumOffersOpen, setIsPremiumOffersOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false); // 👑 ستەیتی نوێ بۆ بەشی تێبینی
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
@@ -340,7 +375,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         </div>
         
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* 🔔 دوگمەی نۆتیفیکەیشن */}
+          {/* 👑 دوگمەیەکی بچوکی نوێ و شاهانە بۆ ناردنی تێبینی لە تەنیشت نۆتیفیکەیشن */}
+          <button 
+            onClick={() => setIsFeedbackOpen(true)}
+            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
+            title={language === 'ku' ? 'ناردنی تێبینی و پێشنیار' : 'إرسال ملاحظة'}
+          >
+            <div className="text-zinc-300 group-hover:text-amber-400 transition-colors text-xs sm:text-sm">
+              ✍️
+            </div>
+          </button>
+
           <button 
             onClick={() => setIsNotificationListOpen(true)}
             className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
@@ -350,7 +395,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             </div>
           </button>
 
-          {/* 🌐 دوگمەی زمان */}
           <button 
             type="button" 
             onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} 
@@ -360,7 +404,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             <span>{language === 'ku' ? 'AR' : 'KU'}</span>
           </button>
           
-          {/* ⚙️ دوگمەی پڕۆفایل */}
           <button 
             onClick={() => setIsProfileOpen(true)} 
             className="group flex items-center gap-1 px-2 sm:px-3 h-8 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
@@ -368,14 +411,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
             <span className="hidden sm:inline text-[11px] font-bold text-zinc-300 group-hover:text-white transition-colors">
               {language === 'ku' ? 'پرۆفایل' : 'الحساب'}
             </span>
-            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs group-hover:rotate-45 transition-transform duration-300">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs transition-transform duration-300">
               ⚙️
             </div>
           </button>
         </div>
       </header>
 
-      {/* بەشی سەرەکی ناوەڕۆک */}
       <main className="flex-1 container mx-auto max-w-[1500px] px-4 pt-2 pb-6 relative z-10">
         {activeView !== View.HOME && (
           <div className="w-full max-w-5xl mx-auto mb-2 flex justify-start animate-in fade-in slide-in-from-top-1 duration-200">
@@ -395,6 +437,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
       <PremiumOffersModal isOpen={isPremiumOffersOpen} onClose={() => setIsPremiumOffersOpen(false)} language={language} />
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} language={language} />
       <NotificationListModal isOpen={isNotificationListOpen} onClose={() => setIsNotificationListOpen(false)} language={language} />
+      
+      {/* 👑 مۆدێلی نوێی لۆکاڵی تێبینی لێرەدا ڕێندەر دەبێت */}
+      <LocalFeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} language={language} />
     </div>
   );
 };
