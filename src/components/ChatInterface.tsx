@@ -41,8 +41,8 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-xl flex items-center justify-center z-[500] p-4">
-      <div className="bg-[#0f172a]/90 border border-zinc-800/80 rounded-[2.5rem] max-w-xl w-full p-6 text-center shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[500] p-4">
+      <div className="bg-[#0f172a]/90 border border-zinc-800/80 rounded-[2.5rem] max-w-xl w-full p-6 text-center shadow-2xl backdrop-blur-md animate-in zoom-in-95 duration-200">
         <h3 className="text-xl font-black bg-gradient-to-r from-zinc-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent mb-1">پۆلێنی ئەندامێتی پریمیم</h3>
         <p className="text-zinc-400 text-xs mb-6">بۆ لادانی لێمیتی چات و چالاککردنی خزمەتگوزاری وێنە، پلانێک هەڵبژێره:</p>
         <div className="grid grid-cols-2 gap-2.5 mb-6" dir="rtl">
@@ -83,7 +83,6 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-// 👑 مۆدێلی پڕۆفایل بە دیزاینی تەواو پڕۆفیشناڵ و هاوتای وێنەکەت (بێ ئایکۆن و بازنەی کۆن)
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -101,10 +100,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, isPremium 
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
-      <div className="bg-slate-900/40 border border-zinc-800/60 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.02)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="bg-slate-900/40 border border-zinc-800/60 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.02)] relative overflow-hidden backdrop-blur-md animate-in zoom-in-95 duration-300 pt-8">
         
-        {/* هێمای پڕۆفایلی پڕۆفیشناڵ لە ناو کارتی چوارگۆشەی خاوێن بەبێ بازنە */}
+        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
         <div className="w-12 h-12 bg-slate-950 border border-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
           <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
@@ -112,14 +113,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, isPremium 
         </div>
 
         <div className="space-y-4 relative z-10">
-          {/* کارتی ناونیشانی ئیمەیڵ */}
           <div className="bg-slate-950/90 border border-zinc-800/80 rounded-2xl py-3 px-4 text-center shadow-lg">
             <p className="font-mono text-zinc-200 text-xs tracking-wide select-all break-all">
               {auth.currentUser?.email || "user@kurdai.pro"}
             </p>
           </div>
 
-          {/* بەشی دۆخی هەژمار بە ستایلی مۆدێرن و تێکستی زێڕینی درەوشاوە */}
           <div className="bg-slate-950/40 border border-zinc-800/40 rounded-2xl py-3.5 px-4 flex justify-between items-center">
             <span className="text-zinc-400 text-xs font-black">دۆخی هەژمار:</span>
             {isPremium ? (
@@ -133,7 +132,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, isPremium 
             )}
           </div>
 
-          {/* دوگمەی چوونەدەرەوەی سووری خاوێن بەبێ ئیمۆجی */}
           <button 
             onClick={handleLogout}
             className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 font-black py-3 rounded-2xl transition-all text-xs border border-red-500/20 hover:border-red-500/30 active:scale-[0.98]"
@@ -141,7 +139,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, isPremium 
             چوونەدەرەوە له هەژمار
           </button>
 
-          {/* دوگمەی داخستن */}
           <button 
             onClick={onClose}
             className="w-full bg-slate-950 hover:bg-slate-900 text-zinc-400 hover:text-zinc-200 font-extrabold py-3 rounded-2xl transition-all text-xs border border-zinc-800/80 active:scale-[0.98]"
@@ -248,8 +245,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, on
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
-      <div className="bg-slate-900/60 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
+      <div className="bg-slate-900/60 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] relative overflow-hidden backdrop-blur-md animate-in zoom-in-95 duration-300 pt-8">
         <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -359,7 +356,12 @@ const ChatInterface: React.FC = () => {
   }, [auth.currentUser?.email]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      const isMobile = window.innerWidth <= 768;
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: isMobile ? 'auto' : 'smooth' 
+      });
+    }
   };
 
   useEffect(() => {
@@ -534,14 +536,15 @@ const ChatInterface: React.FC = () => {
     <>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onNewChat={handleNewChat} onSelectChat={handleSelectChat} />
       
-      <div className={`flex flex-col h-full min-h-[75vh] backdrop-blur-2xl rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
+      <div className={`flex flex-col h-full min-h-[75vh] backdrop-blur-md rounded-3xl border p-4 md:p-6 shadow-2xl relative z-10 transition-all ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white' : 'bg-white/80 border-slate-200 text-slate-900'}`} dir="rtl">
         <div className={`flex justify-between items-center mb-4 border-b pb-3 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsProfileModalOpen(true)} className={`w-9 h-9 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-amber-50 border-amber-200'}`}>
-              👤
-            </button>
-            <h3 className="font-bold text-sm tracking-wide">KurdAI Chat</h3>
+          
+          {/* 👑 لێرەدا ئایکۆنی پیاوەکە سڕدراوەتەوە و ناونیشانی تایبەت بە پڕۆژەکە هێنراوەتە ئەم شوێنە */}
+          <div className="flex items-center gap-2">
+            <h3 className="font-black text-sm tracking-wide text-white">KurdAI Chat</h3>
+            <span className="text-yellow-500 italic text-[10px] font-black"></span>
           </div>
+
           <div className="flex items-center gap-2">
             <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>{isDarkMode ? '☀️' : '🌙'}</button>
             <button onClick={handleClearCurrentChat} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>

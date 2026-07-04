@@ -25,7 +25,6 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
     try {
       const userEmail = auth.currentUser?.email || "guest_user";
       
-      // 🚀 ناردنی تەنها دەقە ڕووتەکە بۆ باکێند (باکێند خۆی پشکنینی لێمیت دەکات و پڕۆمپتی شاهانە بەکاردێنێت)
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/kurdish-grammar', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
@@ -44,12 +43,28 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
+      // 👑 لۆجیکی نوێی و زۆر دەقیق بۆ پارسکردنی جەیسۆن تەنانەت ئەگەر کێشەی تێدابێت
       try {
         const parsedData = jsonCleanAndParse(data.response);
-        setCorrectedText(parsedData.corrected);
-        setExplanation(parsedData.explanation);
+        if (parsedData && parsedData.corrected) {
+          setCorrectedText(parsedData.corrected);
+          setExplanation(parsedData.explanation || null);
+        } else {
+          setCorrectedText(data.response);
+        }
       } catch (jsonErr) {
-        setCorrectedText(data.response);
+        // ئەگەر باکئێندەکە ڕاستەوخۆ تێکستی ناردبوو بەبێ ئۆبجێکت
+        if (typeof data.response === 'string' && data.response.trim().startsWith('{')) {
+          try {
+            const fixedJson = JSON.parse(data.response.trim());
+            setCorrectedText(fixedJson.corrected);
+            setExplanation(fixedJson.explanation || null);
+          } catch (e) {
+            setCorrectedText(data.response);
+          }
+        } else {
+          setCorrectedText(data.response);
+        }
       }
 
     } catch (err: any) {
@@ -61,7 +76,7 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
             : "⚠️ انتهت فترة التجربة المجانية لمصحح القواعد! يرجى الاشتراك في العروض للاستمرار."
         );
       } else {
-        setError(language === 'ku' ? "ببورا، هەڵەیەک لە کاتی ڕاستکردنەوەی دەقەکەدا ڕوویدا." : "عذراً، حدث خطأ أثناء تصحيح النص.");
+        setError(language === 'ku' ? "ببوورر، هەڵەیەک لە کاتی ڕاستکردنەوەی دەقەکەدا ڕوویدا." : "عذراً، حدث خطأ أثناء تصحيح النص.");
       }
     } finally {
       setLoading(false);
@@ -69,6 +84,7 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
   };
 
   const jsonCleanAndParse = (rawStr: string) => {
+    if (typeof rawStr !== 'string') return rawStr;
     let cleanStr = rawStr.trim();
     if (cleanStr.includes("```json")) {
       cleanStr = cleanStr.split("```json")[1].split("```")[0];
@@ -78,6 +94,7 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
     return JSON.parse(cleanStr.trim());
   };
 
+  // 👑 لۆجیکی جیاکردنەوە و بەراوردکاری زۆر ورد بۆ ئەوەی وشەکان تێکەڵ نەبن
   const renderDiff = () => {
     if (!text || !correctedText) return null;
 
@@ -87,14 +104,15 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
     return (
       <div className="flex flex-wrap gap-x-2 gap-y-3 text-right justify-start leading-relaxed select-text font-medium text-sm w-full" dir="rtl">
         {correctedWords.map((word, idx) => {
+          // دۆزینەوەی ئیندێکسی وشەکە لە دەقی کۆندا بۆ بەراوردکاری پۆڵایین
+          const existsInOriginal = originalWords.includes(word);
           const originalWord = originalWords[idx] || "";
-          const isChanged = originalWord !== word;
 
-          if (isChanged) {
+          if (!existsInOriginal && word !== originalWord) {
             return (
               <span key={idx} className="inline-flex flex-col items-center px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 shadow-sm animate-in fade-in duration-200">
                 <span className="text-emerald-400 font-bold">{word}</span>
-                {originalWord && (
+                {originalWord && !correctedWords.includes(originalWord) && (
                   <span className="text-[10px] line-through text-red-400/70 font-mono mt-0.5">
                     {originalWord}
                   </span>

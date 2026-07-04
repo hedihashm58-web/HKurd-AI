@@ -52,14 +52,12 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // 🛡️ مەرجی ١: پشکنینی فۆرماتی فایل
       if (file.type !== "application/pdf") {
         setError(language === 'ku' ? "⚠️ تکایە تەنها فایلی PDF لۆد بکە!" : "⚠️ يرجى تحميل ملف PDF فقط!");
         setSelectedFile(null);
         return;
       }
       
-      // 🛡️ مەرجی ٢: لێمیتکردنی توندی قەبارەی فایل بۆ ١٠ مێگابایت (10 * 1024 * 1024)
       const maxSizeBytes = 10 * 1024 * 1024;
       if (file.size > maxSizeBytes) {
         setError(language === 'ku' ? "⚠️ قەبارەی ئەم فایلە زۆر گەورەیە! تکایە فایلی کەمتر لە ١٠ مێگابایت لۆد بکە." : "⚠️ حجم الملف كبير جداً! يرجى تحميل ملف أقل من 10 ميجابايت.");
@@ -96,7 +94,6 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
       const data = await response.json();
 
       if (!response.ok) {
-        // 📥 خوێندنەوەی ڕاستەوخۆی نامەی خەتای تایبەت بە لێمیتەکانی باکێند تا یەکسەر مۆداڵی پریمیم لۆد ببێت
         if (data.detail && data.detail.includes("LIMIT_EXCEEDED_PDF_TRIAL")) {
           throw new Error("LIMIT_EXCEEDED_PDF_TRIAL");
         }
@@ -110,7 +107,6 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
       console.error(err);
       if (err.message.includes("LIMIT_EXCEEDED_PDF_TRIAL") || err.message.includes("تەواو بوو")) {
         setError(language === 'ku' ? "⚠️ لێمیتی خۆڕایی کورتکردنەوەی PDF تەواو بوو! تکایە بۆ بەکارهێنانی بێسنوور بەشداری ئۆفەرەکان بکە." : "⚠️ انتهت فترة التجربة المجانية لتلخيص الملفات! يرجى الاشتراك في العروض للاستمرار.");
-        // 👑 لێرەدا دەتوانیت فەنکشنێک بانگ بکەیت بۆ کردنەوەی ڕاستەوخۆی مۆداڵی ئۆفەرەکان ئەگەر ویستت
       } else {
         setError(err.message || (language === 'ku' ? "ببوورە، کێشەیەک لە کورتکردنەوەی فایلی PDFەکەدا هەبوو." : "عذراً, حدث خطأ أثناء تلخيص ملف الـ PDF."));
       }
@@ -153,25 +149,28 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-3" dir="rtl">
       
-      <div className="flex justify-between items-center w-full border-b border-zinc-900 pb-3">
-        <button
-          onClick={() => setIsHistoryOpen(true)}
-          className="px-3 py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/80 hover:border-emerald-500/30 text-zinc-300 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95"
-        >
-          <span>📜</span>
-          <span>مێژووی کورتکراوەکان</span>
-          {history.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center font-mono">
-              {history.length}
-            </span>
-          )}
-        </button>
+      {/* 👑 لێرەدا فڵێکس ڕێکخرایەوە بۆ ڕێگری لە تێکەڵبوونی دوگمەکە و دەقەکە لەسەر مۆبایل */}
+      <div className="flex flex-col sm:flex-row-reverse sm:justify-between sm:items-center w-full border-b border-zinc-900 pb-4 gap-4">
+        <div className="flex justify-start sm:justify-end shrink-0">
+          <button
+            onClick={() => setIsHistoryOpen(true)}
+            className="px-4 py-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/80 hover:border-emerald-500/30 text-zinc-300 rounded-xl transition-all text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95"
+          >
+            <span>📜</span>
+            <span>مێژووی کورتکراوەکان</span>
+            {history.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center font-mono">
+                {history.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-        <div className="text-right space-y-0.5">
-          <h2 className="text-2xl sm:text-3xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight">
+        <div className="text-right space-y-1.5">
+          <h2 className="text-2xl sm:text-3xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight leading-tight">
             {language === 'ku' ? 'کورتکەرەوەی هۆشمەندی ' : 'ملخص الـ '}<span className="text-emerald-400">PDF</span>
           </h2>
-          <p className="text-zinc-500 text-xs font-['Noto_Sans_Arabic']">
+          <p className="text-zinc-500 text-xs font-['Noto_Sans_Arabic'] leading-relaxed">
             {language === 'ku' ? 'فایلی PDF لۆد بکە و پوختەکەی لە چەند بەشێکی دەوڵەمەنددا بە کوردییەکی پاراو وەرگرە' : 'قم بتحميل ملف PDF واحصل على الملخص في نقاط أساسية وموجزة باللغة الكوردية'}
           </p>
         </div>

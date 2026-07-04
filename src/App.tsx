@@ -87,13 +87,11 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, on
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
-      <div className="bg-slate-900/60 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[500] p-4 select-none" dir="rtl">
+      <div className="bg-slate-900/80 border border-amber-500/20 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_40px_rgba(245,158,11,0.08)] relative overflow-hidden backdrop-blur-md animate-in zoom-in-95 duration-200 pt-8">
         
-        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        {/* 👑 لێرەدا بازنەکە بە تەواوی سڕایەوە بۆ دیزاینێکی تەواو مۆدێرن و خاوێن */}
+        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <h2 className="text-xl font-black bg-gradient-to-r from-zinc-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent mb-2 tracking-tight">
           چالاککردنی سیستەم
@@ -148,7 +146,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, on
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.HOME);
-  const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=80&w=2000&auto=format&fit=crop');
+  // 👑 لایتی سەرەکی و قەبارەی وێنەکە ئۆپتیمایز کرا بۆ مۆبایل تاوەکو کێشی زۆر کەم بێتەوە
+  const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=70&w=800&auto=format&fit=crop');
   
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);

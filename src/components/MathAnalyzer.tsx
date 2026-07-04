@@ -1,7 +1,15 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { auth } from '../firebase';
+
+interface MathHistoryItem {
+  id: string;
+  query: string;
+  image: string | null;
+  result: string;
+  timestamp: string;
+}
 
 const MathAnalyzer: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -9,7 +17,21 @@ const MathAnalyzer: React.FC = () => {
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<MathHistoryItem[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 👑 لۆدکردنی مێژووی شیکارییە زانستییەکان لە لۆکاڵ ستۆرێجەوە
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('kurdai_math_analysis_history');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Error parsing math history:", e);
+      }
+    }
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,14 +75,18 @@ const MathAnalyzer: React.FC = () => {
       const data = await response.json();
 
       if (response.status === 403) {
-        throw new Error("⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.");
+        throw new Error("⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەکارهێنانی بێسنوور ببە بە ئەندامی Premium.");
       }
 
       if (!response.ok) {
         throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە");
       }
 
-      setResult(data.response || "هیچ زانیارییەک وەرنەگیرا.");
+      const responseText = data.response || "هیچ وەڵامێک نەگەڕایەوە.";
+      setResult(responseText);
+      
+      // 👑 پاشەکەوتکردنی ئەنجامەکە بۆ مێژوو
+      saveToHistory(query.trim() || "شیکاری وێنەی هاوپێچ", image, responseText);
 
     } catch (error: any) {
       console.error(error);
@@ -69,16 +95,65 @@ const MathAnalyzer: React.FC = () => {
     setLoading(false);
   };
 
+  // 👑 پاشەکەوتکردنی داتاکان بۆ لۆکاڵ ستۆرێج
+  const saveToHistory = (queryText: string, imgData: string | null, analysisResult: string) => {
+    setHistory((prevHistory) => {
+      const filtered = prevHistory.filter(item => item.query !== queryText || item.result !== analysisResult);
+      const newItems = [
+        { id: Date.now().toString(), query: queryText, image: imgData, result: analysisResult, timestamp: new Date().toLocaleDateString('ku-IQ') },
+        ...filtered
+      ].slice(0, 5);
+      
+      localStorage.setItem('kurdai_math_analysis_history', JSON.stringify(newItems));
+      return newItems;
+    });
+  };
+
+  const clearHistory = () => {
+    localStorage.removeItem('kurdai_math_analysis_history');
+    setHistory([]);
+  };
+
+  const handleLoadHistoryItem = (item: MathHistoryItem) => {
+    setQuery(item.query === "شیکاری وێنەی هاوپێچ" ? "" : item.query);
+    setImage(item.image);
+    setResult(item.result);
+    setIsHistoryOpen(false);
+  };
+
   const removeImage = () => {
     setImage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20 px-2 sm:px-4" dir="rtl">
-      <div className="text-center space-y-4">
-        <h2 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter">شیکەرەوەی <span className="text-yellow-500">زانستی</span></h2>
-        <p className="text-slate-500 font-bold uppercase tracking-wider sm:tracking-[0.4em] text-[9px] sm:text-[10px] font-['Noto_Sans_Arabic']">شیکارکردنی هاوکێشەکان بە هێزی KurdAI Pro</p>
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-700 pb-20 px-2 sm:px-4" dir="rtl">
+      
+      {/* 👑 هێدەرێکی یەکجار شیک و دژە تێکچوون لەسەر مۆبایل */}
+      <div className="flex flex-col sm:flex-row-reverse sm:justify-between sm:items-center w-full border-b border-white/5 pb-4 gap-4">
+        <div className="flex justify-start sm:justify-end shrink-0">
+          <button
+            onClick={() => setIsHistoryOpen(true)}
+            className="px-4 py-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/80 hover:border-yellow-500/30 text-zinc-300 rounded-xl transition-all text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95"
+          >
+            <span>📜</span>
+            <span>مێژووی شیکارییەکان</span>
+            {history.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-yellow-500 text-zinc-950 text-[10px] font-black flex items-center justify-center font-mono">
+                {history.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="text-right space-y-2">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tighter leading-tight">
+            شیکەرەوەی <span className="text-yellow-500">زانستی</span>
+          </h2>
+          <p className="text-slate-500 font-bold text-xs font-['Noto_Sans_Arabic'] leading-relaxed">
+            شیکارکردنی هاوکێشە ئاڵۆزەکانی بیرکاری، فیزیا و کیمیا بە هێزی KurdAI Pro
+          </p>
+        </div>
       </div>
 
       <div className="glass-panel p-6 sm:p-10 lg:p-16 rounded-[2.5rem] sm:rounded-[4rem] border border-white/5 bg-[#050507] shadow-3xl space-y-8 relative overflow-hidden">
@@ -97,7 +172,6 @@ const MathAnalyzer: React.FC = () => {
               />
             </div>
 
-            {/* 📸 ڕێکخستنی دوگمەی بارکردنی وێنە بە شێوازێکی زۆر ناسک بۆ ئەوەی جێگا نەگرێت */}
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
               
@@ -137,7 +211,7 @@ const MathAnalyzer: React.FC = () => {
               ) : (
                 <div className="text-center space-y-3 p-6">
                   <div className="text-4xl sm:text-5xl opacity-10">🔬</div>
-                  <p className="text-[9px] sm:text-[10px] font-black text-slate-600 uppercase tracking-widest font-['Noto_Sans_Arabic']">هیچ وێنەیەک بار نەکراوە</p>
+                  <p className="text-[9px] sm:text-[10px] font-black text-slate-600 uppercase tracking-widest font-['Noto_Sans_Arabic']">%هیچ وێنەیەک بار نەکراوە</p>
                 </div>
               )}
             </div>
@@ -161,6 +235,67 @@ const MathAnalyzer: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 👑 مۆداڵی پۆڵایینی مێژوو ڕێک وەک وێب کورتکەرەوە و PDF کورتکەرەوە */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)}></div>
+          
+          <div className="relative bg-[#0b0b0e] border border-zinc-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[75vh]">
+            
+            <div className="flex justify-between items-center border-b border-zinc-900 pb-3 mb-3 shrink-0">
+              <button 
+                onClick={() => setIsHistoryOpen(false)}
+                className="w-7 h-7 bg-zinc-900 text-zinc-400 hover:text-white rounded-full flex items-center justify-center text-xs border border-zinc-800 transition-all"
+              >
+                ✕
+              </button>
+              <span className="text-sm font-black text-white">📜 مێژووی شیکارییە زانستییەکان</span>
+            </div>
+
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 pl-1">
+              {history.length === 0 ? (
+                <div className="text-center py-12 text-zinc-600 text-xs italic">
+                  هیچ مێژوویەکی شیکاری لەم ئامێرەدا پاشەکەوت نەکراوە.
+                </div>
+              ) : (
+                history.map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => handleLoadHistoryItem(item)}
+                    className="p-3 bg-zinc-900/40 border border-zinc-800/60 hover:border-yellow-500/30 rounded-xl cursor-pointer transition-all flex flex-col text-right group space-y-1.5 active:scale-[0.99]"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-zinc-500 font-mono bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-900">
+                        {item.timestamp}
+                      </span>
+                      <p className="text-zinc-200 text-xs font-bold truncate max-w-[70%] group-hover:text-yellow-500 transition-colors">
+                        🔬 {item.query}
+                      </p>
+                    </div>
+                    <p className="text-zinc-500 text-[11px] truncate border-t border-zinc-900/60 pt-1.5 italic">
+                      {item.result}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {history.length > 0 && (
+              <div className="border-t border-zinc-900 pt-3 mt-3 flex justify-center shrink-0">
+                <button 
+                  onClick={clearHistory} 
+                  className="w-full py-2 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black rounded-xl transition-all active:scale-95"
+                >
+                  🗑️ سڕینەوەی گشتی مێژوو
+                </button>
+              </div>
+            )}
+            
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

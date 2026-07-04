@@ -93,7 +93,7 @@ def check_one_time_and_premium_limits(email: str, service_type: str):
     user_doc = user_ref.get()
 
     if not user_doc.exists:
-        raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+        return {"isPremium": False, "isEmailVerified": True}
 
     data = user_doc.to_dict()
     is_premium = data.get("isPremium", False)
@@ -131,12 +131,6 @@ def check_user_limit(email: str, limit_type: str):
     if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
         return {"isPremium": True, "activePlan": "yearly", "flashcardCount": 0}
 
-    if email == "voice_ordering_service":
-        raise HTTPException(
-            status_code=503,
-            detail="🎙️ خزمەتگوزاری دەنگی ڕێستۆرانتەکان لە ئێستادا ڕاگیراوە و بەم زوانە چالاک دەکرێتەوە!"
-        )
-
     if not email or email == "guest_user" or email == "translator_service":
         if limit_type == "image" or limit_type == "flashcard":
             raise HTTPException(status_code=403, detail="ئەم خزمەتگوزارییە پێویستی بە ئەکاونتی فەرمی هەیە!")
@@ -149,12 +143,12 @@ def check_user_limit(email: str, limit_type: str):
     if not user_doc.exists:
         user_data = {
             "isPremium": False,
-            "isEmailVerified": False,
+            "isEmailVerified": True,
             "premiumUntil": "",
             "activePlan": "",
-            "chatCount": 0,
+            "chatCount": 1 if limit_type == "chat" else 0,
             "imageCount": 0,
-            "flashcardCount": 0,
+            "flashcardCount": 1 if limit_type == "flashcard" else 0,
             "lastResetDate": today_str,
             "socialHookUsed": 0,
             "flashcardUsed": 0,
@@ -166,12 +160,9 @@ def check_user_limit(email: str, limit_type: str):
             "socialCountThisMonth": 0
         }
         user_ref.set(user_data)
-        raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+        return user_data
 
     data = user_doc.to_dict()
-    
-    if not data.get("isEmailVerified", False):
-        raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
     
     is_premium = data.get("isPremium", False)
     if is_premium:
@@ -210,7 +201,6 @@ def check_user_limit(email: str, limit_type: str):
 
     return data
 
-# 👑 کلاسەکانی داواکاری (Pydantic Models)
 class ChatRequest(BaseModel):
     message: str
     email: str
@@ -221,29 +211,19 @@ class ArtRequest(BaseModel):
     prompt: str
     email: str
 
-class KidsAIRequest(BaseModel):  # 👈 کلاسی نوێ بۆ جیهانی منداڵان
+class KidsAIRequest(BaseModel):
     prompt: str
     email: str
+    mode: Optional[str] = None
 
-class NotificationRequest(BaseModel):  # 👈 کлаسی نوێ بۆ نۆتیفیکەیشن
+class NamesRequest(BaseModel):
+    gender: str
+    email: str
+
+class NotificationRequest(BaseModel):
     title: str
     body: str
     tokens: List[str]
-
-class OrderItem(BaseModel):
-    foodName: str
-    quantity: int
-    price: str
-
-class FoodOrderRequest(BaseModel):
-    restaurantId: str
-    restaurantName: str
-    items: List[OrderItem]
-    totalPrice: str
-    orderType: str  
-    paymentMethod: str  
-    customerPhone: Optional[str] = ""
-    customerAddress: Optional[str] = ""
 
 class PaymentSuccessRequest(BaseModel):
     email: str
@@ -280,10 +260,9 @@ class DocumentSummarizerRequest(BaseModel):
     pdfBase64: Optional[str] = None
     email: str
 
-
 def send_otp_email(target_email: str, code: str):
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print("⚠️ زانیارییەکانی SMTP لە ناو فۆڵدەر و سیکرێتەکاندا پێناسە نەکراون!")
+        print("⚠️ زانیارییەکانی SMTP لە ناو فۆڵڈر و سیکرێتەکاندا پێناسە نەکراون!")
         return False
     try:
         msg = MIMEText(
@@ -336,7 +315,6 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
             
     raise HTTPException(status_code=429, detail=f"تەواوی کلیلەکان لێمیتیان تەواو بووە! کێشەکە: {str(last_error)}")
 
-
 @app.post("/api/auth/send-code")
 async def send_verification_code(request: SendCodeRequest):
     email_clean = request.email.lower().strip()
@@ -355,7 +333,7 @@ async def send_verification_code(request: SendCodeRequest):
     else:
         user_ref.set({
             "isPremium": False,
-            "isEmailVerified": False,
+            "isEmailVerified": True,
             "premiumUntil": "",
             "activePlan": "",
             "chatCount": 0,
@@ -517,11 +495,10 @@ async def chat_endpoint(request: ChatRequest):
                 
         return {"response": response_text}
 
-# 👶 ٤. دروستکردنی ئیندپۆینتی نوێ بۆ جیهانی منداڵان (بۆ بنبڕکردنی خەتای 404)
 @app.post("/api/kids-ai")
 async def kids_ai_endpoint(request: KidsAIRequest):
     validate_content(request.prompt)
-    check_user_limit(request.email, "chat") # بەکارهێنانی لێمیتی چاتی ڕۆژانە
+    check_user_limit(request.email, "chat")
     
     kids_prompt = (
         "تۆ مامۆستایەکی دڵسۆز و چیرۆکخوێنێکی منداڵانی لە KurdAI Pro. ساڵی ئێستا 2026ە. "
@@ -536,10 +513,40 @@ async def kids_ai_endpoint(request: KidsAIRequest):
     )
     return {"response": response_text}
 
-# 🔔 ٥. دروستکردنی ئیندپۆینتی نوێ بۆ ناردنی نۆتیفیکەیشنە لایڤەکان لە ڕێگەی ئەدمینەوە
+@app.post("/api/kurdish-names")
+async def kurdish_names_endpoint(request: NamesRequest):
+    check_user_limit(request.email, "chat")
+    
+    gender_type = "کچ" if request.gender == "girl" else "کوڕ"
+    
+    names_prompt = (
+        f"تۆ پسپۆڕی فەرهەنگ و زمانەوانی کوردیتی. تکایە لیستێک لە ٨ ناوی زۆر ناوازە، ڕەسەن و جوانی منداڵانی ({gender_type}) بە زمانی کوردی بنووسە. "
+        "گرنگە بۆ هەر ناوێک، ماناکەی بە کوردی سۆرانییەکی زۆر ڕەوان و کورت ڕوون بکەیتەوە. "
+        "تکایە وەڵامەکەت تەنها و تەنها بە فۆرماتی JSON پێشکەش بکە بەم شێوازەی خوارەوە بەبێ هیچ دەقێکی زیادە:\n"
+        "[\n"
+        '  {"name": "ناوەکە", "meaning": "ماناکەی"},\n'
+        '  {"name": "ناوەکە", "meaning": "ماناکەی"}\n'
+        "]"
+    )
+    
+    response_text = generate_content_with_fallback(
+        model_name='gemini-2.5-flash',
+        text_prompt=names_prompt
+    )
+    
+    if "```json" in response_text:
+        response_text = response_text.split("```json")[-1].split("```")[0].strip()
+    elif "```" in response_text:
+        response_text = response_text.split("```")[-1].split("```")[0].strip()
+        
+    try:
+        parsed_json = json.loads(response_text.strip())
+        return {"names": parsed_json}
+    except Exception:
+        raise HTTPException(status_code=500, detail="خەتا لە فۆرماتی داتای ناوەکان!")
+
 @app.post("/api/send-notification")
 async def send_notification_endpoint(request: NotificationRequest):
-    # پاشەکەوتکردنی نامەکە لە فایربەیس بۆ ئەوەی لە ناو مۆدێلی زەنگەکە (🔔) پیشانی بەکارهێنەران بدرێت
     try:
         notif_data = {
             "title": request.title.strip(),
@@ -547,8 +554,6 @@ async def send_notification_endpoint(request: NotificationRequest):
             "createdAt": firestore.SERVER_TIMESTAMP
         }
         db.collection('global_notifications').add(notif_data)
-        
-        # لێرەدا دەتوانیت فەنکشنی ڕەسەنی FCM بۆ ناردنی Push بۆ مۆبایلەکان جێگیر بکەیت ئەگەر کلیلەکانت تەواو بوون
         return {"status": "success", "message": "نۆتیفیکەیشن بە سەرکەوتوویی بڵاوکرایەوە!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە بڵاوکردنەوەی نۆتیفیکەیشن: {str(e)}")
@@ -560,10 +565,9 @@ async def kurdish_grammar_endpoint(request: GrammarRequest):
     
     grammar_prompt = (
         "تۆ پسپۆڕی سەرەکی زمان و ڕێنووسی کوردی (سۆرانی) یت. تکایە ئەم دەقەی خوارەوە بە وردی بپشکنە و تەواوی خەتاکانی ڕێنووس, خاڵبەندی, جیاکردنەوەی پیتەکانی وەک (ڕ, ڵ), پاشگرەکان و خەتاکانی زمانەوانی ڕاست بکەرەوە. "
-        "وەڵامەکەت تەنها و تەنها بەم فۆرماتە جەیسۆنە (JSON) بگەڕێنەوە و هیچ تێکستێکی تری لەگەڵدا مەنووسە:\n"
         "{\n"
         '  "corrected": "لێرەدا تەنها دەقە ڕاستکراوەکە بنووسە",\n'
-        '  "explanation": "لێرەدا بە کورتی لە دوو خاڵدا ڕوون بکەرەوە چ خەتایەک هەبوو و بۆچی چاکت کردووە"\n'
+        '  "explanation": "لێرەدا بە کورتی زانیاری بنووسە"\n'
         "}\n\n"
         f"دەقەکە:\n{request.text.strip()}"
     )
@@ -601,19 +605,11 @@ async def social_hook_endpoint(request: SocialHookRequest):
         if plan_id == "1_month" and email_clean != ADMIN_EMAIL:
             social_monthly_count = user_data.get("socialCountThisMonth", 0)
             if social_monthly_count >= 15:
-                raise HTTPException(
-                    status_code=403, 
-                    detail="⚠️ لێمیتی ١٥ دەقی ڕیکلامی ئەم مانگەت تەواو بوو!"
-                )
+                raise HTTPException(status_code=403, detail="⚠️ لێمیتی ١٥ دەقی ڕیکلامی ئەم مانگەت تەواو بوو!")
             db.collection('users').document(email_clean).update({"socialCountThisMonth": social_monthly_count + 1})
 
     hook_prompt = (
-        "تۆ پسپۆڕی سەرەکی مارکێتینگ و نووسینی دەقی ڕیکلامیت (Copywriter) بە زمانی کوردی. "
-        "تکایە ئەم بیرۆکەیەی خوارەوە وەربگرە و پۆستێکی زۆر سەرنجڕاکێش بۆ سۆشیاڵ میدیا دابڕێژە. "
-        "یاساکان:\n"
-        "١. بە دێڕێکی سەرنجڕاکێش (Hook) دەستپێبکە.\n"
-        "٢. زانیارییەکان بە شێوازی خاڵبەندی جوان و ئیمۆجی گونجاو ڕێکبخە.\n"
-        "٣. لە کۆتاییدا هاستاگی زۆر بەهێز دروست بکە.\n\n"
+        "تۆ پسپۆڕی سەرەکی مارکێتینگ و نووسینی دەقی ڕیکلامیت بە زمانی کوردی. "
         f"بیرۆکەی پۆستەکە:\n{request.idea.strip()}"
     )
     
@@ -643,8 +639,7 @@ async def kurdish_flashcard_endpoint(request: FlashcardRequest):
         db.collection('users').document(email_clean).update({"flashcardCount": current_count + 1})
 
     flashcard_prompt = (
-        "تۆ پسپۆڕی فەرهەنگ و زمانەوانی کوردیتی. وشەیەکی بەنرخ، دەگمەن یان زانستی بە زمانی کوردی (سۆرانی) هەڵبژێره. "
-        "تکایە وەڵامەکەت تەنها بە فۆرماتی JSON بنووسە:\n"
+        "تۆ پسپۆڕی فەرهەنگ و زمانەوانی کوردیتی وشەیەکی بەنرخ بە فۆرماتی JSON بنووسە:\n"
         "{\n"
         '  "word": "وشەکە",\n'
         '  "english": "English meaning",\n'
@@ -674,10 +669,7 @@ async def summarize_document_endpoint(request: DocumentSummarizerRequest):
                 raise HTTPException(status_code=403, detail="⚠️ لێمیتی فایلی ئەم مانگەت تەواو بوو!")
             db.collection('users').document(email_clean).update({"pdfCountThisMonth": pdf_monthly_count + 1})
 
-    doc_prompt = (
-        "تۆ پسپۆڕی باڵای شیکاریی بەڵگەنامە و کتێبەکانیت لە KurdAI Pro. "
-        "ئەم فایل یان دەقەی هاوپێچکراوە بە قووڵی بخوێنەوە و کورتەکەی بە زمانی کوردی سۆرانی پاراو پێشکەش بکە."
-    )
+    doc_prompt = "تۆ پسپۆڕی باڵای شیکاریی بەڵگەنامەکانیت کورتەکەی بە زمانی کوردی سۆرانی پاراو پێشکەش بکە."
     
     if request.pdfBase64:
         try:
@@ -693,7 +685,7 @@ async def summarize_document_endpoint(request: DocumentSummarizerRequest):
                     temp_client = genai.Client(api_key=key)
                     response = temp_client.models.generate_content(model='gemini-2.5-flash', contents=contents_payload)
                     return {"response": response.text}
-                except Exception as api_ex:
+                except Exception:
                     continue
             raise HTTPException(status_code=429, detail="تەواوی کلیلەکان لێمیتیان تەواو بووە.")
         except Exception:
@@ -780,26 +772,6 @@ async def payment_success_endpoint(request: PaymentSuccessRequest):
         return {"status": "success", "message": "پلانەکە بە سەرکەوتوویی چالاککرا!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە کاراکردنی پریمیم: {str(e)}")
-
-@app.post("/api/submit-order")
-async def submit_order_endpoint(request: FoodOrderRequest):
-    try:
-        order_data = {
-            "restaurantId": request.restaurantId,
-            "restaurantName": request.restaurantName,
-            "items": [item.dict() for item in request.items],
-            "totalPrice": request.totalPrice,
-            "orderType": request.orderType,
-            "paymentMethod": request.paymentMethod,
-            "customerPhone": request.customerPhone,
-            "customerAddress": request.customerAddress,
-            "status": "new",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        db.collection('restaurant_orders').add(order_data)
-        return {"status": "success", "message": "داواکارییەکە بە سەرکەوتوویی تۆمارکرا"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"خەتا لە پاشەکەوتکردن: {str(e)}")
 
 @app.get("/")
 def read_root():

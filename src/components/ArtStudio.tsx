@@ -86,22 +86,18 @@ const ArtStudio: React.FC = () => {
   };
 
   return (
-    /* h-auto و نەهێشتنی space-y گەورە بۆ ئەوەی کارتەکە نەچێتە خوارەوە */
     <div className="max-w-2xl mx-auto h-auto space-y-4 px-3 flex flex-col justify-start" dir="rtl">
       
-      {/* 👑 سەر دێڕی کورت و ڕێک پێک کێشراو بۆ سەرەوە */}
       <div className="text-center pt-2">
         <h2 className="text-xl sm:text-2xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight">ستۆدیۆی <span className="text-amber-400 italic">داهێنان</span></h2>
       </div>
 
       <div className="flex flex-col gap-3.5 w-full">
         
-        {/* 💎 کارتی پڕۆمپتی شاهانە بەبێ بۆشایی زیادەی ناوەکی */}
         <div className="p-4 rounded-2xl bg-[#0e0e12]/90 border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col relative transition-all duration-300 focus-within:border-amber-500/40">
           
           <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleUserImageChange} />
 
-          {/* پیشاندانی وێنە بە ناسکی لە کاتی بووندا */}
           {userImage && (
             <div className="mb-2 relative w-12 h-12 rounded-xl overflow-hidden border border-zinc-800 shadow-md animate-in zoom-in-95 duration-150">
               <img src={userImage} className="w-full h-full object-cover" alt="User upload" />
@@ -115,7 +111,6 @@ const ArtStudio: React.FC = () => {
             </div>
           )}
 
-          {/* بۆکسی نووسین */}
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -123,58 +118,59 @@ const ArtStudio: React.FC = () => {
             className="w-full bg-transparent text-zinc-100 text-sm font-['Noto_Sans_Arabic'] focus:outline-none h-20 sm:h-24 resize-none text-right placeholder:text-zinc-600 leading-relaxed font-medium"
           />
 
-          {/* کەرەستەکانی خوارەوەی بۆکسەکە */}
-          <div className="flex justify-between items-center pt-2.5 border-t border-zinc-900/90 mt-1">
+          {/* 👑 ڕێکخستنی نوێی بەشی ئامرازەکان و هێنانی دوگمەی گەڕان/داهێنان بۆ ناو کارتەکە بە ڕەنگێکی تەواو گەش */}
+          <div className="flex justify-between items-center pt-3 border-t border-zinc-900/90 mt-2 gap-2">
             
-            <button 
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm transition-all duration-200 active:scale-95 border ${
-                userImage 
-                  ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' 
-                  : 'border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              📸
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm transition-all duration-200 active:scale-95 border ${
+                  userImage 
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' 
+                    : 'border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                📸
+              </button>
 
-            <div className="flex gap-1 bg-zinc-950/60 p-0.5 rounded-lg border border-zinc-900 text-[9px] font-bold">
-              {['1K', '2K'].map(q => (
-                <button 
-                  type="button"
-                  key={q} 
-                  onClick={() => setQuality(q as any)} 
-                  className={`px-2 py-0.5 rounded-md transition-all duration-150 ${
-                    quality === q 
-                      ? 'bg-zinc-100 text-zinc-950 font-black' 
-                      : 'text-zinc-500'
-                  }`}
-                >
-                  {q === '1K' ? 'Standard' : 'Pro 2K'}
-                </button>
-              ))}
+              <div className="flex gap-1 bg-zinc-950/60 p-0.5 rounded-lg border border-zinc-900 text-[9px] font-bold">
+                {['1K', '2K'].map(q => (
+                  <button 
+                    type="button"
+                    key={q} 
+                    onClick={() => setQuality(q as any)} 
+                    className={`px-2 py-1 rounded-md transition-all duration-150 ${
+                      quality === q 
+                        ? 'bg-zinc-100 text-zinc-950 font-black' 
+                        : 'text-zinc-500'
+                    }`}
+                  >
+                    {q === '1K' ? 'Standard' : 'Pro 2K'}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* 👑 دوگمەی سەرەکی دروستکردن بە ڕەنگی زێڕینی درەوشاوە و دەقی ڕووناک لێرە جێگیر کرا */}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading || (!prompt.trim() && !userImage)}
+              className="px-5 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 disabled:from-zinc-900 disabled:to-zinc-900 text-slate-950 disabled:text-zinc-600 font-black text-xs rounded-xl transition-all shadow-md active:scale-[0.98]"
+            >
+              {loading ? '⏳...' : (userImage ? '✨ گۆڕینی وێنە' : '✨ دروستکردن')}
+            </button>
 
           </div>
         </div>
 
         {error && (
-          <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
+          <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
             {error}
           </div>
         )}
 
-        {/* 🚀 دوگمەی ناردن - ڕێک لکێنراوە بە خوارەوەی کارتەکە بۆ ئەوەی پەرت نەبێت */}
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={loading || (!prompt.trim() && !userImage)}
-          className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 font-black text-xs rounded-xl transition-all shadow-md active:scale-[0.98] disabled:opacity-20 font-['Noto_Sans_Arabic']"
-        >
-          {loading ? 'خەریکی کارکردنە...' : (userImage ? 'گۆڕینی وێنە لە سێرڤەر' : 'دایبڕێژە بە KurdAI Pro')}
-        </button>
-
-        {/* پانێڵی ئەنجام */}
         {image && (
           <div className="w-full bg-[#0d0d11]/90 rounded-2xl p-4 border border-zinc-800/60 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col space-y-2">
             <span className="text-[10px] font-black text-amber-400 block text-right">📜 پڕۆمپتی ئینگلیزی دروستبوو:</span>
