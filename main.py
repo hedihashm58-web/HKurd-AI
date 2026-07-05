@@ -3,10 +3,12 @@ import json
 import base64
 import random
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.header import Header
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -77,6 +79,50 @@ SMTP_PORT = 587
 SMTP_EMAIL = os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
+# 👑 سیستەمی دژە سپام (Rate Limiting) بۆ جیاکردنەوەی نامەی خێرا له کێشەی وشەی نەشیاو
+user_request_timestamps = {}
+
+def check_rate_limit(email: str):
+    if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
+        return
+    
+    current_time = datetime.utcnow()
+    if email not in user_request_timestamps:
+        user_request_timestamps[email] = []
+        
+    user_request_timestamps[email] = [t for t in user_request_timestamps[email] if current_time - t < timedelta(minutes=1)]
+    
+    if len(user_request_timestamps[email]) >= 3:
+        raise HTTPException(status_code=429, detail="⚠️ تکایە کەمێک لەسەرخۆ بە! ناتوانیت لە خولەکێکدا زیاتر لە ٣ نامە بنێریت.")
+        
+    user_request_timestamps[email].append(current_time)
+
+# 👑 👑 فۆنکشنی زیرەکی پشکنینی ئایپی (IP Geolocation) بۆ ڕێگری لە دەرەوەی وڵات
+def check_ip_geolocation(fastapi_request: Request):
+    client_ip = fastapi_request.headers.get("x-forwarded-for")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = fastapi_request.client.host
+
+    # لۆکاڵ هۆست بۆ کاتی گەشەپێدان (Testing) پشتگوێ دەخەین
+    if client_ip in ["127.0.0.1", "localhost", "::1"]:
+        return
+
+    try:
+        response = requests.get(f"http://ip-api.com/json/{client_ip}", timeout=3).json()
+        if response.get("status") == "success":
+            country_code = response.get("countryCode")
+            # تەنها ڕێگا بە ئایپی عێراق (IQ) دەدرێت بۆ بەکارهێنانی وەشانی فڕی
+            if country_code != "IQ":
+                raise HTTPException(
+                    status_code=403, 
+                    detail="⚠️ ببوورە، بەکارهێنانی وەشانی خۆڕایی تەنها بۆ ناوخۆی کوردستان و عێراق ڕێگەپێدراوە! بۆ بەکارهێنان لە دەرەوەی وڵات، پێویستە ببیتە ئەندامی Premium."
+                )
+    except requests.RequestException:
+        # ئەگەر سێرڤەرەکەی دەرەوە وەڵامی نەدا، ڕێگا دەدەین تا ئەپەکە سڵۆو نەبێت
+        pass
+
 def validate_content(text: str):
     if not text:
         return
@@ -85,19 +131,26 @@ def validate_content(text: str):
         if word in text_lower:
             raise HTTPException(status_code=400, detail="داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.")
 
-def check_one_time_and_premium_limits(email: str, service_type: str):
+def check_one_time_and_premium_limits(email: str, service_type: str, fastapi_request: Optional[Request] = None):
     if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
         return {"isPremium": True, "activePlan": "yearly"}
 
     user_ref = db.collection('users').document(email)
     user_doc = user_ref.get()
 
+    is_user_premium = False
+    if user_doc.exists:
+        data = user_doc.to_dict()
+        is_user_premium = data.get("isPremium", False)
+
+    # ئەگەر پریمیم نەبوو پشکنینی وڵاتی بۆ دەکەین
+    if not is_user_premium and fastapi_request:
+        check_ip_geolocation(fastapi_request)
+
     if not user_doc.exists:
         return {"isPremium": False, "isEmailVerified": True}
 
     data = user_doc.to_dict()
-    is_premium = data.get("isPremium", False)
-
     if is_premium:
         return data
 
@@ -127,7 +180,7 @@ def check_one_time_and_premium_limits(email: str, service_type: str):
 
     return data
 
-def check_user_limit(email: str, limit_type: str):
+def check_user_limit(email: str, limit_type: str, fastapi_request: Optional[Request] = None):
     if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
         return {"isPremium": True, "activePlan": "yearly", "flashcardCount": 0}
 
@@ -139,6 +192,13 @@ def check_user_limit(email: str, limit_type: str):
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
     user_ref = db.collection('users').document(email)
     user_doc = user_ref.get()
+
+    is_user_premium = False
+    if user_doc.exists:
+        is_user_premium = user_doc.to_dict().get("isPremium", False)
+
+    if not is_user_premium and fastapi_request:
+        check_ip_geolocation(fastapi_request)
 
     if not user_doc.exists:
         user_data = {
@@ -195,7 +255,7 @@ def check_user_limit(email: str, limit_type: str):
         if data.get("imageCount", 0) >= max_images_allowed:
             raise HTTPException(
                 status_code=403, 
-                detail=f"⚠️ لێمیتی وێنەی ئەمڕۆت تەواو بوو! پلانی تۆ ڕێگەت پێدەدات ڕۆژانە {max_images_allowed} وێنە دروست بکەیت."
+                detail=f"⚠️ لێمیتی وێنەی ئەمڕۆت تەواو بوو! پلانی تۆ ڕۆژانە {max_images_allowed} وێنە دروست بکەیت."
             )
         user_ref.update({"imageCount": data.get("imageCount", 0) + 1})
 
@@ -293,27 +353,28 @@ def send_otp_email(target_email: str, code: str):
         print(f"❌ خەتا لە ناردنی ئیمەیڵ: {str(e)}")
         return False
 
-def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
-    last_error = None
+# 👑 لۆجیکی جادویی ناردنی وەڵامەکان بە شێوازی ستریم پیت بە پیت
+def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
     contents_payload = [text_prompt]
     if base64_image:
         try:
             image_bytes = base64.b64decode(base64_image)
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
             contents_payload.append(image_part)
-        except Exception as img_err:
-            print(f"❌ خەتا لە کۆدکردنی وێنە: {str(img_err)}")
+        except Exception:
+            pass
 
-    for index, key in enumerate(API_KEYS):
+    for key in API_KEYS:
         try:
             temp_client = genai.Client(api_key=key)
-            response = temp_client.models.generate_content(model=model_name, contents=contents_payload)
-            return response.text
-        except Exception as e:
-            last_error = e
+            response_stream = temp_client.models.generate_content_stream(model=model_name, contents=contents_payload)
+            for chunk in response_stream:
+                if chunk.text:
+                    yield chunk.text
+            return
+        except Exception:
             continue
-            
-    raise HTTPException(status_code=429, detail=f"تەواوی کلیلەکان لێمیتیان تەواو بووە! کێشەکە: {str(last_error)}")
+    yield "⚠️ تەواوی کلیلەکانی API لێمیتیان تەواو بووە یان خەتایەک ڕوویدا."
 
 @app.post("/api/auth/send-code")
 async def send_verification_code(request: SendCodeRequest):
@@ -409,14 +470,19 @@ async def verify_verification_code(request: VerifyCodeRequest):
 
     return {"status": "success", "message": "هەژمارەکەت بە سەرکەوتوویی چالاککرا! ئێستا دەتوانیت چات بکەیت."}
 
+# 👑 ڕاوتی سەرەکی چات بە شێوازی لایڤ ستریم پیت بە پیت (Streaming)
 @app.post("/api/chat")
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
+    # 👑 ١. پشکنینی خێرایی ناردن (Rate Limit) پێش هەموو شتێک بۆ ئەوەی ڕاستەوخۆ فڕێی بدات
+    check_rate_limit(request.email)
+    
+    # ٢. پشکنینی وشەی نەشیاو دوای ڕەیت لێمیت
     validate_content(request.message)
     raw_message = request.message.strip()
     email_clean = request.email.lower().strip()
     
     if raw_message.startswith("http://") or raw_message.startswith("https://") or "بەستەر:" in raw_message:
-        user_data = check_one_time_and_premium_limits(request.email, "web_summarizer")
+        user_data = check_one_time_and_premium_limits(request.email, "web_summarizer", fastapi_req)
         
         if user_data.get("isPremium", False):
             plan_id = user_data.get("activePlan", "")
@@ -440,82 +506,63 @@ async def chat_endpoint(request: ChatRequest):
             "ڕاستەوخۆ بەبێ پێشەکیی کڵێشەیی و بەبێ دووبارەکردنەوەی ناونیشان دەستپێبکە."
         )
         
-        response_text = generate_content_with_fallback(
-            model_name='gemini-2.5-flash', 
-            text_prompt=enhanced_prompt,
-            base64_image=request.image,
-            mime_type=request.mimeType
-        )
-        return {"response": response_text}
+        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType), media_type="text/plain")
 
     else:
-        check_user_limit(request.email, "chat")
+        check_user_limit(request.email, "chat", fastapi_req)
         
         if not request.image:
             cache_ref = db.collection('chat_cache').document(raw_message)
             cache_doc = cache_ref.get()
             if cache_doc.exists:
-                return {"response": cache_doc.to_dict().get("response")}
+                # کێش بۆ ستریم ناردن بە دۆکیومێنت فڕێ دەدرێت
+                async def stream_cache():
+                    yield cache_doc.to_dict().get("response")
+                return StreamingResponse(stream_cache(), media_type="text/plain")
+
+        # 👑 ٣. نوێکردنەوەی پۆڵایینی زانیارییەکانی هاوینی ٢٠٢٦ و قۆناغی ٨ی مۆندیال بۆ ئەقڵی مۆدێلەکە
+        system_context = (
+            "تۆ مۆدێلی نیشتمانی KurdAI Pro یت بۆ خزمەتی گەلی کوردستان. ساڵی ئێستا بە تەواوی ٢٠٢٦ە. "
+            "ئێستا وەرزی هاوینی ٢٠٢٦ە و مۆندیالی ٢٠٢٦ لە قۆناغی کۆتاییەکاندایە و گەیشتووەتە قۆناغی هەشت (Quarter-finals)! "
+            "ئەگەر بەکارهێنەر پرسیاری مۆندیالی لێکردیت، بە تەواوی ئاگادار بە کە یارییەکان لە قۆناغی ٨ دان و هاوینی ٢٠٢٦ە. "
+            "یاسای زمانەوانی: تەنها بە کوردیی سۆرانیی ڕەوان و ستاندارد وەڵام بدەرەوە بەبێ پێشەکی کڵێشەیی."
+        )
 
         is_real_creator = (email_clean == ADMIN_EMAIL)
         if is_real_creator:
             enhanced_prompt = (
-                "تۆ مۆدێلی KurdAI Pro یت. بەکارهێنەری ئێستا (هێدی) خۆیەتی؛ ئەو ئەندازیارە بلیمەتەی کە تۆی دروستکردووە. "
-                "زۆر بە ڕێز و دڵسۆزییەوە وەڵامی بدەرەوە. گرنگە کورت و پوخت بیت، بە زمانی کوردیی سۆرانیی ستاندارد و پاراو قسە بکە. "
-                "دوور بکەوە لە دەستەواژەی وەرگێڕدراوی عاتیفی و نامۆ وەک 'بە دڵنیاییەوە برام'. "
-                "# ساڵی ئێستا 2026 ە.\n\n"
+                f"{system_context}\n"
+                "بەکارهێنەر خۆیەتی (کاک هێدی) دروستکەری زیرەکی تۆ. بەوپەڕی ڕێزەوە کورت و پوخت وەڵامی بدەرەوە:\n\n"
                 f"{request.message}"
             )
         else:
             enhanced_prompt = (
-                "تۆ مۆدێلی KurdAI Pro یت, یاریدەدەرێکی زیرەک و پڕۆفیشناڵ بۆ بەکارهێنەرانی کوردستان. ساڵی ئێستا ٢٠٢٦ە. "
-                "یاساکانی زمانەوانیی تۆ بەم شێوەیەیە:\n"
-                "١. تەنها بە زمانی کوردیی سۆرانیی ڕەوان, ستاندارد و خاوێن وەڵام بدەرەوە.\n"
-                "٢. بە چڕی دوور بکەوە لە وەرگێڕانی دەقاودەقی ئینگلیزی (بۆ نموونە هەرگیز مەنووسە: 'سوپاس بۆ پرسیارەکەت '، 'چۆن دەتوانم یارمەتیت بدەم ئەمڕۆ').\n"
-                "٣. وەڵامەکەت ڕاستەوخۆ لە دێڕی یەکەمەوە دەست پێبکە بەبێ پێشەکیی دووبارەبووەوە.\n"
-                "٤. شێوازی قسەکردنت با وەک مرۆڤێکی کوردی زمان بێت نەک ڕۆبۆتێکی وەرگێڕاو.\n\n"
+                f"{system_context}\n"
+                f"پرسیاری بەکارهێنەر:\n\n"
                 f"{request.message}"
             )
         
-        response_text = generate_content_with_fallback(
-            model_name='gemini-2.5-flash', 
-            text_prompt=enhanced_prompt,
-            base64_image=request.image,
-            mime_type=request.mimeType
-        )
-        
-        if not request.image and response_text:
-            try:
-                db.collection('chat_cache').document(raw_message).set({
-                    "response": response_text,
-                    "timestamp": datetime.utcnow().isoformat()
-                })
-            except Exception as cache_err:
-                print(f"Cache save error: {str(cache_err)}")
-                
-        return {"response": response_text}
+        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType), media_type="text/plain")
 
 @app.post("/api/kids-ai")
-async def kids_ai_endpoint(request: KidsAIRequest):
+async def kids_ai_endpoint(request: KidsAIRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
     validate_content(request.prompt)
-    check_user_limit(request.email, "chat")
+    check_user_limit(request.email, "chat", fastapi_req)
     
     kids_prompt = (
         "تۆ مامۆستایەکی دڵسۆز و چیرۆکخوێنێکی منداڵانی لە KurdAI Pro. ساڵی ئێستا 2026ە. "
         "ئەم پرسیار یان داواکارییەی خوارەوە بە شێوازێکی یەکجار سادە، فێرکاری، شیرین، و پڕ لە خۆشەویستی بە زمانی کوردی سۆرانی بۆ منداڵان ڕوون بکەرەوە. "
-        "دوور بکەوە لە وشەی قورس و فەرمی، هاوشێوەی چیرۆک و یاری بابەتەکان باس بکە و ئیمۆجی زۆر بەکاربهێنە. "
+        "دوور بکەوە لە وشەی قورس و فەرمی, هاوشێوەی چیرۆک و یاری بابەتەکان باس بکە و ئیمۆجی زۆر بەکاربهێنە. "
         f"داواکاری منداڵەکە:\n{request.prompt.strip()}"
     )
     
-    response_text = generate_content_with_fallback(
-        model_name='gemini-2.5-flash',
-        text_prompt=kids_prompt
-    )
-    return {"response": response_text}
+    return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', kids_prompt), media_type="text/plain")
 
 @app.post("/api/kurdish-names")
-async def kurdish_names_endpoint(request: NamesRequest):
-    check_user_limit(request.email, "chat")
+async def kurdish_names_endpoint(request: NamesRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
+    check_user_limit(request.email, "chat", fastapi_req)
     
     gender_type = "کچ" if request.gender == "girl" else "کوڕ"
     
@@ -559,9 +606,10 @@ async def send_notification_endpoint(request: NotificationRequest):
         raise HTTPException(status_code=500, detail=f"خەتا لە بڵاوکردنەوەی نۆتیفیکەیشن: {str(e)}")
 
 @app.post("/api/kurdish-grammar")
-async def kurdish_grammar_endpoint(request: GrammarRequest):
+async def kurdish_grammar_endpoint(request: GrammarRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
     validate_content(request.text)
-    check_one_time_and_premium_limits(request.email, "kurdish_grammar")
+    check_one_time_and_premium_limits(request.email, "kurdish_grammar", fastapi_req)
     
     grammar_prompt = (
         "تۆ پسپۆڕی سەرەکی زمان و ڕێنووسی کوردی (سۆرانی) یت. تکایە ئەم دەقەی خوارەوە بە وردی بپشکنە و تەواوی خەتاکانی ڕێنووس, خاڵبەندی, جیاکردنەوەی پیتەکانی وەک (ڕ, ڵ), پاشگرەکان و خەتاکانی زمانەوانی ڕاست بکەرەوە. "
@@ -595,9 +643,10 @@ async def submit_feedback_endpoint(request: FeedbackRequest):
         raise HTTPException(status_code=500, detail=f"خەتا لە تۆمارکردنی تێبینی: {str(e)}")
 
 @app.post("/api/social-hook")
-async def social_hook_endpoint(request: SocialHookRequest):
+async def social_hook_endpoint(request: SocialHookRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
     validate_content(request.idea)
-    user_data = check_one_time_and_premium_limits(request.email, "social_hook")
+    user_data = check_one_time_and_premium_limits(request.email, "social_hook", fastapi_req)
     
     if user_data.get("isPremium", False):
         plan_id = user_data.get("activePlan", "")
@@ -613,15 +662,11 @@ async def social_hook_endpoint(request: SocialHookRequest):
         f"بیرۆکەی پۆستەکە:\n{request.idea.strip()}"
     )
     
-    response_text = generate_content_with_fallback(
-        model_name='gemini-2.5-flash',
-        text_prompt=hook_prompt
-    )
-    return {"response": response_text}
+    return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', hook_prompt), media_type="text/plain")
 
 @app.post("/api/kurdish-flashcard")
-async def kurdish_flashcard_endpoint(request: FlashcardRequest):
-    user_data = check_user_limit(request.email, "chat")
+async def kurdish_flashcard_endpoint(request: FlashcardRequest, fastapi_req: Request):
+    user_data = check_user_limit(request.email, "chat", fastapi_req)
     email_clean = request.email.lower().strip()
     
     is_premium = user_data.get("isPremium", False)
@@ -656,8 +701,9 @@ async def kurdish_flashcard_endpoint(request: FlashcardRequest):
     return {"response": response_text}
 
 @app.post("/api/summarize-document")
-async def summarize_document_endpoint(request: DocumentSummarizerRequest):
-    user_data = check_one_time_and_premium_limits(request.email, "pdf_summarizer")
+async def summarize_document_endpoint(request: DocumentSummarizerRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
+    user_data = check_one_time_and_premium_limits(request.email, "pdf_summarizer", fastapi_req)
     
     if user_data.get("isPremium", False):
         plan_id = user_data.get("activePlan", "")
@@ -694,21 +740,17 @@ async def summarize_document_endpoint(request: DocumentSummarizerRequest):
     elif request.content:
         validate_content(request.content)
         full_prompt = f"{doc_prompt}\n\nدەقی فایلەکە:\n{request.content.strip()}"
-        response_text = generate_content_with_fallback(model_name='gemini-2.5-flash', text_prompt=full_prompt)
-        return {"response": response_text}
-    else:
-        raise HTTPException(status_code=400, detail="تکایە دەقێک داخڵ بکە یان فایلێک لۆد بکە.")
+        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', full_prompt), media_type="text/plain")
 
 @app.post("/api/art-studio")
-async def art_studio_endpoint(request: ArtRequest):
+async def art_studio_endpoint(request: ArtRequest, fastapi_req: Request):
     validate_content(request.prompt)
-    check_user_limit(request.email, "image")
+    check_user_limit(request.email, "image", fastapi_req)
     
     system_instruction = "تۆ ئەندازیارێکی پسپۆڕی داهێنانی وێنەی پڕۆمپی Midjourney دابڕێژە بە ئینگلیزی: "
     full_prompt = f"{system_instruction}\n{request.prompt}"
     
-    response_text = generate_content_with_fallback('gemini-2.5-pro', full_prompt)
-    return {"art_response": response_text}
+    return StreamingResponse(generate_stream_fallback('gemini-2.5-pro', full_prompt), media_type="text/plain")
 
 @app.post("/api/payment-success")
 async def payment_success_endpoint(request: PaymentSuccessRequest):
