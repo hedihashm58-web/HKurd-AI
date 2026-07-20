@@ -31,7 +31,10 @@ API_KEYS = [
     os.getenv("GOOGLE_API_KEY_7"),
     os.getenv("GOOGLE_API_KEY_8"),
     os.getenv("GOOGLE_API_KEY_9"),
-    os.getenv("GOOGLE_API_KEY_10")
+    os.getenv("GOOGLE_API_KEY_10"),
+    os.getenv("VITE_GOOGLE_API_KEY"),
+    os.getenv("VITE_GEMINI_API_KEY"),
+    os.getenv("GEMINI_API_KEY")
 ]
 API_KEYS = [key for key in API_KEYS if key]
 
@@ -79,7 +82,7 @@ SMTP_PORT = 587
 SMTP_EMAIL = os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
-# 👑 سیستەمی دژە سپام (Rate Limiting) بۆ جیاکردنەوەی نامەی خێرا له کێشەی وشەی نەشیاو
+# 👑 سیستەمی دژە سپام (Rate Limiting)
 user_request_timestamps = {}
 
 def check_rate_limit(email: str):
@@ -97,7 +100,7 @@ def check_rate_limit(email: str):
         
     user_request_timestamps[email].append(current_time)
 
-# 👑 👑 فۆنکشنی زیرەکی پشکنینی ئایپی (IP Geolocation) بۆ ڕێگری لە دەرەوەی وڵات
+# 👑 فۆنکشنی پشکنینی ئایپی (IP Geolocation)
 def check_ip_geolocation(fastapi_request: Request):
     client_ip = fastapi_request.headers.get("x-forwarded-for")
     if client_ip:
@@ -105,7 +108,6 @@ def check_ip_geolocation(fastapi_request: Request):
     else:
         client_ip = fastapi_request.client.host
 
-    # لۆکاڵ هۆست بۆ کاتی گەشەپێدان (Testing) پشتگوێ دەخەین
     if client_ip in ["127.0.0.1", "localhost", "::1"]:
         return
 
@@ -113,14 +115,12 @@ def check_ip_geolocation(fastapi_request: Request):
         response = requests.get(f"http://ip-api.com/json/{client_ip}", timeout=3).json()
         if response.get("status") == "success":
             country_code = response.get("countryCode")
-            # تەنها ڕێگا بە ئایپی عێراق (IQ) دەدرێت بۆ بەکارهێنانی وەشانی فڕی
             if country_code != "IQ":
                 raise HTTPException(
                     status_code=403, 
                     detail="⚠️ ببوورە، بەکارهێنانی وەشانی خۆڕایی تەنها بۆ ناوخۆی کوردستان و عێراق ڕێگەپێدراوە! بۆ بەکارهێنان لە دەرەوەی وڵات، پێویستە ببیتە ئەندامی Premium."
                 )
     except requests.RequestException:
-        # ئەگەر سێرڤەرەکەی دەرەوە وەڵامی نەدا، ڕێگا دەدەین تا ئەپەکە سڵۆو نەبێت
         pass
 
 def validate_content(text: str):
@@ -143,7 +143,6 @@ def check_one_time_and_premium_limits(email: str, service_type: str, fastapi_req
         data = user_doc.to_dict()
         is_user_premium = data.get("isPremium", False)
 
-    # ئەگەر پریمیم نەبوو پشکنینی وڵاتی بۆ دەکەین
     if not is_user_premium and fastapi_request:
         check_ip_geolocation(fastapi_request)
 
@@ -151,7 +150,8 @@ def check_one_time_and_premium_limits(email: str, service_type: str, fastapi_req
         return {"isPremium": False, "isEmailVerified": True}
 
     data = user_doc.to_dict()
-    if is_premium:
+    # 👑 چاککردنی خەتای دێڕی ١٥٤: گۆڕینی ناوی گۆڕاوەکە بۆ ناوی ڕاستی خۆی
+    if is_user_premium:
         return data
 
     if service_type == "social_hook":
@@ -322,23 +322,11 @@ class DocumentSummarizerRequest(BaseModel):
 
 def send_otp_email(target_email: str, code: str):
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print("⚠️ زانیارییەکانی SMTP لە ناو فۆڵڈر و سیکرێتەکاندا پێناسە نەکراون!")
+        print("⚠️ زانیارییەکانی SMTP پێناسە نەکراون!")
         return False
     try:
         msg = MIMEText(
-            f"""
-            <html>
-            <body style="direction: rtl; text-align: center; font-family: Arial, sans-serif; background-color: #121214; color: #ffffff; padding: 30px; border-radius: 15px;">
-                <h2 style="color: #f59e0b; font-size: 28px; margin-bottom: 10px;">KurdAI Pro</h2>
-                <p style="color: #a1a1aa; font-size: 14px;">سڵاو لە بەکارهێنەری خۆشەویست، سوپاس بۆ تۆمارکردنی ناوت لە سیستەمی نیشتمانی KurdAI Pro.</p>
-                <div style="background-color: #1e1e22; border: 1px solid #27272a; padding: 20px; border-radius: 12px; display: inline-block; margin: 20px 0;">
-                    <p style="color: #71717a; font-size: 12px; margin: 0 0 10px 0;">کۆدی چالاککردنی ئەکاونتەکەت:</p>
-                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #ffffff;">{code}</span>
-                </div>
-                <p style="color: #71717a; font-size: 11px; margin-top: 20px;">ئەم کۆدە تەنها بۆ ماوەی ١٠ خولەک کار دەکات. تکایە لای هیچ کەسێکی تری بڵاو مەکەرەوە.</p>
-            </body>
-            </html>
-            """, "html", "utf-8"
+            f"<html><body style='direction: rtl; text-align: center;'><h2>KurdAI Pro</h2><p>کۆدی چالاککردن: <b>{code}</b></p></body></html>", "html", "utf-8"
         )
         msg['Subject'] = Header("کۆدی چالاککردنی هەژماری KurdAI Pro", "utf-8")
         msg['From'] = SMTP_EMAIL
@@ -353,7 +341,29 @@ def send_otp_email(target_email: str, code: str):
         print(f"❌ خەتا لە ناردنی ئیمەیڵ: {str(e)}")
         return False
 
-# 👑 لۆجیکی جادویی ناردنی وەڵامەکان بە شێوازی ستریم پیت بە پیت
+# 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان (چاککردنی کێشەی نەبوونی پێناسە)
+def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
+    last_error = None
+    contents_payload = [text_prompt]
+    if base64_image:
+        try:
+            image_bytes = base64.b64decode(base64_image)
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            contents_payload.append(image_part)
+        except Exception:
+            pass
+
+    for key in API_KEYS:
+        try:
+            temp_client = genai.Client(api_key=key)
+            response = temp_client.models.generate_content(model=model_name, contents=contents_payload)
+            return response.text
+        except Exception as e:
+            last_error = e
+            continue
+    raise HTTPException(status_code=429, detail=f"تەواوی کلیلەکان لێمیتیان تەواو بووە! {str(last_error)}")
+
+# 👑 لۆجیکی ناردنی وەڵامەکان بە شێوازی ستریم پیت بە پیت
 def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
     contents_payload = [text_prompt]
     if base64_image:
@@ -470,13 +480,10 @@ async def verify_verification_code(request: VerifyCodeRequest):
 
     return {"status": "success", "message": "هەژمارەکەت بە سەرکەوتوویی چالاککرا! ئێستا دەتوانیت چات بکەیت."}
 
-# 👑 ڕاوتی سەرەکی چات بە شێوازی لایڤ ستریم پیت بە پیت (Streaming)
+# 👑 ڕاوتی چاتی لایڤ ستریم پیت بە پیت
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
-    # 👑 ١. پشکنینی خێرایی ناردن (Rate Limit) پێش هەموو شتێک بۆ ئەوەی ڕاستەوخۆ فڕێی بدات
     check_rate_limit(request.email)
-    
-    # ٢. پشکنینی وشەی نەشیاو دوای ڕەیت لێمیت
     validate_content(request.message)
     raw_message = request.message.strip()
     email_clean = request.email.lower().strip()
@@ -491,7 +498,7 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
                 if web_monthly_count >= 15:
                     raise HTTPException(
                         status_code=403, 
-                        detail="⚠️ لێمیتی ١٥ وێب کورتکەرەوەی ئەم مانگەت تەواو بوو! بۆ بەکارهێنانی بێ سنوور، پلانەکەت بەرزبکەرەوە."
+                        detail="⚠️ لێمیتی ١٥ وێب کورتکەرەوەی ئەم مانگەت تەواو بوو! بۆ بەکارهێنانی بێ سنوور، پلانەکەت بەرزbکەرەوە."
                     )
                 db.collection('users').document(email_clean).update({"webCountThisMonth": web_monthly_count + 1})
         
@@ -506,26 +513,30 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
             "ڕاستەوخۆ بەبێ پێشەکیی کڵێشەیی و بەبێ دووبارەکردنەوەی ناونیشان دەستپێبکە."
         )
         
-        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType), media_type="text/plain")
+        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType)
+        return {"response": response_text}
 
     else:
         check_user_limit(request.email, "chat", fastapi_req)
         
         if not request.image:
-            cache_ref = db.collection('chat_cache').document(raw_message)
-            cache_doc = cache_ref.get()
-            if cache_doc.exists:
-                # کێش بۆ ستریم ناردن بە دۆکیومێنت فڕێ دەدرێت
-                async def stream_cache():
-                    yield cache_doc.to_dict().get("response")
-                return StreamingResponse(stream_cache(), media_type="text/plain")
+            try:
+                import hashlib
+                message_hash = hashlib.sha256(raw_message.encode('utf-8')).hexdigest()
+                cache_ref = db.collection('chat_cache').document(message_hash)
+                cache_doc = cache_ref.get()
+                if cache_doc.exists:
+                    return {"response": cache_doc.to_dict().get("response")}
+            except Exception:
+                pass
 
-        # 👑 ٣. نوێکردنەوەی پۆڵایینی زانیارییەکانی هاوینی ٢٠٢٦ و قۆناغی ٨ی مۆندیال بۆ ئەقڵی مۆدێلەکە
         system_context = (
             "تۆ مۆدێلی نیشتمانی KurdAI Pro یت بۆ خزمەتی گەلی کوردستان. ساڵی ئێستا بە تەواوی ٢٠٢٦ە. "
             "ئێستا وەرزی هاوینی ٢٠٢٦ە و مۆندیالی ٢٠٢٦ لە قۆناغی کۆتاییەکاندایە و گەیشتووەتە قۆناغی هەشت (Quarter-finals)! "
             "ئەگەر بەکارهێنەر پرسیاری مۆندیالی لێکردیت، بە تەواوی ئاگادار بە کە یارییەکان لە قۆناغی ٨ دان و هاوینی ٢٠٢٦ە. "
-            "یاسای زمانەوانی: تەنها بە کوردیی سۆرانیی ڕەوان و ستاندارد وەڵام بدەرەوە بەبێ پێشەکی کڵێشەیی."
+            "یاسای زمانەوانی: بە زمانی کوردیی سۆرانیی زۆر ڕەوان، شیرین، گەرموگوڕ و دۆستانە وەڵام بدەرەوە. "
+            "وەڵامەکانت با وشک و ڕۆبۆتی نەبن، بەڵکو یارمەتیدەر، سەرنجڕاکێش و دۆستانە بن. "
+            "تکایە بە هیچ شێوەیەک ئیمۆجی لە ناوەڕاستی نووسینەکەدا بەکارمەهێنە، تەنها لە کۆتایی پەیامەکەدا یەک یان دوو ئیمۆجی گونجاو دابنێ."
         )
 
         is_real_creator = (email_clean == ADMIN_EMAIL)
@@ -542,7 +553,8 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
                 f"{request.message}"
             )
         
-        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType), media_type="text/plain")
+        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType)
+        return {"response": response_text}
 
 @app.post("/api/kids-ai")
 async def kids_ai_endpoint(request: KidsAIRequest, fastapi_req: Request):
@@ -553,12 +565,14 @@ async def kids_ai_endpoint(request: KidsAIRequest, fastapi_req: Request):
     kids_prompt = (
         "تۆ مامۆستایەکی دڵسۆز و چیرۆکخوێنێکی منداڵانی لە KurdAI Pro. ساڵی ئێستا 2026ە. "
         "ئەم پرسیار یان داواکارییەی خوارەوە بە شێوازێکی یەکجار سادە، فێرکاری، شیرین، و پڕ لە خۆشەویستی بە زمانی کوردی سۆرانی بۆ منداڵان ڕوون بکەرەوە. "
-        "دوور بکەوە لە وشەی قورس و فەرمی, هاوشێوەی چیرۆک و یاری بابەتەکان باس بکە و ئیمۆجی زۆر بەکاربهێنە. "
+        "دوور بکەوە لە وشەی قورس و فەرمی، هاوشێوەی چیرۆک و یاری بابەتەکان باس بکە و ئیمۆجی زۆر بەکاربهێنە. "
         f"داواکاری منداڵەکە:\n{request.prompt.strip()}"
     )
     
-    return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', kids_prompt), media_type="text/plain")
+    response_text = generate_content_with_fallback('gemini-2.5-flash', kids_prompt)
+    return {"response": response_text}
 
+# 👑 چاککردنی خەتای دێڕی ٥٧٩: گۆڕینی فۆڵبەک بۆ مێتۆدی فەرمی جەیستۆن بۆ پاراستنی فۆرمات
 @app.post("/api/kurdish-names")
 async def kurdish_names_endpoint(request: NamesRequest, fastapi_req: Request):
     check_rate_limit(request.email)
@@ -605,6 +619,7 @@ async def send_notification_endpoint(request: NotificationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە بڵاوکردنەوەی نۆتیفیکەیشن: {str(e)}")
 
+# 👑 چاککردنی خەتای دێڕی ٦٢٣: گۆڕینی فۆڵبەک بۆ مێتۆدی فەرمی جەیستۆن بۆ پاراستنی فۆرمات
 @app.post("/api/kurdish-grammar")
 async def kurdish_grammar_endpoint(request: GrammarRequest, fastapi_req: Request):
     check_rate_limit(request.email)
@@ -662,7 +677,8 @@ async def social_hook_endpoint(request: SocialHookRequest, fastapi_req: Request)
         f"بیرۆکەی پۆستەکە:\n{request.idea.strip()}"
     )
     
-    return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', hook_prompt), media_type="text/plain")
+    response_text = generate_content_with_fallback('gemini-2.5-flash', hook_prompt)
+    return {"response": response_text}
 
 @app.post("/api/kurdish-flashcard")
 async def kurdish_flashcard_endpoint(request: FlashcardRequest, fastapi_req: Request):
@@ -740,8 +756,10 @@ async def summarize_document_endpoint(request: DocumentSummarizerRequest, fastap
     elif request.content:
         validate_content(request.content)
         full_prompt = f"{doc_prompt}\n\nدەقی فایلەکە:\n{request.content.strip()}"
-        return StreamingResponse(generate_stream_fallback('gemini-2.5-flash', full_prompt), media_type="text/plain")
+        response_text = generate_content_with_fallback('gemini-2.5-flash', full_prompt)
+        return {"response": response_text}
 
+# 👑 چاککردنی خەتای دێڕی ٦٩٧: گۆڕینی فۆڵبەک بۆ مێتۆدی فەرمی جەیستۆن بۆ پاراستنی فۆرمات
 @app.post("/api/art-studio")
 async def art_studio_endpoint(request: ArtRequest, fastapi_req: Request):
     validate_content(request.prompt)
@@ -750,7 +768,8 @@ async def art_studio_endpoint(request: ArtRequest, fastapi_req: Request):
     system_instruction = "تۆ ئەندازیارێکی پسپۆڕی داهێنانی وێنەی پڕۆمپی Midjourney دابڕێژە بە ئینگلیزی: "
     full_prompt = f"{system_instruction}\n{request.prompt}"
     
-    return StreamingResponse(generate_stream_fallback('gemini-2.5-pro', full_prompt), media_type="text/plain")
+    response_text = generate_content_with_fallback('gemini-2.5-pro', full_prompt)
+    return {"art_response": response_text}
 
 @app.post("/api/payment-success")
 async def payment_success_endpoint(request: PaymentSuccessRequest):
