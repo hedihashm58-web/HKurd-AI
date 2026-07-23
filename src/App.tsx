@@ -14,13 +14,10 @@ import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 
 import ArtInterface from './components/ArtStudio';
-import VideoInterface from './components/KurdishHousing';
 import MathInterface from './components/MathAnalyzer'; 
 import TranslateInterface from './components/Translator';
-import VoiceInterface from './components/VoiceAssistant'; 
 import HealthInterface from './components/HealthAssistant';
 import KurdishPersonalities from './components/KurdishPersonalities';
-import RestaurantDashboard from './components/RestaurantDashboard'; 
 import WebSummarizer from './components/WebSummarizer'; 
 import KurdishGrammar from './components/KurdishGrammar'; 
 import UserFeedback from './components/UserFeedback'; 
@@ -193,9 +190,7 @@ const App: React.FC = () => {
 
         requestNotificationPermission(emailClean);
 
-        if (emailClean.endsWith('@restaurant.com')) {
-          setActiveView(View.RESTAURANT_DASHBOARD);
-        }
+
 
         const userDocRef = doc(db, 'users', emailClean);
         const unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
@@ -260,8 +255,6 @@ const App: React.FC = () => {
     }
   };
 
-  const isRestaurantAdmin = userEmail?.endsWith('@restaurant.com');
-
   if (isCheckingAuth) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-[#030303]" dir="rtl">
@@ -301,22 +294,15 @@ const App: React.FC = () => {
   );
 
   function renderView() {
-    if (isRestaurantAdmin && userEmail) {
-      return <RestaurantDashboard adminEmail={userEmail} language={language} />;
-    }
-
     switch (activeView) {
       case View.HOME: return <HomeDashboard onViewChange={setActiveView} language={language} />; 
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
       case View.ART: return <ArtInterface />;
-      case View.VIDEO: return <VideoInterface language={language} />; 
       case View.MATH: return <MathInterface />; 
       case View.TRANSLATE: return <TranslateInterface />;
-      case View.VOICE: return <VoiceInterface language={language} />; 
       case View.HEALTH: return <HealthInterface />;
       case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
-      case View.RESTAURANT_DASHBOARD: return <RestaurantDashboard adminEmail={userEmail || ''} language={language} />;
       
       case 'web_summarizer' as View: return <WebSummarizer language={language} />;
       case 'kurdish_grammar' as View: return <KurdishGrammar language={language} />;
