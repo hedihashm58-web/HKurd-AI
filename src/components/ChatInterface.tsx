@@ -484,9 +484,22 @@ const ChatInterface: React.FC = () => {
     
     await saveUserMessageToDB(); 
 
-    const cacheKey = generateCacheKey(currentInput);
-    if (db) {
+    let imageBase64: string | null = null;
+    let mimeType = "image/jpeg";
+    if (imgToSave) {
+      const parts = imgToSave.split(",");
+      if (parts.length > 1) {
+        imageBase64 = parts[1];
+        const mimeMatch = parts[0].match(/data:(.*?);/);
+        if (mimeMatch) {
+          mimeType = mimeMatch[1];
+        }
+      }
+    }
+
+    if (db && !imgToSave) {
       try {
+        const cacheKey = generateCacheKey(currentInput);
         const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
         if (cacheSnap && cacheSnap.exists()) {
           const cachedAnswer = cacheSnap.data().aiResponse;
@@ -510,7 +523,12 @@ const ChatInterface: React.FC = () => {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: conversationHistory.trim(), email: user?.email || "guest_user" }), 
+        body: JSON.stringify({ 
+          message: conversationHistory.trim(), 
+          email: user?.email || "guest_user",
+          image: imageBase64,
+          mimeType: mimeType
+        }), 
       });
       const data = await response.json();
       if (response.status === 403 && !isAdmin) throw new Error("LIMIT_EXCEEDED_CHAT");
@@ -673,15 +691,7 @@ const ChatInterface: React.FC = () => {
               disabled={isLoading} 
             />
             
-            <button 
-              type="button"
-              onClick={() => setIsVoiceModalOpen(true)}
-              className={`p-2 rounded-full shadow-md transition-all flex items-center justify-center shrink-0 mb-0.5 active:scale-95 ${isDarkMode ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-200 text-amber-600 hover:bg-slate-300'}`}
-            >
-              🎙️
-            </button>
-
-            {input.trim().length > 0 && (
+            {(input.trim().length > 0 || selectedImage) && (
               <button 
                 onClick={handleSend} 
                 disabled={isLoading} 
@@ -696,7 +706,6 @@ const ChatInterface: React.FC = () => {
 
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
       <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} />
-      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
       
       <VerificationModal 
         isOpen={isVerificationModalOpen} 

@@ -350,6 +350,8 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
     contents_payload = [text_prompt]
     if base64_image:
         try:
+            if "," in base64_image:
+                base64_image = base64_image.split(",", 1)[1]
             image_bytes = base64.b64decode(base64_image)
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
             contents_payload.append(image_part)
@@ -377,6 +379,8 @@ def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Op
     contents_payload = [text_prompt]
     if base64_image:
         try:
+            if "," in base64_image:
+                base64_image = base64_image.split(",", 1)[1]
             image_bytes = base64.b64decode(base64_image)
             image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
             contents_payload.append(image_part)
