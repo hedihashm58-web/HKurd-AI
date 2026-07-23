@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View } from '../types';
 import { auth, db } from '../firebase';
-import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import UserFeedback from './UserFeedback'; // 👈 هاوردەکردنی بەشی تێبینی بە دروستی
 
 interface LayoutProps {
@@ -192,7 +192,24 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   if (!isOpen) return null;
   const user = auth.currentUser;
   const emailClean = user?.email?.toLowerCase().trim() || "";
-  const isAdmin = emailClean === "hedihashm58@gmail.com";
+  const [displayEmail, setDisplayEmail] = useState(emailClean);
+
+  useEffect(() => {
+    if (emailClean.startsWith("code_") && emailClean.endsWith("@kurdai.pro")) {
+      const code = emailClean.replace("code_", "").replace("@kurdai.pro", "");
+      getDoc(doc(db, "login_codes", code)).then((codeDoc) => {
+        if (codeDoc.exists()) {
+          setDisplayEmail(codeDoc.data().email.toLowerCase().trim());
+        }
+      }).catch(err => {
+        console.error("Error loading email in profile:", err);
+      });
+    } else {
+      setDisplayEmail(emailClean);
+    }
+  }, [emailClean]);
+
+  const isAdmin = displayEmail === "hedihashm58@gmail.com";
 
   const [notifTitle, setNotifTitle] = useState('');
   const [notifBody, setNotifBody] = useState('');
@@ -268,7 +285,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
         
         <div className="bg-slate-950/80 border border-zinc-800/60 rounded-xl py-2.5 px-4 text-center mb-4">
           <p className="font-mono text-zinc-300 text-xs tracking-wide select-all break-all">
-            {user?.email || "guest@kurdai.pro"}
+            {displayEmail || "guest@kurdai.pro"}
           </p>
         </div>
 
