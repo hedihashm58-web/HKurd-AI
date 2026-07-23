@@ -626,22 +626,30 @@ const ChatInterface: React.FC = () => {
                 onClick={() => {
                   setInput("وەک یاریدەدەری تەندروستی من، پێم بڵێ نیشانە سەرەتاییەکانی سەرئێشەی بەردەوام چییە و چۆن چارەسەر دەکرێت؟");
                 }}
-                className="p-4 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950/80 transition-colors text-right flex flex-col justify-between group active:scale-[0.98] duration-200"
+                className={`p-4 rounded-2xl border transition-all text-right flex flex-col justify-between group active:scale-[0.98] duration-200 ${
+                  isDarkMode 
+                    ? 'border-slate-700 bg-slate-800/50 hover:bg-slate-800' 
+                    : 'border-slate-200 bg-slate-100 hover:bg-slate-200'
+                }`}
               >
                 <span className="text-xl mb-2">🩺</span>
-                <span className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors">یاریدەدەری تەندروستی</span>
-                <span className="text-[10px] text-slate-500 mt-1 leading-relaxed">ڕێنمایی و وەڵامی پرسیارە تەندروستییەکان لێرە بپرسە.</span>
+                <span className={`text-xs font-black transition-colors group-hover:text-indigo-500 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>یاریدەدەری تەندروستی</span>
+                <span className={`text-[10px] mt-1 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>ڕێنمایی و وەڵامی پرسیارە تەندروستییەکان لێرە بپرسە.</span>
               </button>
               
               <button 
                 onClick={() => {
                   setInput("وەک یاریدەدەری زانستی و بیرکاری من، هاوکێشەی (x² - 4 = 0) بۆ شیکار بکە و بە تەواوی ڕوونکردنەوەی بدە.");
                 }}
-                className="p-4 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950/80 transition-colors text-right flex flex-col justify-between group active:scale-[0.98] duration-200"
+                className={`p-4 rounded-2xl border transition-all text-right flex flex-col justify-between group active:scale-[0.98] duration-200 ${
+                  isDarkMode 
+                    ? 'border-slate-700 bg-slate-800/50 hover:bg-slate-800' 
+                    : 'border-slate-200 bg-slate-100 hover:bg-slate-200'
+                }`}
               >
                 <span className="text-xl mb-2">📐</span>
-                <span className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors">یاریدەدەری بیرکاری و زانست</span>
-                <span className="text-[10px] text-slate-500 mt-1 leading-relaxed">شیکارکردنی هاوکێشە، بیرکاری، فیزیا و کیمیا بە وردی.</span>
+                <span className={`text-xs font-black transition-colors group-hover:text-indigo-500 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>یاریدەدەری بیرکاری و زانست</span>
+                <span className={`text-[10px] mt-1 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>شیکارکردنی هاوکێشە، بیرکاری، فیزیا و کیمیا بە وردی.</span>
               </button>
             </div>
           )}
@@ -695,13 +703,14 @@ const ChatInterface: React.FC = () => {
               <button 
                 onClick={handleSend} 
                 disabled={isLoading} 
-                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.25)] shrink-0 mb-0.5 transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95"
+                style={{ minWidth: '2.5rem', minHeight: '2.5rem', flexShrink: 0 }}
+                className="bg-gradient-to-br from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 rounded-full flex items-center justify-center shadow-lg mb-0.5 transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95 disabled:opacity-60"
               >
                 {isLoading ? (
-                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                  <span style={{ width: '1rem', height: '1rem', border: '2px solid #0f172a', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }}></span>
                 ) : (
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"></path>
+                  <svg style={{ width: '1.1rem', height: '1.1rem' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 10.5L12 3l7 7.5M12 3v18"></path>
                   </svg>
                 )}
               </button>
