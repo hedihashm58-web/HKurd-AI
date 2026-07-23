@@ -467,7 +467,10 @@ async def get_or_create_code_endpoint(request: GetOrCreateCodeRequest):
             
             # Update user doc
             if user_doc.exists:
-                user_ref.update({"loginCode": code})
+                user_ref.update({
+                    "loginCode": code,
+                    "landingSeen": False
+                })
             else:
                 user_ref.set({
                     "email": email_clean,
