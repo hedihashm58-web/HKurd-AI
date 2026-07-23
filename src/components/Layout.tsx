@@ -126,8 +126,8 @@ const SUBSCRIPTION_PLANS = [
 
 const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose, language }) => {
   const [selectedPlan, setSelectedPlan] = useState<string>('3_months');
-  const [paymentMethod, setPaymentMethod] = useState<'fastpay' | 'asiapay' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const paymentMethod = 'fastpay';
 
   if (!isOpen) return null;
 
@@ -162,16 +162,18 @@ const PremiumOffersModal: React.FC<PremiumOffersModalProps> = ({ isOpen, onClose
           })}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button onClick={() => setPaymentMethod('fastpay')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'fastpay' ? 'border-red-500 bg-red-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'}`}>FastPay</button>
-          <button onClick={() => setPaymentMethod('asiapay')} className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${paymentMethod === 'asiapay' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-700'}`}>AsiaPay</button>
+        <div className="mb-6 text-right animate-in fade-in duration-200">
+          <label className="block text-[11px] font-bold text-slate-400 mb-2 mr-1">
+            {language === 'ku' ? 'ژمارەی مۆبایلی فاستپەی (FastPay)' : 'رقم هاتف فاستبي (FastPay)'}
+          </label>
+          <input 
+            type="tel" 
+            placeholder="07500000000" 
+            value={phoneNumber} 
+            onChange={(e) => setPhoneNumber(e.target.value)} 
+            className="w-full bg-zinc-900/60 border border-zinc-850 rounded-xl px-4 py-2.5 text-white text-center focus:outline-none focus:border-amber-500 text-xs font-mono tracking-wider" 
+          />
         </div>
-
-        {paymentMethod && (
-          <div className="mb-6 text-right animate-in fade-in duration-200">
-            <input type="tel" placeholder="07700000000" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white text-center focus:outline-none focus:border-amber-500 text-xs font-mono tracking-wider" />
-          </div>
-        )}
 
         <div className="space-y-2 max-w-xs mx-auto">
           <button disabled={!paymentMethod || phoneNumber.length < 10} onClick={() => { alert("⏱️ داواکارییەکەت ناردرا، دوای پشکنین ئەکاونتەکەت کارا دەبێت."); onClose(); }} className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-zinc-950 disabled:text-zinc-500 font-black py-2.5 rounded-xl transition-all text-xs active:scale-[0.98]">{language === 'ku' ? 'پشڕاستکردنەوە و ناردن' : 'تأكيد الدفع'}</button>
