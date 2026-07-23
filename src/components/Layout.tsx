@@ -269,22 +269,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
-      <div className="bg-slate-900/40 border border-zinc-800/60 rounded-[2.5rem] max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.02)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-8">
+    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[600] p-4 select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="bg-slate-900/50 border border-slate-800/80 rounded-[2.5rem] max-w-sm w-full p-8 text-center shadow-[0_0_50px_rgba(99,102,241,0.06)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-10">
         
         <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="w-12 h-12 bg-slate-950 border border-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-          <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-slate-950 border border-slate-800/80 shadow-[0_0_20px_rgba(99,102,241,0.1)] group overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-amber-500/5 to-yellow-500/5 rounded-full animate-pulse"></div>
+          <svg className="w-8 h-8 text-indigo-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
           </svg>
         </div>
         
-        {isAdmin && <h3 className="text-xs font-black text-amber-500 mb-1">{language === 'ku' ? "بەرێوبەری گشتی پڕۆژە" : "مدير النظام"}</h3>}
+        {isAdmin && (
+          <h3 className="text-[10px] font-black text-amber-500 mb-2 tracking-widest uppercase">
+            {language === 'ku' ? "بەرێوبەری پڕۆژە 👑" : "مدير النظام 👑"}
+          </h3>
+        )}
         
-        <div className="bg-slate-950/80 border border-zinc-800/60 rounded-xl py-2.5 px-4 text-center mb-4">
-          <p className="font-mono text-zinc-300 text-xs tracking-wide select-all break-all">
+        <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl py-3 px-4 text-center mb-4">
+          <p className="text-[9px] text-slate-500 font-bold mb-1 tracking-wider uppercase">{language === 'ku' ? 'ناونیشانی هەژمار' : 'عنوان الحساب'}</p>
+          <p className="font-mono text-zinc-200 text-xs tracking-wide select-all break-all font-bold">
             {displayEmail || "guest@kurdai.pro"}
           </p>
         </div>
@@ -296,9 +302,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
           }
           if (!displayCode) return null;
           return (
-            <div className="bg-slate-950/80 border border-zinc-800/60 rounded-xl py-2.5 px-4 text-center mb-4">
-              <p className="text-zinc-500 text-[10px] mb-1 font-bold">{language === 'ku' ? "کۆدی چوونەژوورەوەی تایبەت" : "رمز الدخول الخاص"}</p>
-              <p className="font-mono text-amber-500 text-xs tracking-widest font-black select-all">
+            <div className="bg-gradient-to-b from-slate-950/60 to-slate-950/80 border border-amber-500/15 rounded-2xl py-3 px-4 text-center mb-4 relative overflow-hidden shadow-inner">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+              <p className="text-amber-500/60 text-[9px] mb-1.5 font-bold tracking-wider uppercase">{language === 'ku' ? "کۆدی چوونەژوورەوەی تایبەت" : "رمز الدخول الخاص"}</p>
+              <p className="font-mono text-amber-400 text-sm tracking-widest font-black select-all">
                 {displayCode}
               </p>
             </div>
@@ -306,27 +313,27 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
         })()}
 
         {isAdmin && (
-          <div className="bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3 mb-4 text-right animate-in fade-in duration-300">
-            <h4 className="text-xs font-black text-amber-400 mb-2 flex items-center gap-1">🔔 ناردنی ڕاگەیاندنی بەپەلە (Push)</h4>
-            <div className="space-y-2">
+          <div className="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4 mb-4 text-right animate-in fade-in duration-300">
+            <h4 className="text-xs font-black text-amber-400 mb-3 flex items-center gap-1.5">🔔 ناردنی ڕاگەیاندنی بەپەلە (Push)</h4>
+            <div className="space-y-2.5">
               <input 
                 type="text" 
                 placeholder="ناونیشانی نامەکە..." 
                 value={notifTitle}
                 onChange={(e) => setNotifTitle(e.target.value)}
-                className="w-full bg-slate-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 transition-colors"
               />
               <textarea 
                 placeholder="دەقی نامەکە لێرە بنووسە..." 
                 value={notifBody}
                 onChange={(e) => setNotifBody(e.target.value)}
                 rows={2}
-                className="w-full bg-slate-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500 resize-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 resize-none transition-colors"
               />
               <button 
                 onClick={handleSendPushNotification}
                 disabled={isSendingNotif || !notifTitle.trim() || !notifBody.trim()}
-                className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-slate-950 disabled:text-zinc-500 text-[11px] font-black py-2 rounded-xl transition-all active:scale-[0.98]"
+                className="w-full bg-gradient-to-r from-amber-400 to-amber-500 disabled:from-zinc-800 disabled:to-zinc-800 text-slate-950 disabled:text-zinc-500 text-[11px] font-black py-2.5 rounded-xl transition-all active:scale-[0.98]"
               >
                 {isSendingNotif ? 'لە پڕۆسەی ناردندایە...' : 'بڵاوکردنەوە بۆ هەمووان 🚀'}
               </button>
@@ -334,26 +341,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
           </div>
         )}
 
-        <div className="bg-slate-950/40 border border-zinc-800/40 rounded-xl py-3 px-4 flex justify-between items-center mb-4">
-          <span className="text-zinc-400 text-xs font-bold">{language === 'ku' ? 'دۆخی هەژمار:' : 'حالة الحساب:'}</span>
-          <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)] tracking-tight">
-            {isAdmin ? "پریمیم پڵەس" : "پلانی ئاسایی"}
+        <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl py-3.5 px-4 flex justify-between items-center mb-6">
+          <span className="text-slate-400 text-xs font-bold">{language === 'ku' ? 'دۆخی هەژمار:' : 'حالة الحساب:'}</span>
+          <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border tracking-wide ${isAdmin ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.05)]'}`}>
+            {isAdmin ? "پریمیم پڵەس 👑" : "پلانی ئاسایی ⚪"}
           </span>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <button 
             onClick={handleLogoutClick} 
-            className="w-full bg-red-500/5 hover:bg-red-500/10 active:bg-red-500/20 text-red-400 hover:text-red-300 font-extrabold py-2.5 rounded-xl transition-all text-xs border border-red-500/20 hover:border-red-500/40 shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full bg-red-500/10 hover:bg-red-500/15 active:bg-red-500/20 text-red-400 hover:text-red-300 font-black py-3 rounded-2xl transition-all text-xs border border-red-500/20 hover:border-red-500/30 shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
             <span>{language === 'ku' ? 'چوونەدەرەوە لە هەژمار' : 'تسجيل الخروج'}</span>
-            <span className="text-xs">🚪</span>
           </button>
           <button 
             onClick={onClose} 
-            className="w-full bg-slate-950 hover:bg-slate-900/80 text-zinc-400 hover:text-zinc-200 font-bold py-2.5 rounded-xl transition-all text-xs border border-zinc-800/40 active:scale-[0.98]"
+            className="w-full bg-slate-950 hover:bg-slate-900/80 text-slate-400 hover:text-slate-200 font-bold py-3 rounded-2xl transition-all text-xs border border-slate-800/80 active:scale-[0.98]"
           >
-            {language === 'ku' ? 'داخستن' : 'إإغلاق'}
+            {language === 'ku' ? 'داخستن' : 'إغلاق'}
           </button>
         </div>
       </div>
