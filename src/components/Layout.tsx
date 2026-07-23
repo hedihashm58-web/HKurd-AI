@@ -195,6 +195,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   const user = auth.currentUser;
   const emailClean = user?.email?.toLowerCase().trim() || "";
   const [displayEmail, setDisplayEmail] = useState(emailClean);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (emailClean.startsWith("code_") && emailClean.endsWith("@kurdai.pro")) {
@@ -304,12 +315,25 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
           }
           if (!displayCode) return null;
           return (
-            <div className="bg-gradient-to-b from-slate-950/60 to-slate-950/80 border border-amber-500/15 rounded-2xl py-3 px-4 text-center mb-4 relative overflow-hidden shadow-inner">
+            <div 
+              onClick={() => handleCopyCode(displayCode)}
+              className="bg-gradient-to-b from-slate-950/60 to-slate-950/80 border border-amber-500/15 hover:border-amber-500/30 rounded-2xl py-3 px-4 text-center mb-4 relative overflow-hidden shadow-inner cursor-pointer transition-colors group/code"
+            >
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
-              <p className="text-amber-500/60 text-[9px] mb-1.5 font-bold tracking-wider uppercase">{language === 'ku' ? "کۆدی چوونەژوورەوەی تایبەت" : "رمز الدخول الخاص"}</p>
-              <p className="font-mono text-amber-400 text-sm tracking-widest font-black select-all">
-                {displayCode}
+              <p className="text-amber-500/60 text-[9px] mb-1.5 font-bold tracking-wider uppercase flex items-center justify-center gap-1">
+                <span>{language === 'ku' ? "کۆدی چوونەژوورەوەی تایبەت" : "رمز الدخول الخاص"}</span>
+                <span className="text-[9px] text-amber-500/40 group-hover/code:text-amber-400 transition-colors">
+                  {isCopied ? "✓" : "📋"}
+                </span>
               </p>
+              <p className="font-mono text-amber-400 text-sm tracking-widest font-black select-all flex items-center justify-center gap-1.5">
+                <span>{displayCode}</span>
+              </p>
+              {isCopied && (
+                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center text-[10px] font-black text-amber-400 animate-in fade-in duration-200">
+                  {language === 'ku' ? "کۆپی کرا! ✨" : "تم النسخ! ✨"}
+                </div>
+              )}
             </div>
           );
         })()}
