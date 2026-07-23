@@ -34,10 +34,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
     { title: "خزمەتگوزاری داهێنان (Art)", icon: "🎨", normal: "داخراوە بۆ یوزەری ئاسایی 🔒", premium: "دروستکردنی وێنەی ڕۆژانە بەپێی جۆری پلانەکە 🎨", color: "from-orange-400 to-amber-500" },
     { title: "فلاشکارتی زمان", icon: "🧠", normal: "١ فلاشکارت لە ڕۆژێکدا ⏳", premium: "پلانی مانگانە: ٣ دانە لە ڕۆژێکدا 📆 | پلانەکانی تر: بێسنوور 👑", color: "from-purple-400 to-pink-500" },
 
-    // سڵایدی ٤: کلتور، منداڵان و نیشتەجێبوون
+    // سڵایدی ٤: کلتور و منداڵان
     { title: "خزمەتگوزاری کەسایەتییەکان", icon: "👥", normal: "بە تەواوی فڕی و کراوەیە ✨", premium: "بە تەواوی فڕی و کراوەیە ✨", color: "from-amber-400 to-yellow-600" },
     { title: "ژیریی منداڵان 🧸", icon: "🧸", normal: "کۆنتڕۆڵکراو بە لێمیتی چات 🎈", premium: "١ مانگ: لێمیتی ڕۆژانە ⏳ | پلانەکانی تر: بێسنوور 👑", color: "from-pink-400 to-rose-500" },
-    { title: "پڕۆژەکانی نیشتەجێبوون", icon: "🏢", normal: "فڕییە (ڕێبەری کڕینی خانوو و شوقە) 🏢", premium: "فڕییە (ڕێبەری کڕینی خانوو و شوقە) 🏢", color: "from-slate-400 to-zinc-500" },
 
     // سڵایدی ٥: داهاتوو، نەخشە و پشتیوانی
     { title: "نەخشەی کوردستان", icon: "🗺️", normal: "کراوەیە بۆ گەڕان لە شوێنەوارەکان 🗺️", premium: "کراوەیە بۆ گەڕان لە شوێنەوارەکان 🗺️", color: "from-teal-400 to-emerald-600" },
@@ -50,8 +49,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
     { title: "چات، زمان و ڕێنووس 🗣️", desc: "سەرەتای گەشتەکە لەگەڵ مێشکی کوردیی KurdAI Pro.", services: allServices.slice(0, 3) },
     { title: "شیکاری، کورتکردنەوە و زانست 📘", desc: "ئامرازە زیرەکەکان بۆ خێراکردنی خوێندنەوە و توێژینەوە.", services: allServices.slice(3, 6) },
     { title: "مارکێتینگ، داهێنان و فلاشکارت 🎨", desc: "پەرەپێدانی بزنس و فێربوونی زمان بە شێوازی مۆدێرن.", services: allServices.slice(6, 9) },
-    { title: "کلتور، ژیریی منداڵان و لۆکاڵ 🧸", desc: "جیهانی تایبەتی پەروەردەی منداڵان و ناسنامەی نیشتمانی.", services: allServices.slice(9, 12) },
-    { title: "پشتیوانی، نەخشە و داهاتووی دەنگی 🎙️", desc: "نوێکارییە بەردەوامەکان و گەڕان بەناو شوێنەوارەکان.", services: allServices.slice(12, 15) }
+    { title: "کلتور و ژیریی منداڵان 🧸", desc: "جاهانی تایبەتی پەروەردەی منداڵان و ناسنامەی نیشتمانی.", services: allServices.slice(9, 11) },
+    { title: "پشتیوانی، نەخشە و داهاتووی دەنگی 🎙️", desc: "نوێکارییە بەردەوامەکان و گەڕان بەناو شوێنەوارەکان.", services: allServices.slice(11, 14) }
   ];
 
   const activeSlide = slidesData[currentSlide];

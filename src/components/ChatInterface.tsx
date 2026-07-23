@@ -341,17 +341,12 @@ const ChatInterface: React.FC = () => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setIsUserPremium(data.isPremium === true);
-        if (data.isEmailVerified === false) {
-          setIsVerificationModalOpen(true);
-        } else {
-          setIsVerificationModalOpen(false);
-        }
+        setIsVerificationModalOpen(false);
       } else {
         setIsUserPremium(false);
-        setIsVerificationModalOpen(true);
+        setIsVerificationModalOpen(false);
       }
     });
-
     return () => unsubscribe();
   }, [auth.currentUser?.email]);
 

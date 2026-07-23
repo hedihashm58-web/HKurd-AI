@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { getMessaging, getToken } from "firebase/messaging"; 
 
 import Layout from './components/Layout';
@@ -153,7 +153,7 @@ const App: React.FC = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [language, setLanguage] = useState<'ku' | 'ar'>('ku');
   
-  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(true);
   const [hasSeenLanding, setHasSeenLanding] = useState<boolean>(false);
 
   const requestNotificationPermission = async (email: string) => {
@@ -164,7 +164,7 @@ const App: React.FC = () => {
         const messaging = getMessaging();
         const currentToken = await getToken(messaging, { vapidKey: 'D6OgH5ATuXByEmEseL3udyEE4yudcey3CpAVEU_06aE' });
         if (currentToken) {
-          await updateDoc(doc(db, "users", email), { fcmToken: currentToken });
+          await setDoc(doc(db, "users", email), { fcmToken: currentToken }, { merge: true });
         }
       }
     } catch (error) {
@@ -173,9 +173,22 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user && user.email) {
-        const emailClean = user.email.toLowerCase().trim();
+        let emailClean = user.email.toLowerCase().trim();
+        
+        if (emailClean.startsWith("code_") && emailClean.endsWith("@kurdai.pro")) {
+          const code = emailClean.replace("code_", "").replace("@kurdai.pro", "");
+          try {
+            const codeDoc = await getDoc(doc(db, "login_codes", code));
+            if (codeDoc.exists()) {
+              emailClean = codeDoc.data().email.toLowerCase().trim();
+            }
+          } catch (e) {
+            console.error("Error fetching email from code:", e);
+          }
+        }
+        
         setUserEmail(emailClean);
 
         requestNotificationPermission(emailClean);
@@ -197,14 +210,20 @@ const App: React.FC = () => {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setIsEmailVerified(data.isEmailVerified === true);
+            setIsEmailVerified(true);
             setHasSeenLanding(data.landingSeen === true);
+            
+            const loginCode = data.loginCode;
+            if (loginCode && !localStorage.getItem('hasSeenCode_' + emailClean)) {
+              alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
+              localStorage.setItem('hasSeenCode_' + emailClean, 'true');
+            }
           } else {
-            setIsEmailVerified(false);
+            setIsEmailVerified(true);
             setHasSeenLanding(false);
             await setDoc(userDocRef, {
               email: emailClean,
-              isEmailVerified: false,
+              isEmailVerified: true,
               isPremium: false,
               landingSeen: false,
               createdAt: new Date().toISOString()
@@ -218,7 +237,7 @@ const App: React.FC = () => {
         return () => unsubscribeSnapshot();
       } else {
         setUserEmail(null);
-        setIsEmailVerified(false);
+        setIsEmailVerified(true);
         setHasSeenLanding(false);
         setActiveView(View.HOME); 
         setIsCheckingAuth(false);

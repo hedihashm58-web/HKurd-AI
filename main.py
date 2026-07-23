@@ -16,7 +16,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth as firebase_auth, messaging
 
 # ١. لۆدکردنی کلیلەکانی ژینگە
 load_dotenv()
@@ -315,6 +315,9 @@ class SocialHookRequest(BaseModel):
 class FlashcardRequest(BaseModel):
     email: str
 
+class GetOrCreateCodeRequest(BaseModel):
+    email: str
+
 class DocumentSummarizerRequest(BaseModel):
     content: Optional[str] = None
     pdfBase64: Optional[str] = None
@@ -342,7 +345,7 @@ def send_otp_email(target_email: str, code: str):
         return False
 
 # 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان (چاککردنی کێشەی نەبوونی پێناسە)
-def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
+def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False):
     last_error = None
     contents_payload = [text_prompt]
     if base64_image:
@@ -353,10 +356,16 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
         except Exception:
             pass
 
+    config = None
+    if enable_search:
+        config = types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())]
+        )
+
     for key in API_KEYS:
         try:
             temp_client = genai.Client(api_key=key)
-            response = temp_client.models.generate_content(model=model_name, contents=contents_payload)
+            response = temp_client.models.generate_content(model=model_name, contents=contents_payload, config=config)
             return response.text
         except Exception as e:
             last_error = e
@@ -428,6 +437,71 @@ async def send_verification_code(request: SendCodeRequest):
         return {"status": "success", "message": "داواکاری ناردنی کۆد وەرگیرا. ئەگەر ئیمەیڵەکەت پێ نەگەیشت, کۆدی تاقیکردنی ستۆر بەکاربهێنە."}
 
     return {"status": "success", "message": "کۆدی سەلماندن بە سەرکەوتوویی بۆ ئیمەیڵەکەت ناردرا!"}
+
+@app.post("/api/auth/get-or-create-code")
+async def get_or_create_code_endpoint(request: GetOrCreateCodeRequest):
+    email_clean = request.email.lower().strip()
+    if not email_clean:
+        raise HTTPException(status_code=400, detail="ئیمەیڵ پێویستە")
+    
+    # Check users collection
+    user_ref = db.collection('users').document(email_clean)
+    user_doc = user_ref.get()
+    
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        login_code = user_data.get("loginCode")
+        if login_code:
+            return {"loginCode": login_code}
+    
+    # Generate a unique 6-digit code
+    for _ in range(10):
+        code = str(random.randint(100000, 999999))
+        code_ref = db.collection('login_codes').document(code)
+        if not code_ref.get().exists:
+            # Save mapping code -> email
+            db.collection('login_codes').document(code).set({
+                "email": email_clean,
+                "createdAt": firestore.SERVER_TIMESTAMP
+            })
+            
+            # Update user doc
+            if user_doc.exists:
+                user_ref.update({"loginCode": code})
+            else:
+                user_ref.set({
+                    "email": email_clean,
+                    "isPremium": False,
+                    "isEmailVerified": True,
+                    "premiumUntil": "",
+                    "activePlan": "",
+                    "chatCount": 0,
+                    "imageCount": 0,
+                    "flashcardCount": 0,
+                    "lastResetDate": datetime.utcnow().strftime('%Y-%m-%d'),
+                    "loginCode": code,
+                    "socialHookUsed": 0,
+                    "flashcardUsed": 0,
+                    "pdfUsed": 0,
+                    "grammarUsed": 0,
+                    "webUsed": 0,
+                    "pdfCountThisMonth": 0,
+                    "webCountThisMonth": 0,
+                    "socialCountThisMonth": 0
+                })
+            
+            # Create Firebase Auth user in background so they can sign in with it later
+            try:
+                firebase_auth.create_user(
+                    email=f"code_{code}@kurdai.pro",
+                    password=f"kurdai_pass_{code}"
+                )
+            except Exception as e:
+                print(f"Auth user creation error: {e}")
+                
+            return {"loginCode": code}
+            
+    raise HTTPException(status_code=500, detail="کێشەیەک لە دروستکردنی کۆددا ڕوویدا.")
 
 @app.post("/api/auth/verify-code")
 async def verify_verification_code(request: VerifyCodeRequest):
@@ -513,7 +587,7 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
             "ڕاستەوخۆ بەبێ پێشەکیی کڵێشەیی و بەبێ دووبارەکردنەوەی ناونیشان دەستپێبکە."
         )
         
-        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType)
+        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType, enable_search=True)
         return {"response": response_text}
 
     else:
@@ -532,10 +606,9 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
 
         system_context = (
             "تۆ مۆدێلی نیشتمانی KurdAI Pro یت بۆ خزمەتی گەلی کوردستان. ساڵی ئێستا بە تەواوی ٢٠٢٦ە. "
-            "ئێستا وەرزی هاوینی ٢٠٢٦ە و مۆندیالی ٢٠٢٦ لە قۆناغی کۆتاییەکاندایە و گەیشتووەتە قۆناغی هەشت (Quarter-finals)! "
-            "ئەگەر بەکارهێنەر پرسیاری مۆندیالی لێکردیت، بە تەواوی ئاگادار بە کە یارییەکان لە قۆناغی ٨ دان و هاوینی ٢٠٢٦ە. "
+            "ئێستا وەرزی هاوینی ٢٠٢٦ە و مۆندیالی ٢٠٢٦ دوێنێ (١٩ی تەممووزی ٢٠٢٦) کۆتایی هات و تێیدا هەڵبژاردەی ئیسپانیا نازناوەکەی بەدەستهێنا و بوو بە پاڵەوانی مۆندیال! "
             "یاسای زمانەوانی: بە زمانی کوردیی سۆرانیی زۆر ڕەوان، شیرین، گەرموگوڕ و دۆستانە وەڵام بدەرەوە. "
-            "وەڵامەکانت با وشک و ڕۆبۆتی نەبن، بەڵکو یارمەتیدەر، سەرنجڕاکێش و دۆستانە بن. "
+            "وەڵامەکانت با یەکجار زیرەک، یارمەتیدەر، سەرنجڕاکێش و دۆستانە بن بەبێ هیچ خەتا و وشکییەکی ڕۆبۆتی. "
             "تکایە بە هیچ شێوەیەک ئیمۆجی لە ناوەڕاستی نووسینەکەدا بەکارمەهێنە، تەنها لە کۆتایی پەیامەکەدا یەک یان دوو ئیمۆجی گونجاو دابنێ."
         )
 
@@ -553,7 +626,7 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
                 f"{request.message}"
             )
         
-        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType)
+        response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType, enable_search=True)
         return {"response": response_text}
 
 @app.post("/api/kids-ai")
@@ -615,6 +688,21 @@ async def send_notification_endpoint(request: NotificationRequest):
             "createdAt": firestore.SERVER_TIMESTAMP
         }
         db.collection('global_notifications').add(notif_data)
+        
+        # Send actual FCM notifications if tokens are present
+        if request.tokens:
+            try:
+                message = messaging.MulticastMessage(
+                    notification=messaging.Notification(
+                        title=request.title.strip(),
+                        body=request.body.strip(),
+                    ),
+                    tokens=request.tokens,
+                )
+                messaging.send_each_for_multicast(message)
+            except Exception as e:
+                print(f"FCM Multicast error: {e}")
+                
         return {"status": "success", "message": "نۆتیفیکەیشن بە سەرکەوتوویی بڵاوکرایەوە!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە بڵاوکردنەوەی نۆتیفیکەیشن: {str(e)}")

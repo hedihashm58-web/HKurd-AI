@@ -272,6 +272,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
           </p>
         </div>
 
+        {(() => {
+          let displayCode = localStorage.getItem('loginCode_' + emailClean) || "";
+          if (user?.email?.startsWith("code_") && user?.email?.endsWith("@kurdai.pro")) {
+            displayCode = user.email.replace("code_", "").replace("@kurdai.pro", "");
+          }
+          if (!displayCode) return null;
+          return (
+            <div className="bg-slate-950/80 border border-zinc-800/60 rounded-xl py-2.5 px-4 text-center mb-4">
+              <p className="text-zinc-500 text-[10px] mb-1 font-bold">{language === 'ku' ? "کۆدی چوونەژوورەوەی تایبەت" : "رمز الدخول الخاص"}</p>
+              <p className="font-mono text-amber-500 text-xs tracking-widest font-black select-all">
+                {displayCode}
+              </p>
+            </div>
+          );
+        })()}
+
         {isAdmin && (
           <div className="bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3 mb-4 text-right animate-in fade-in duration-300">
             <h4 className="text-xs font-black text-amber-400 mb-2 flex items-center gap-1">🔔 ناردنی ڕاگەیاندنی بەپەلە (Push)</h4>
