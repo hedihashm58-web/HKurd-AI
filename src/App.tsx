@@ -199,14 +199,7 @@ const App: React.FC = () => {
 
         const userDocRef = doc(db, 'users', emailClean);
         const unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
-          const isAdmin = emailClean === "hedihashm58@gmail.com";
-          
-          if (isAdmin) {
-            setIsEmailVerified(true);
-            setHasSeenLanding(true); 
-            setIsCheckingAuth(false);
-            return;
-          }
+
 
           if (docSnap.exists()) {
             const data = docSnap.data();

@@ -56,6 +56,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         if (res.ok) {
           const data = await res.json();
           localStorage.setItem('loginCode_' + email, data.loginCode);
+          alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${data.loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
         }
       } catch (e) {
         console.error("Error creating code:", e);
@@ -89,6 +90,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         if (res.ok) {
           const data = await res.json();
           localStorage.setItem('loginCode_' + email, data.loginCode);
+          alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${data.loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
         }
       } catch (e) {
         console.error("Error creating code:", e);

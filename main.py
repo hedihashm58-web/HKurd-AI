@@ -480,6 +480,7 @@ async def get_or_create_code_endpoint(request: GetOrCreateCodeRequest):
                     "flashcardCount": 0,
                     "lastResetDate": datetime.utcnow().strftime('%Y-%m-%d'),
                     "loginCode": code,
+                    "landingSeen": False,
                     "socialHookUsed": 0,
                     "flashcardUsed": 0,
                     "pdfUsed": 0,
