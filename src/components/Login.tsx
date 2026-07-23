@@ -56,8 +56,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         if (res.ok) {
           const data = await res.json();
           localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
-          localStorage.setItem('hasSeenCode_' + email.toLowerCase().trim(), 'true');
-          alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${data.loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
         }
       } catch (e) {
         console.error("Error creating code:", e);
@@ -91,8 +89,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         if (res.ok) {
           const data = await res.json();
           localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
-          localStorage.setItem('hasSeenCode_' + email.toLowerCase().trim(), 'true');
-          alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${data.loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
         }
       } catch (e) {
         console.error("Error creating code:", e);

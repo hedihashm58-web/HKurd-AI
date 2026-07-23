@@ -205,12 +205,6 @@ const App: React.FC = () => {
             const data = docSnap.data();
             setIsEmailVerified(true);
             setHasSeenLanding(data.landingSeen === true);
-            
-            const loginCode = data.loginCode;
-            if (loginCode && !localStorage.getItem('hasSeenCode_' + emailClean)) {
-              alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${loginCode}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
-              localStorage.setItem('hasSeenCode_' + emailClean, 'true');
-            }
           } else {
             setIsEmailVerified(true);
             setHasSeenLanding(false);
@@ -242,8 +236,23 @@ const App: React.FC = () => {
   const handleStartChat = async () => {
     if (userEmail) {
       try {
-        const userDocRef = doc(db, 'users', userEmail);
+        const cleanEmail = userEmail.toLowerCase().trim();
+        const userDocRef = doc(db, 'users', cleanEmail);
         await setDoc(userDocRef, { landingSeen: true }, { merge: true });
+        
+        let code = localStorage.getItem('loginCode_' + cleanEmail);
+        if (!code) {
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            code = docSnap.data().loginCode;
+          }
+        }
+
+        if (code && !localStorage.getItem('hasSeenCode_' + cleanEmail)) {
+          alert(`پیرۆزە! هەژمارەکەت بە سەرکەوتوویی تۆمارکرا.\nکۆدی چوونەژوورەوەی تایبەتی تۆ: ${code}\n\nتکایە ئەم کۆدە کۆپی بکە و بیپارێزە! لەکاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت تەنها بەم کۆدە بێیتە ژوورەوە.`);
+          localStorage.setItem('hasSeenCode_' + cleanEmail, 'true');
+        }
+        
         setHasSeenLanding(true); 
       } catch (e) {
         console.error("Error saving landing status:", e);
