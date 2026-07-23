@@ -703,16 +703,24 @@ const ChatInterface: React.FC = () => {
               <button 
                 onClick={handleSend} 
                 disabled={isLoading} 
-                style={{ minWidth: '2.5rem', minHeight: '2.5rem', flexShrink: 0 }}
-                className="bg-gradient-to-br from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 rounded-full flex items-center justify-center shadow-lg mb-0.5 transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95 disabled:opacity-60"
+                style={{
+                  flexShrink: 0,
+                  padding: '0.5rem 1rem',
+                  marginBottom: '2px',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#0f172a',
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 14px rgba(245,158,11,0.35)',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                  opacity: isLoading ? 0.6 : 1
+                }}
               >
-                {isLoading ? (
-                  <span style={{ width: '1rem', height: '1rem', border: '2px solid #0f172a', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }}></span>
-                ) : (
-                  <svg style={{ width: '1.1rem', height: '1.1rem' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 10.5L12 3l7 7.5M12 3v18"></path>
-                  </svg>
-                )}
+                {isLoading ? '...' : 'ناردن ↑'}
               </button>
             )}
           </div>
