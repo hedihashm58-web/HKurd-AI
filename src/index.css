@@ -112,3 +112,34 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* 🚀 Mobile Optimization & Hardware Acceleration */
+@media (max-width: 768px) {
+  /* Disable expensive backdrop blurs on mobile to prevent layout stutter */
+  .backdrop-blur-md,
+  .backdrop-blur-xl,
+  .backdrop-blur-sm,
+  .backdrop-blur-2xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Fallback opaque colors for glassmorphism headers on mobile */
+  .glass-header {
+    background-color: rgba(15, 23, 42, 0.96) !important;
+  }
+
+  .bg-slate-900\/50,
+  .bg-slate-900\/60,
+  .bg-[#0d1117]\/60,
+  .bg-slate-900\/40 {
+    background-color: rgb(15, 23, 42) !important;
+  }
+
+  /* GPU Hardware Acceleration for smooth scrolling */
+  .overflow-y-auto {
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+  }
+}

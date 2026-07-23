@@ -378,7 +378,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
   return (
     <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-1000">
-        {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[80px] scale-150" />}
+        {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[35px] scale-125 transform translate-z-0 will-change-transform" />}
       </div>
 
       <header className="glass-header sticky top-1 z-50 px-3 sm:px-4 lg:px-12 py-3 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
