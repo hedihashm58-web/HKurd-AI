@@ -66,16 +66,6 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
       label: language === 'ku' ? 'نەخشەی کوردستان' : 'خارطة كوردستان', 
       image: 'kurdstan1.webp'
     },
-    { 
-      id: View.MATH, 
-      label: language === 'ku' ? 'یاریدەدەری زانستی' : 'المساعد العلمي', 
-      image: 'math.webp'
-    },
-    { 
-      id: View.HEALTH, 
-      label: language === 'ku' ? 'یاریدەدەری تەندروستی' : 'المساعد الصحي', 
-      image: 'doctor.webp'
-    },
   ];
 
   return (

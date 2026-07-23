@@ -302,6 +302,19 @@ const ChatInterface: React.FC = () => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -398,6 +411,7 @@ const ChatInterface: React.FC = () => {
         const loadedMessages = querySnapshot.docs.map(doc => ({ 
           role: doc.data().role as 'user' | 'model', 
           text: doc.data().text, 
+          image: doc.data().image || undefined,
           timestamp: doc.data().timestamp?.toDate() || new Date() 
         }));
         setMessages(loadedMessages); 
@@ -432,11 +446,13 @@ const ChatInterface: React.FC = () => {
     }
     
     const currentInput = input.trim(); 
-    const userMsg: Message = { role: 'user', text: currentInput, timestamp: new Date() }; 
+    const imgToSave = selectedImage;
+    const userMsg: Message = { role: 'user', text: currentInput, image: imgToSave || undefined, timestamp: new Date() }; 
     const updatedMessages = [...messages, userMsg];
     
     setMessages(updatedMessages); 
     setInput(''); 
+    setSelectedImage(null);
     setIsLoading(true); 
 
     let activeChatId = currentChatId; 
@@ -454,7 +470,12 @@ const ChatInterface: React.FC = () => {
             const chatRef = doc(db, 'users', user.email, 'chats', activeChatId); 
             await updateDoc(chatRef, { updatedAt: serverTimestamp() }); 
           }
-          await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { role: 'user', text: currentInput, timestamp: serverTimestamp() });
+          await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
+            role: 'user', 
+            text: currentInput, 
+            image: imgToSave || null,
+            timestamp: serverTimestamp() 
+          });
         } catch (e) {
           console.error(e); 
         }
@@ -554,14 +575,21 @@ const ChatInterface: React.FC = () => {
         <div className="flex-1 overflow-y-auto space-y-4 px-2 pb-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
           {messages.map((msg, idx) => ( 
             <div key={idx} className={`flex w-full flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}>
-              {msg.text && (
-                <div className={`max-w-[85%] p-3.5 shadow-md rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-tl-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
+              <div className={`max-w-[85%] p-3.5 shadow-md rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : isDarkMode ? 'bg-slate-800 text-slate-200 rounded-tl-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
+                {msg.image && (
+                  <div className="mb-2 max-w-full overflow-hidden rounded-xl border border-slate-700/50">
+                    <img src={msg.image} alt="Attachment" className="max-h-48 object-cover w-full" />
+                  </div>
+                )}
+                {msg.text && (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.text}</p>
+                )}
+                {msg.text && (
                   <div className="flex justify-end mt-2 pt-1 border-t border-white/10">
                     <button onClick={() => handleCopy(msg.text, idx)} className="text-[10px] opacity-60 hover:opacity-100">{copiedIndex === idx ? "کۆپی کرا! ✓" : "کۆپی 📋"}</button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
 
@@ -574,11 +602,67 @@ const ChatInterface: React.FC = () => {
             </div>
           )}
           
+          {messages.length <= 1 && !isLoading && (
+            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mt-6">
+              <button 
+                onClick={() => {
+                  setInput("وەک یاریدەدەری تەندروستی من، پێم بڵێ نیشانە سەرەتاییەکانی سەرئێشەی بەردەوام چییە و چۆن چارەسەر دەکرێت؟");
+                }}
+                className="p-4 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950/80 transition-colors text-right flex flex-col justify-between group active:scale-[0.98] duration-200"
+              >
+                <span className="text-xl mb-2">🩺</span>
+                <span className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors">یاریدەدەری تەندروستی</span>
+                <span className="text-[10px] text-slate-500 mt-1 leading-relaxed">ڕێنمایی و وەڵامی پرسیارە تەندروستییەکان لێرە بپرسە.</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setInput("وەک یاریدەدەری زانستی و بیرکاری من، هاوکێشەی (x² - 4 = 0) بۆ شیکار بکە و بە تەواوی ڕوونکردنەوەی بدە.");
+                }}
+                className="p-4 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950/80 transition-colors text-right flex flex-col justify-between group active:scale-[0.98] duration-200"
+              >
+                <span className="text-xl mb-2">📐</span>
+                <span className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors">یاریدەدەری بیرکاری و زانست</span>
+                <span className="text-[10px] text-slate-500 mt-1 leading-relaxed">شیکارکردنی هاوکێشە، بیرکاری، فیزیا و کیمیا بە وردی.</span>
+              </button>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
         <div className={`pt-3 mt-1 border-t flex flex-col gap-1.5 shrink-0 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-200'}`}>
+          {selectedImage && (
+            <div className="relative w-16 h-16 rounded-xl border border-slate-800/80 bg-slate-950 p-1 mb-2 animate-in zoom-in-95 duration-200 shrink-0">
+              <img src={selectedImage} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-red-600 active:scale-95 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className={`flex items-end gap-2 border rounded-[2rem] p-1.5 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageUpload} 
+              accept="image/*" 
+              className="hidden" 
+            />
+            
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-2.5 rounded-full shadow-md transition-all flex items-center justify-center shrink-0 mb-0.5 active:scale-95 ${isDarkMode ? 'bg-slate-800 text-indigo-400 hover:bg-slate-700' : 'bg-slate-200 text-indigo-600 hover:bg-slate-300'}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+
             <textarea 
               value={input} 
               onChange={(e) => setInput(e.target.value)} 
@@ -597,7 +681,15 @@ const ChatInterface: React.FC = () => {
               🎙️
             </button>
 
-            <button onClick={handleSend} disabled={!input.trim() || isLoading} className="bg-indigo-600 text-white px-5 py-2 rounded-full shadow-md shrink-0 mb-0.5 text-xs font-bold">{isLoading ? '...' : 'ناردن'}</button>
+            {input.trim().length > 0 && (
+              <button 
+                onClick={handleSend} 
+                disabled={isLoading} 
+                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.25)] shrink-0 mb-0.5 text-xs transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95"
+              >
+                {isLoading ? '...' : 'ناردن ⚡'}
+              </button>
+            )}
           </div>
         </div>
       </div>

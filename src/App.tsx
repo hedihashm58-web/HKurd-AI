@@ -14,9 +14,7 @@ import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 
 import ArtInterface from './components/ArtStudio';
-import MathInterface from './components/MathAnalyzer'; 
 import TranslateInterface from './components/Translator';
-import HealthInterface from './components/HealthAssistant';
 import KurdishPersonalities from './components/KurdishPersonalities';
 import WebSummarizer from './components/WebSummarizer'; 
 import KurdishGrammar from './components/KurdishGrammar'; 
@@ -360,9 +358,7 @@ const App: React.FC = () => {
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
       case View.ART: return <ArtInterface />;
-      case View.MATH: return <MathInterface />; 
       case View.TRANSLATE: return <TranslateInterface />;
-      case View.HEALTH: return <HealthInterface />;
       case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
       
       case 'web_summarizer' as View: return <WebSummarizer language={language} />;
