@@ -695,9 +695,15 @@ const ChatInterface: React.FC = () => {
               <button 
                 onClick={handleSend} 
                 disabled={isLoading} 
-                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.25)] shrink-0 mb-0.5 text-xs transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95"
+                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.25)] shrink-0 mb-0.5 transition-all animate-in fade-in zoom-in-95 duration-200 active:scale-95"
               >
-                {isLoading ? '...' : 'ناردن ⚡'}
+                {isLoading ? (
+                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"></path>
+                  </svg>
+                )}
               </button>
             )}
           </div>
