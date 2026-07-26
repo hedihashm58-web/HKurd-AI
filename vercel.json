@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://kurdai-cb7e2.firebaseapp.com/__/auth/:path*"
+    }
+  ]
+}

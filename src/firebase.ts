@@ -5,7 +5,9 @@ import { getFirestore } from "firebase/firestore";
 // زانیارییەکانی پڕۆژەکەی تۆ
 const firebaseConfig = {
   apiKey: "AIzaSyC8ndNIUCGUJ_jsIk3wi7JTENlMDbJ4TkA",
-  authDomain: "kurdai-cb7e2.firebaseapp.com",
+  authDomain: typeof window !== "undefined" && window.location.hostname !== "localhost" 
+    ? window.location.hostname 
+    : "kurdai-cb7e2.firebaseapp.com",
   projectId: "kurdai-cb7e2",
   storageBucket: "kurdai-cb7e2.firebasestorage.app",
   messagingSenderId: "126978980805",
