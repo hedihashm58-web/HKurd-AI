@@ -344,6 +344,44 @@ def send_otp_email(target_email: str, code: str):
         print(f"❌ خەتا لە ناردنی ئیمەیڵ: {str(e)}")
         return False
 
+def send_login_code_email(target_email: str, code: str):
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("⚠️ زانیارییەکانی SMTP پێناسە نەکراون!")
+        return False
+    try:
+        html_content = f"""
+        <html>
+        <body style="direction: rtl; text-align: center; font-family: sans-serif; background-color: #f8fafc; padding: 20px;">
+            <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-top: 4px solid #eab308;">
+                <h2 style="color: #1e1b4b; margin-bottom: 5px;">KurdAI Pro</h2>
+                <p style="color: #64748b; font-size: 13px;">کۆدی چوونەژوورەوەی تایبەتی تۆ بۆ هەمیشە</p>
+                <div style="background-color: #fef08a; padding: 15px; border-radius: 12px; font-size: 26px; font-weight: bold; color: #854d0e; letter-spacing: 4px; margin: 20px 0;">
+                    {code}
+                </div>
+                <p style="color: #334155; font-size: 13px; line-height: 1.6;">
+                    تکایە ئەم کۆدە بپارێزە! لە کاتی گەڕانەوە یان سڕینەوەی داتای بەرنامەکەدا، دەتوانیت لە ڕێگەی ئەم کۆدەوە بێیتە ژوورەوە و سەرجەم زانیارییەکانت بگەڕێنیتەوە.
+                </p>
+                <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+                <p style="color: #94a3b8; font-size: 11px;">تیمی KurdAI Pro</p>
+            </div>
+        </body>
+        </html>
+        """
+        msg = MIMEText(html_content, "html", "utf-8")
+        msg['Subject'] = Header("کۆدی چوونەژوورەوەی تایبەتی تۆ - KurdAI Pro", "utf-8")
+        msg['From'] = SMTP_EMAIL
+        msg['To'] = target_email
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, target_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"❌ Error sending login code email: {str(e)}")
+        return False
+
+
 # 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان (چاککردنی کێشەی نەبوونی پێناسە)
 def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False):
     last_error = None
@@ -506,6 +544,9 @@ async def get_or_create_code_endpoint(request: GetOrCreateCodeRequest):
                 )
             except Exception as e:
                 print(f"Auth user creation error: {e}")
+                
+            # Send the login code to user's email
+            send_login_code_email(email_clean, code)
                 
             return {"loginCode": code}
             
