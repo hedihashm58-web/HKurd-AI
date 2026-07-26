@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { auth, googleProvider, facebookProvider } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup 
 } from 'firebase/auth';
 
 interface LoginProps {
@@ -16,41 +14,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [loginCodeInput, setLoginCodeInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const checkRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          setIsLoading(true);
-          const email = result.user.email || '';
-          try {
-            const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/get-or-create-code', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
-            }
-          } catch (e) {
-            console.error("Error creating code after redirect:", e);
-          }
-          onLoginSuccess(email);
-        }
-      } catch (err: any) {
-        console.error("Redirect login error:", err);
-        if (err.code === 'auth/unauthorized-domain') {
-          setError('کێشە لە ناسینەوەی دۆمەینەکە هەیە لە فایەربەیس');
-        } else {
-          setError('هەڵەیەک لە کاتی لۆگین ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.');
-        }
-        setIsLoading(false);
-      }
-    };
-    checkRedirect();
-  }, [onLoginSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,28 +44,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleGoogleLogin = async () => {
     setError(null);
     setIsLoading(true);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      if (isMobile) {
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        const result = await signInWithPopup(auth, googleProvider);
-        const email = result.user.email || '';
-        try {
-          const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/get-or-create-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
-          }
-        } catch (e) {
-          console.error("Error creating code:", e);
+      const result = await signInWithPopup(auth, googleProvider);
+      const email = result.user.email || '';
+      try {
+        const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/get-or-create-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
         }
-        onLoginSuccess(email);
+      } catch (e) {
+        console.error("Error creating code:", e);
       }
+      onLoginSuccess(email);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/popup-blocked') {
@@ -119,28 +77,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleFacebookLogin = async () => {
     setError(null);
     setIsLoading(true);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      if (isMobile) {
-        await signInWithRedirect(auth, facebookProvider);
-      } else {
-        const result = await signInWithPopup(auth, facebookProvider);
-        const email = result.user.email || '';
-        try {
-          const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/get-or-create-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
-          }
-        } catch (e) {
-          console.error("Error creating code:", e);
+      const result = await signInWithPopup(auth, facebookProvider);
+      const email = result.user.email || '';
+      try {
+        const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/auth/get-or-create-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('loginCode_' + email.toLowerCase().trim(), data.loginCode);
         }
-        onLoginSuccess(email);
+      } catch (e) {
+        console.error("Error creating code:", e);
       }
+      onLoginSuccess(email);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/popup-blocked') {
