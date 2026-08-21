@@ -379,7 +379,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language }) => {
       if (err.message.includes("LIMIT_EXCEEDED_CHAT")) {
         setError("⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بوو! بۆ گفتوگۆیی بێسنوور، ببە بە ئەندامی Premium.");
       } else {
-        setError("ببوورە کێشەیەک ڕوویدا، دووبارە تاقیکەرەوە.");
+        setError(err.message || "ببوورە کێشەیەک ڕوویدا، دووبارە تاقیکەرەوە.");
       }
     } finally {
       setLoading(false);

@@ -549,13 +549,14 @@ const ChatInterface: React.FC = () => {
       if (user?.email && activeChatId) await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { role: 'model', text: aiAnswer, timestamp: serverTimestamp() });
     } catch (error: any) { 
       setIsLoading(false); 
-      let errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
-      if (error.message.includes("❌") || error.message.includes("ڕەتکرایەوە")) errorMessage = error.message;
+      let errorMessage = error.message || "خەتایەک ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.";
       
-      setMessages(prev => [...prev, { role: 'model', text: errorMessage, timestamp: new Date() }]);
-      if (!error.message.includes("❌")) {
+      if (error.message.includes("LIMIT_EXCEEDED_CHAT")) {
+        errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
         setIsPremiumModalOpen(true);
       }
+      
+      setMessages(prev => [...prev, { role: 'model', text: errorMessage, timestamp: new Date() }]);
     }
   };
 

@@ -95,8 +95,8 @@ def check_rate_limit(email: str):
         
     user_request_timestamps[email] = [t for t in user_request_timestamps[email] if current_time - t < timedelta(minutes=1)]
     
-    if len(user_request_timestamps[email]) >= 3:
-        raise HTTPException(status_code=429, detail="⚠️ تکایە کەمێک لەسەرخۆ بە! ناتوانیت لە خولەکێکدا زیاتر لە ٣ نامە بنێریت.")
+    if len(user_request_timestamps[email]) >= 2:
+        raise HTTPException(status_code=429, detail="⚠️ تکایە کەمێک لەسەرخۆ بە! ناتوانیت لە خولەکێکدا زیاتر لە ٢ نامە بنێریت.")
         
     user_request_timestamps[email].append(current_time)
 
@@ -241,8 +241,7 @@ def check_user_limit(email: str, limit_type: str, fastapi_request: Optional[Requ
         user_ref.update(data)
 
     if limit_type == "chat":
-        if not is_premium and data.get("chatCount", 0) >= 10:
-            raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_CHAT")
+        # Chat is completely free and unlimited for all users (rate limited to 2 messages/min)
         user_ref.update({"chatCount": data.get("chatCount", 0) + 1})
         
     elif limit_type == "image":

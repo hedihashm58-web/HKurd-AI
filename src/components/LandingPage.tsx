@@ -20,7 +20,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartChat }) => {
   // 👑 لیستی تەواوی ١٤ خزمەتگوزارییەکە بە جیاکاری وردی ئاسایی و پریمیم
   const allServices: ServiceCard[] = [
     // سڵایدی ١: چات، زمان و ڕێنووس
-    { title: "خزمەتگوزاری گفتوگۆ (Chat AI)", icon: "🏛️", normal: "١٠ نامە لە ڕۆژێکدا ⏳", premium: "بێ سنوور + خێراتر 👑", color: "from-amber-400 to-yellow-500" },
+    { title: "خزمەتگوزاری گفتوگۆ (Chat AI)", icon: "🏛️", normal: "بە تەواوی فری و بێ سنوور (٢ نامە/خولەک) 🚀", premium: "بێ سنوور + خێراتر 👑", color: "from-amber-400 to-yellow-500" },
     { title: "خزمەتگوزاری زمان", icon: "🗣️", normal: "ئاسایی و ستاندارد 🌟", premium: "پێشکەوتوو و بێ لێمیت 🔥", color: "from-blue-400 to-indigo-500" },
     { title: "ڕێنووسی کوردی (Grammar)", icon: "✨", normal: "تەنها ٣ پشکنین (بۆ هەمیشە) 🔒", premium: "بە تەواوی فڕی و بێ سنوور 🚀", color: "from-rose-400 to-red-500" },
     
