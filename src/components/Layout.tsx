@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { View } from '../types';
 import { auth, db } from '../firebase';
 import { collection, getDocs, query, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import UserFeedback from './UserFeedback'; // 👈 هاوردەکردنی بەشی تێبینی بە دروستی
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -396,36 +395,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   );
 };
 
-// 👑 مۆدێلی تێبینی لۆکاڵی شیک بۆ کاتێک کلیک لەسەر دوگمە نوێیەکەی سەرەوە دەکرێت
-interface LocalFeedbackModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  language: 'ku' | 'ar';
-}
-
-const LocalFeedbackModal: React.FC<LocalFeedbackModalProps> = ({ isOpen, onClose, language }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center z-[400] p-4">
-      <div className="bg-[#0f172a] border border-zinc-800 rounded-[2rem] max-w-lg w-full p-2 relative shadow-2xl animate-in zoom-in-95 duration-200">
-        <UserFeedback language={language} />
-        <button 
-          onClick={onClose}
-          className="absolute top-4 left-4 bg-slate-950 hover:bg-slate-900 text-zinc-400 hover:text-white px-3 py-1 rounded-xl border border-zinc-800 text-[10px] font-bold transition-all"
-        >
-          {language === 'ku' ? 'داخستن' : 'إغلاق'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage }) => {
   const [isVoiceComingSoonOpen, setIsVoiceComingSoonOpen] = useState(false);
   const [isPremiumOffersOpen, setIsPremiumOffersOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false); // 👑 ستەیتی نوێ بۆ بەشی تێبینی
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
@@ -443,17 +417,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         </div>
         
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* 👑 دوگمەیەکی بچوکی نوێ و شاهانە بۆ ناردنی تێبینی لە تەنیشت نۆتیفیکەیشن */}
-          <button 
-            onClick={() => setIsFeedbackOpen(true)}
-            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
-            title={language === 'ku' ? 'ناردنی تێبینی و پێشنیار' : 'إرسال ملاحظة'}
-          >
-            <div className="text-zinc-300 group-hover:text-amber-400 transition-colors text-xs sm:text-sm">
-              ✍️
-            </div>
-          </button>
-
           <button 
             onClick={() => setIsNotificationListOpen(true)}
             className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
@@ -505,9 +468,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
       <PremiumOffersModal isOpen={isPremiumOffersOpen} onClose={() => setIsPremiumOffersOpen(false)} language={language} />
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} language={language} />
       <NotificationListModal isOpen={isNotificationListOpen} onClose={() => setIsNotificationListOpen(false)} language={language} />
-      
-      {/* 👑 مۆدێلی نوێی لۆکاڵی تێبینی لێرەدا ڕێندەر دەبێت */}
-      <LocalFeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} language={language} />
     </div>
   );
 };

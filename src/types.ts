@@ -2,7 +2,6 @@ export enum View {
   HOME = 'home', // 👈 لێرەدا زیادکرا بۆ دیزاینە نوێیەکە
   CHAT = 'chat',
   EXPLORE = 'explore',
-  ART = 'art',
   TRANSLATE = 'translate',
   PERSONALITIES = 'personalities',
   SOCIAL_HOOK = 'social_hook',
@@ -10,6 +9,9 @@ export enum View {
   DOCUMENT_SUMMARIZER = 'document_summarizer',
   WEB_SUMMARIZER = 'web_summarizer',
   KURDISH_GRAMMAR = 'kurdish_grammar',
+  OCR = 'ocr',
+  PARAPHRASE = 'paraphrase',
+  GRADUATION_RESEARCH = 'graduation_research',
   USER_FEEDBACK = 'user_feedback'
 }
 

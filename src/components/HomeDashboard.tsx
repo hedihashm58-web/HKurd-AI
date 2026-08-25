@@ -42,16 +42,6 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
       image: 'baby.webp'
     },
     { 
-      id: View.ART, 
-      label: language === 'ku' ? 'داهێنان و وێنە' : 'توليد الصور', 
-      image: 'dahenan.webp'
-    },
-    { 
-      id: 'social_hook', 
-      label: language === 'ku' ? 'کاری ڕیکلامی' : 'صانع الإعلانات', 
-      image: 'post.webp'
-    },
-    { 
       id: 'kurdish_flashcard', 
       label: language === 'ku' ? 'وشەی کوردی پەتی' : 'فلاش كارد اللغة', 
       image: 'mind.webp'
@@ -60,6 +50,21 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
       id: View.PERSONALITIES, 
       label: language === 'ku' ? 'کەسایەتییەکانی کورد' : 'شخصيات كوردية', 
       image: 'syasi.webp'
+    },
+    { 
+      id: View.OCR, 
+      label: language === 'ku' ? 'دەرهێنانی دەق لە وێنە' : 'استخراج النص من الصورة', 
+      image: 'ocr.jpg'
+    },
+    { 
+      id: View.PARAPHRASE, 
+      label: language === 'ku' ? 'داڕشتنەوەی ئەکادیمی' : 'إعادة الصياغة الأكاديمية', 
+      image: 'paraphrase.jpg'
+    },
+    { 
+      id: View.GRADUATION_RESEARCH, 
+      label: language === 'ku' ? 'توێژینەوەی دەرچوون' : 'بحوث التخرج الجامعية', 
+      image: 'research.jpg'
     },
     { 
       id: View.EXPLORE, 

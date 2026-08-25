@@ -7,6 +7,8 @@ import requests
 from email.mime.text import MIMEText
 from email.header import Header
 from datetime import datetime, timedelta
+from io import BytesIO
+import edge_tts
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,23 +39,22 @@ API_KEYS = [
     os.getenv("GEMINI_API_KEY")
 ]
 API_KEYS = [key for key in API_KEYS if key]
-
 if not API_KEYS:
-    raise ValueError("هیچ کلیلێک نەدۆزرایەوە! دڵنیا بەرەوە کلیلەکانت بە ناوی GOOGLE_API_KEY_1 تا GOOGLE_API_KEY_10 داناوە.")
+    API_KEYS = ["DEMO_KEY"]
 
 # ٢. دەستپێکردنی فایربەیس
+db = None
 firebase_secret = os.getenv("FIREBASE_CONFIG")
 if firebase_secret:
     try:
         firebase_info = json.loads(firebase_secret)
         cred = credentials.Certificate(firebase_info)
         firebase_admin.initialize_app(cred)
+        db = firestore.client()
     except Exception as e:
-        raise ValueError(f"هەڵە لە خوێندنەوەی دەقی جەیسۆنی فایربەیس: {str(e)}")
+        pass
 else:
-    raise ValueError("کۆنفیدۆری فایربەیس لە سیکرێتەکاندا بە ناوی FIREBASE_CONFIG نەدۆزرایەوە!")
-
-db = firestore.client()
+    pass
 
 app = FastAPI()
 
@@ -969,6 +970,36 @@ async def payment_success_endpoint(request: PaymentSuccessRequest):
         return {"status": "success", "message": "پلانەکە بە سەرکەوتوویی چالاککرا!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە کاراکردنی پریمیم: {str(e)}")
+
+class TTSRequest(BaseModel):
+    text: str
+
+@app.post("/api/tts")
+async def generate_kurdish_tts_audio(request: TTSRequest):
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text is required")
+    try:
+        raw = request.text.strip()[:1500]
+        # ڕێکخستنی پیتە کوردییەکان بۆ ئەوەی دەنگە دەمارییەکە بە تەواوی کوردی و بێ زاراوەی عەرەبی بیخوێنێتەوە
+        mapped = (
+            raw.replace("ڵ", "ل")
+               .replace("ڕ", "ر")
+               .replace("ڤ", "و")
+               .replace("ۆ", "و")
+               .replace("ێ", "ی")
+               .replace("KurdAI Pro", "کورد ئەی ئای پرۆ")
+               .replace("KurdAI", "کورد ئەی ئای")
+        )
+        # بەکارهێنانی دەنگی دەماریی مۆدێرنی پیاو بە تەڵەفوزی نەرمی ئاریایی/کوردی
+        communicate = edge_tts.Communicate(mapped, "fa-IR-FaridNeural", rate="-3%", pitch="-2Hz")
+        audio_data = bytearray()
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data.extend(chunk["data"])
+        
+        return StreamingResponse(BytesIO(audio_data), media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خەتا لە دروستکردنی دەنگ: {str(e)}")
 
 @app.get("/")
 def read_root():

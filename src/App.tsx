@@ -13,7 +13,6 @@ import LandmarkExplorer from './components/LandmarkExplorer';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 
-import ArtInterface from './components/ArtStudio';
 import TranslateInterface from './components/Translator';
 import KurdishPersonalities from './components/KurdishPersonalities';
 import WebSummarizer from './components/WebSummarizer'; 
@@ -24,54 +23,10 @@ import SocialHook from './components/SocialHook';
 import KurdishFlashcard from './components/KurdishFlashcard';
 import DocumentSummarizer from './components/DocumentSummarizer';
 import KurdishKidsAI from './components/KurdishKidsAI';
+import KurdishOCR from './components/KurdishOCR';
+import ParaphraseTool from './components/ParaphraseTool';
+import GraduationResearch from './components/GraduationResearch';
 import { View } from './types';
-
-interface ArtComingSoonModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  language: 'ku' | 'ar';
-}
-
-const ArtComingSoonModal: React.FC<ArtComingSoonModalProps> = ({ isOpen, onClose, language }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[700] p-4 select-none animate-in fade-in duration-200" dir="rtl">
-      <div className="bg-slate-900/50 border border-slate-800/80 rounded-[2.5rem] max-w-sm w-full p-8 text-center shadow-[0_0_50px_rgba(99,102,241,0.06)] relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-300 pt-10">
-        
-        <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-slate-950 border border-slate-800/80 shadow-[0_0_20px_rgba(99,102,241,0.1)] group overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-amber-500/5 to-yellow-500/5 rounded-full animate-pulse"></div>
-          <svg className="w-8 h-8 text-indigo-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-        </div>
-
-        <h3 className="text-sm font-black text-amber-500 mb-2 tracking-wide">
-          {language === 'ku' ? "داهێنان و وێنە 🎨" : "توليد الصور 🎨"}
-        </h3>
-        
-        <h4 className="text-base font-black text-white mb-3">
-          {language === 'ku' ? "بەم زوانە بەردەست دەبێت!" : "سيتوفر قريباً!"}
-        </h4>
-        
-        <p className="text-slate-400 text-xs mb-6 leading-relaxed">
-          {language === 'ku' 
-            ? "ئەم بەشە لە ژێر پەرەپێداندایە. بەم زوانە دەتوانیت بیرۆکە و خەیاڵەکانت بە بەکارهێنانی پێشکەوتووترین ژیریی دەستکرد بکەیت بە وێنەی ناوازە و شاهانە."
-            : "هذا القسم قيد التطوير حالياً. قريباً ستتمكن من تحويل أفكارك وخيالاتك إلى صور فريدة وراقية باستخدام أحدث تقنيات الذكاء الاصطناعي."}
-        </p>
-
-        <button 
-          onClick={onClose} 
-          className="w-full bg-slate-950 hover:bg-slate-900/80 text-slate-200 font-bold py-3 rounded-2xl transition-all text-xs border border-slate-800/80 active:scale-[0.98]"
-        >
-          {language === 'ku' ? 'باشە' : 'موافق'}
-        </button>
-      </div>
-    </div>
-  );
-};
 
 interface VerificationModalProps {
   isOpen: boolean;
@@ -186,14 +141,9 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, email, on
 };
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.HOME);
-  const [isArtComingSoonOpen, setIsArtComingSoonOpen] = useState(false);
 
   const handleViewChange = (view: View) => {
-    if (view === View.ART) {
-      setIsArtComingSoonOpen(true);
-    } else {
-      setActiveView(view);
-    }
+    setActiveView(view);
   };
   // 👑 لایتی سەرەکی و قەبارەی وێنەکە ئۆپتیمایز کرا بۆ مۆبایل تاوەکو کێشی زۆر کەم بێتەوە
   const [bgImage, setBgImage] = useState<string | undefined>('https://images.unsplash.com/photo-1644342352822-5f606821262d?q=70&w=800&auto=format&fit=crop');
@@ -344,11 +294,6 @@ const App: React.FC = () => {
       >
         {renderView()}
       </Layout>
-      <ArtComingSoonModal 
-        isOpen={isArtComingSoonOpen} 
-        onClose={() => setIsArtComingSoonOpen(false)} 
-        language={language}
-      />
     </>
   );
 
@@ -357,7 +302,6 @@ const App: React.FC = () => {
       case View.HOME: return <HomeDashboard onViewChange={handleViewChange} language={language} />; 
       case View.CHAT: return <ChatInterface />;
       case View.EXPLORE: return <LandmarkExplorer onCityChange={(url: string) => setBgImage(url)} language={language} />;
-      case View.ART: return <ArtInterface />;
       case View.TRANSLATE: return <TranslateInterface />;
       case View.PERSONALITIES: return <KurdishPersonalities language={language} />;
       
@@ -368,6 +312,9 @@ const App: React.FC = () => {
       case 'kurdish_flashcard' as View: return <KurdishFlashcard language={language} />;
       case 'document_summarizer' as View: return <DocumentSummarizer language={language} />;
       case 'kids_ai' as View: return <KurdishKidsAI language={language} />;
+      case View.OCR: return <KurdishOCR language={language} />;
+      case View.PARAPHRASE: return <ParaphraseTool language={language} />;
+      case View.GRADUATION_RESEARCH: return <GraduationResearch language={language} />;
       
       case 'user_feedback' as View: return <UserFeedback language={language} />;
       
