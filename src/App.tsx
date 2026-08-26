@@ -273,11 +273,13 @@ const App: React.FC = () => {
             <div className="absolute -top-3 inset-x-0 h-4 bg-rose-300/40 blur-[1px] animate-pulse"></div>
           </div>
 
-          {/* لۆگۆی ژیر لە سەنتەر */}
-          <div className="relative z-10 flex flex-col items-center justify-center drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-            <span className="text-3xl sm:text-4xl animate-bounce">
-              🧠
-            </span>
+          {/* لۆگۆی پیرۆزی کوردستان لە سەنتەر */}
+          <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-amber-400/90 shadow-[0_0_25px_rgba(251,191,36,0.6)] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-pulse">
+            <img 
+              src="/logo.jpg" 
+              alt="KurdAI Logo" 
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
