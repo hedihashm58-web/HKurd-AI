@@ -67,6 +67,11 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
       image: 'research.jpg'
     },
     { 
+      id: View.BRAIN_TRAINER, 
+      label: language === 'ku' ? 'فێرکردنی مێشک' : 'تدريب الذكاء', 
+      image: 'brain_trainer.jpg'
+    },
+    { 
       id: View.EXPLORE, 
       label: language === 'ku' ? 'نەخشەی کوردستان' : 'خارطة كوردستان', 
       image: 'kurdstan1.webp'

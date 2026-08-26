@@ -12,6 +12,7 @@ export enum View {
   OCR = 'ocr',
   PARAPHRASE = 'paraphrase',
   GRADUATION_RESEARCH = 'graduation_research',
+  BRAIN_TRAINER = 'brain_trainer',
   USER_FEEDBACK = 'user_feedback'
 }
 

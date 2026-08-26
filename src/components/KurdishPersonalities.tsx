@@ -307,7 +307,8 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language })
   const [loading, setLoading] = useState<boolean>(true);
 
   // پانێڵی ئەدمین
-  const isAdmin = auth.currentUser?.email === 'hedikurdaipro@admin.com';
+  const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
+  const isAdmin = currentUserEmail === 'hedihashm58@gmail.com' || currentUserEmail === 'hedikurdaipro@admin.com';
   const [showForm, setShowForm] = useState<boolean>(false);
   const [pNameKu, setPNameKu] = useState('');
   const [pNameAr, setPNameAr] = useState('');

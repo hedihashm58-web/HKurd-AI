@@ -758,7 +758,8 @@ const LandmarkExplorer: React.FC<LandmarkExplorerProps> = ({ onCityChange, langu
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'neighborhoods' | 'districts' | 'tourism'>('neighborhoods');
 
-  const isAdmin = auth.currentUser?.email === 'hedikurdaipro@admin.com';
+  const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
+  const isAdmin = currentUserEmail === 'hedihashm58@gmail.com' || currentUserEmail === 'hedikurdaipro@admin.com';
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
   const [targetCity, setTargetCity] = useState('slemani');
   const [targetType, setTargetType] = useState('neighborhoods');
