@@ -8,7 +8,10 @@ from email.mime.text import MIMEText
 from email.header import Header
 from datetime import datetime, timedelta
 from io import BytesIO
-import edge_tts
+try:
+    import edge_tts  # type: ignore
+except ImportError:
+    edge_tts = None
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -978,6 +981,8 @@ class TTSRequest(BaseModel):
 async def generate_kurdish_tts_audio(request: TTSRequest):
     if not request.text or not request.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
+    if not edge_tts:
+        raise HTTPException(status_code=500, detail="edge-tts library is not installed")
     try:
         raw = request.text.strip()[:1500]
         # ڕێکخستنی پیتە کوردییەکان بۆ ئەوەی دەنگە دەمارییەکە بە تەواوی کوردی و بێ زاراوەی عەرەبی بیخوێنێتەوە
