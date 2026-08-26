@@ -324,6 +324,7 @@ class GetOrCreateCodeRequest(BaseModel):
 class DocumentSummarizerRequest(BaseModel):
     content: Optional[str] = None
     pdfBase64: Optional[str] = None
+    mode: Optional[str] = "executive"
     email: str
 
 def send_otp_email(target_email: str, code: str):
@@ -991,7 +992,37 @@ async def summarize_document_endpoint(request: DocumentSummarizerRequest, fastap
                 raise HTTPException(status_code=403, detail="⚠️ لێمیتی فایلی ئەم مانگەت تەواو بوو!")
             db.collection('users').document(email_clean).update({"pdfCountThisMonth": pdf_monthly_count + 1})
 
-    doc_prompt = "تۆ پسپۆڕی باڵای شیکاریی بەڵگەنامەکانیت کورتەکەی بە زمانی کوردی سۆرانی پاراو پێشکەش بکە."
+    mode = request.mode or "executive"
+    if mode == "study":
+        doc_prompt = (
+            "تۆ پسپۆڕی باڵای شیکاری و کورتکردنەوەی ئەکادیمییت بۆ خوێندکارانی زانکۆ و پەیمانگا.\n"
+            "تکایە ئەم فایلی PDFە بە تەواوی بخوێنەوە و تێبینییەکی ئەکادیمی (Study Notes) زۆر دەوڵەمەند و ڕێکوپێک بە زمانی کوردی سۆرانی دروست بکە:\n"
+            "١. ناونیشان و پوختەی سەرەکی بابەتەکە\n"
+            "٢. پێناسە و چەمکە گرنگەکان (Definitions & Concepts)\n"
+            "٣. تەوەرە و بابەتە سەرەکییەکان بە خاڵبەندی (Key Points)\n"
+            "٤. دەرەنجام و کورتەی کۆتایی (Conclusion)\n"
+            "ڕاستەوخۆ بە زمانی کوردی سۆرانی فەرمی و زانستی بەبێ کڵێشەی زیادە دەستپێبکە."
+        )
+    elif mode == "qa":
+        doc_prompt = (
+            "تۆ مامۆستایەکی پسپۆڕیت لە ئامادەکردنی پرسیاری تاقیکردنەوە لەسەر بەڵگەنامە و مەلزەمە.\n"
+            "تکایە بە پشتبەستن بەم فایلی PDFە، ٧ بۆ ١٠ پرسیاری زۆر گرنگ کە لە تاقیکردنەوەدا دەکرێت بێن، لەگەڵ وەڵامە وردەکانیان بە زمانی کوردی سۆرانی ئامادە بکە.\n"
+            "هەر پرسیارێک بە شێوەی پرسیار و پاشان وەڵامەکەی بە ڕوونی بنووسە."
+        )
+    elif mode == "quick":
+        doc_prompt = (
+            "تۆ پسپۆڕی کورتکردنەوەی خێرایت (1-Minute Summary).\n"
+            "تکایە لە کەمتر لە ٢٠٠ وشەدا لە ٣ بۆ ٥ خاڵی زۆر کورت و پوخت، گرنگترین پەیام و زانیارییەکانی ئەم فایلە بە زمانی کوردی سۆرانی ڕوون بکەرەوە."
+        )
+    else:
+        doc_prompt = (
+            "تۆ پسپۆڕی باڵای شیکاریی بەڵگەنامە و پەڕاوەکانیت لە KurdAI Pro.\n"
+            "تکایە ئەم فایلی PDFە بە ووردی شیکاری بکە و کورتەیەکی گشتگیر و زۆر پرۆفێشناڵ بە زمانی کوردی سۆرانی پێشکەش بکە:\n"
+            "🔹 پێشەکییەکی کورت لەسەر بابەتەکە\n"
+            "🔹 خاڵە سەرەکی و گرنگەکان بە خاڵبەندی (Bullet Points)\n"
+            "🔹 دەرەنجام و ڕاسپاردەکان\n"
+            "ڕاستەوخۆ بە کوردی پاراو و بێ هەڵە دەستپێبکە."
+        )
     
     if request.pdfBase64:
         try:

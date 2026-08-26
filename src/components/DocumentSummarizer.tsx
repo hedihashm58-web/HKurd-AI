@@ -4,25 +4,37 @@ import React, { useState, useRef, useEffect } from 'react';
 import { auth } from '../firebase';
 
 interface DocumentSummarizerProps {
-  language: 'ku' | 'ar';
+  language?: 'ku' | 'ar';
 }
 
 interface SummaryHistoryItem {
   id: string;
   fileName: string;
+  mode: string;
   summaryResult: string;
   timestamp: string;
 }
 
-const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => {
+const MODES = [
+  { id: 'executive', label: '📑 کورتەی گشتی و خاڵەکان', desc: 'پوختەی تەواوی بەڵگەنامەکە بە شێوازی خاڵبەندی و تەوەرە سەرەکییەکان' },
+  { id: 'study', label: '🎓 تێبینی ئەکادیمی (زانکۆ)', desc: 'بۆ خوێندکاران: دەرهێنانی پێناسە، چەمک و دەرەنجامەکانی مەلزەمە و کتێب' },
+  { id: 'qa', label: '❓ پرسیار و وەڵامی گرنگ', desc: 'ئامادەکردنی پرسیارە گرنگەکانی تاقیکردنەوە لەگەڵ وەڵامە وردەکانیان' },
+  { id: 'quick', label: '⚡ کورتەی ١ خولەکی', desc: 'پوختەیەکی زۆر خێرا لە کەمتر لە ٢٠٠ وشەدا' },
+];
+
+const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language = 'ku' }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedMode, setSelectedMode] = useState<string>('executive');
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SummaryHistoryItem[]>([]);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); 
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('kurdai_pdf_summary_history');
@@ -52,26 +64,27 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      if (file.type !== "application/pdf") {
-        setError(language === 'ku' ? "⚠️ تکایە تەنها فایلی PDF لۆد بکە!" : "⚠️ يرجى تحميل ملف PDF فقط!");
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith('.pdf')) {
+        setError("⚠️ تکایە تەنها فایلی فەرمی PDF دابنێ!");
         setSelectedFile(null);
         return;
       }
       
-      const maxSizeBytes = 10 * 1024 * 1024;
+      const maxSizeBytes = 20 * 1024 * 1024; // 20 MB
       if (file.size > maxSizeBytes) {
-        setError(language === 'ku' ? "⚠️ قەبارەی ئەم فایلە زۆر گەورەیە! تکایە فایلی کەمتر لە ١٠ مێگابایت لۆد بکە." : "⚠️ حجم الملف كبير جداً! يرجى تحميل ملف أقل من 10 ميجابايت.");
+        setError("⚠️ قەبارەی ئەم فایلە لە ٢٠ مێگابایت زیاترە! تکایە فایلێکی گونجاو هەڵبژێرە.");
         setSelectedFile(null);
         return;
       }
 
       setSelectedFile(file);
       setError(null);
+      setSummary(null);
     }
   };
 
-  const handleSummarize = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSummarize = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedFile || loading) return;
 
     setLoading(true);
@@ -87,6 +100,7 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pdfBase64: base64Data,
+          mode: selectedMode,
           email: userEmail
         }),
       });
@@ -102,26 +116,32 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
 
       const resultText = data.response;
       setSummary(resultText);
-      saveToHistory(selectedFile.name, resultText);
+      saveToHistory(selectedFile.name, selectedMode, resultText);
     } catch (err: any) {
       console.error(err);
-      if (err.message.includes("LIMIT_EXCEEDED_PDF_TRIAL") || err.message.includes("تەواو بوو")) {
-        setError(language === 'ku' ? "⚠️ لێمیتی خۆڕایی کورتکردنەوەی PDF تەواو بوو! تکایە بۆ بەکارهێنانی بێسنوور بەشداری ئۆفەرەکان بکە." : "⚠️ انتهت فترة التجربة المجانية لتلخيص الملفات! يرجى الاشتراك في العروض للاستمرار.");
+      if (err.message?.includes("LIMIT_EXCEEDED_PDF_TRIAL") || err.message?.includes("تەواو بوو")) {
+        setError("⚠️ لێمیتی فایلی ئەم مانگەت تەواو بوو! تکایە بۆ بەکارهێنانی بێسنوور پلانەکەت بەرز بکەرەوە.");
       } else {
-        setError(err.message || (language === 'ku' ? "ببوورە، کێشەیەک لە کورتکردنەوەی فایلی PDFەکەدا هەبوو." : "عذراً, حدث خطأ أثناء تلخيص ملف الـ PDF."));
+        setError(err.message || "ببوورە، کێشەیەک لە کورتکردنەوەی فایلی PDFەکەدا هەبوو.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const saveToHistory = (fileName: string, summaryResult: string) => {
+  const saveToHistory = (fileName: string, mode: string, summaryResult: string) => {
     setHistory((prevHistory) => {
-      const filtered = prevHistory.filter(item => item.fileName !== fileName);
+      const filtered = prevHistory.filter(item => item.fileName !== fileName || item.mode !== mode);
       const newItems = [
-        { id: Date.now().toString(), fileName, summaryResult, timestamp: new Date().toLocaleDateString('ku-IQ') },
+        { 
+          id: Date.now().toString(), 
+          fileName, 
+          mode, 
+          summaryResult, 
+          timestamp: new Date().toLocaleDateString('ku-IQ') 
+        },
         ...filtered
-      ].slice(0, 5);
+      ].slice(0, 10);
       
       localStorage.setItem('kurdai_pdf_summary_history', JSON.stringify(newItems));
       return newItems;
@@ -135,6 +155,7 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
 
   const handleLoadHistoryItem = (item: SummaryHistoryItem) => {
     setSummary(item.summaryResult);
+    setSelectedMode(item.mode || 'executive');
     setSelectedFile({ name: item.fileName, size: 0, type: "application/pdf" } as File);
     setIsHistoryOpen(false);
   };
@@ -146,144 +167,308 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-3" dir="rtl">
+  const downloadAsText = () => {
+    if (!summary) return;
+    const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kurdai_summary_${selectedFile?.name?.replace('.pdf', '') || 'doc'}.txt`;
+    link.click();
+  };
+
+  // خوێندنەوە بە دەنگی دەماریی پیاو
+  const handlePlayAudio = async () => {
+    if (!summary) return;
+    if (isPlayingAudio && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: summary.slice(0, 500) })
+      });
+
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
       
-      {/* 👑 لێرەدا فڵێکس ڕێکخرایەوە بۆ ڕێگری لە تێکەڵبوونی دوگمەکە و دەقەکە لەسەر مۆبایل */}
-      <div className="flex flex-col sm:flex-row-reverse sm:justify-between sm:items-center w-full border-b border-zinc-900 pb-4 gap-4">
-        <div className="flex justify-start sm:justify-end shrink-0">
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            className="px-4 py-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/80 hover:border-emerald-500/30 text-zinc-300 rounded-xl transition-all text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95"
-          >
-            <span>📜</span>
-            <span>مێژووی کورتکراوەکان</span>
-            {history.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center font-mono">
-                {history.length}
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+      audio.play();
+    } catch (e) {
+      console.error(e);
+      setIsPlayingAudio(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
+      
+      {/* 🧭 سەرپەڕە */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-rose-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(244,63,94,0.2)] shrink-0">
+            📑
+          </div>
+          <div>
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>شیکاری و کورتکەرەوەی PDF</span>
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-mono font-bold uppercase">
+                Doc AI
               </span>
-            )}
-          </button>
+            </h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">کورتکردنەوەی کتێب، توێژینەوە، مەلزەمە و پەڕاوی PDF بە کوردیی سۆرانیی ڕەوان</p>
+          </div>
         </div>
 
-        <div className="text-right space-y-1.5">
-          <h2 className="text-2xl sm:text-3xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight leading-tight">
-            {language === 'ku' ? 'کورتکەرەوەی هۆشمەندی ' : 'ملخص الـ '}<span className="text-emerald-400">PDF</span>
-          </h2>
-          <p className="text-zinc-500 text-xs font-['Noto_Sans_Arabic'] leading-relaxed">
-            {language === 'ku' ? 'فایلی PDF لۆد بکە و پوختەکەی لە چەند بەشێکی دەوڵەمەنددا بە کوردییەکی پاراو وەرگرە' : 'قم بتحميل ملف PDF واحصل على الملخص في نقاط أساسية وموجزة باللغة الكوردية'}
-          </p>
-        </div>
+        {/* دوگمەی مێژووی کورتکراوەکان */}
+        <button
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="px-3 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 self-end sm:self-auto active:scale-95"
+        >
+          <span>📜</span>
+          <span>مێژووی فایلەکان ({history.length})</span>
+        </button>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs font-bold text-center animate-in fade-in duration-300">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start w-full">
-        
-        <form onSubmit={handleSummarize} className="flex flex-col space-y-4 w-full bg-[#0e0e12]/90 border border-zinc-800 p-6 rounded-3xl shadow-xl min-h-[250px] justify-between">
-          <div className="flex flex-col space-y-3 items-center justify-center border-2 border-dashed border-zinc-800 hover:border-emerald-500/40 rounded-2xl p-6 transition-all bg-zinc-950/20 cursor-pointer h-40 relative group"
-               onClick={() => fileInputRef.current?.click()}>
-            
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".pdf"
-              className="hidden"
-            />
-            
-            <span className="text-3xl group-hover:scale-110 transition-transform">📄</span>
-            {selectedFile ? (
-              <div className="text-center space-y-1">
-                <p className="text-emerald-400 text-xs font-bold truncate max-w-[200px]">{selectedFile.name}</p>
-                {selectedFile.size > 0 && (
-                  <p className="text-[10px] text-zinc-500 font-mono">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                )}
-              </div>
-            ) : (
-              <div className="text-center space-y-1">
-                <p className="text-zinc-300 text-xs font-bold">{language === 'ku' ? 'کلیک بکە بۆ هەڵبژاردنی فایلی PDF' : 'اضغط لاختيار ملف PDF'}</p>
-                <p className="text-[10px] text-zinc-600">PDF (Max 10MB)</p>
-              </div>
-            )}
-          </div>
-          
+      {/* 🎛️ شێوازەکانی شیکاری (Analysis Mode Selector Chips) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {MODES.map(m => (
           <button
-            type="submit"
-            disabled={loading || !selectedFile}
-            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-[0.98] disabled:opacity-20 uppercase tracking-wider"
+            key={m.id}
+            onClick={() => setSelectedMode(m.id)}
+            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 ${
+              selectedMode === m.id
+                ? 'bg-rose-950/60 border-rose-500/60 text-white shadow-[0_0_20px_rgba(244,63,94,0.2)]'
+                : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            {loading ? '⏳ خەریکی خوێندنەوە و شیکاری لاپەڕەکانی PDFەکە دەکات...' : '🔹 دەستپێکردنی کورتکردنەوە'}
+            <span className="text-xs font-black">{m.label}</span>
+            <span className="text-[10px] text-zinc-500 leading-tight truncate">{m.desc}</span>
           </button>
-        </form>
+        ))}
+      </div>
 
-        <div className="flex flex-col space-y-2 w-full">
-          <label className="text-[10px] font-black text-emerald-400 uppercase tracking-wider pr-1">✨ پوختە و شیکاری گشتی فایلەکە:</label>
-          <div className="p-5 rounded-3xl bg-[#0b0b0e]/90 border border-zinc-800 shadow-xl min-h-[250px] flex flex-col justify-between relative">
-            <div className="text-zinc-200 text-sm leading-relaxed text-right min-h-[170px] whitespace-pre-wrap font-medium pb-8 select-text overflow-y-auto max-h-80">
-              {loading ? (
-                <span className="text-zinc-600 italic animate-pulse">KurdAI Pro بە قووڵی خەریکی دۆزینەوەی کرۆکی زانیارییەکانی ناو فایلی PDFەکەیە...</span>
-              ) : summary ? (
-                <span className="text-zinc-200">{summary}</span>
-              ) : (
-                <span className="text-zinc-700 italic text-xs">دوای لۆدکردنی فایلەکە، کورتەی تەواوی کتێب یان ڕاپۆرتەکە لێرە بە شێوازێکی بەش بە بەش ڕیز دەبێت.</span>
+      {/* 🌟 شوێنی سەرەکی: بارکردن و دەرەنجام */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        
+        {/* 📄 بەشی لای ڕاست: بارکردنی فایلی PDF */}
+        <div className="bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-5 shadow-2xl flex flex-col justify-between space-y-4">
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-zinc-400 border-b border-slate-800/60 pb-2">
+              <span>فایلی هەڵبژێردراو:</span>
+              {selectedFile && (
+                <button
+                  onClick={() => { setSelectedFile(null); setSummary(null); }}
+                  className="text-red-400 hover:text-red-300 transition-all text-[11px]"
+                >
+                  ✕ سڕینەوەی فایل
+                </button>
               )}
             </div>
-            
-            {summary && !loading && (
-              <button
-                onClick={copyToClipboard}
-                className="absolute bottom-3 left-3 px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 rounded-lg transition-all shadow-md"
-              >
-                {copied ? "✓ کۆپی کرا" : "📋 کۆپی کورتە"}
-              </button>
+
+            {/* بۆکسی فایل */}
+            <div
+              onClick={() => !selectedFile && fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center transition-all min-h-[220px] sm:min-h-[280px] overflow-hidden ${
+                selectedFile 
+                  ? 'border-rose-500/40 bg-slate-950/60' 
+                  : 'border-slate-700 hover:border-rose-500/60 bg-slate-950/30 cursor-pointer hover:bg-slate-900/40'
+              }`}
+            >
+              {selectedFile ? (
+                <div className="text-center space-y-3 p-4">
+                  <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto text-3xl shadow-lg">
+                    📑
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm font-black text-white max-w-[260px] truncate mx-auto">
+                      {selectedFile.name}
+                    </p>
+                    {selectedFile.size > 0 && (
+                      <p className="text-[11px] text-zinc-400 font-mono">
+                        قەبارە: {formatFileSize(selectedFile.size)}
+                      </p>
+                    )}
+                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30 font-mono mt-1">
+                      PDF Document
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center space-y-3 py-6">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    📁
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-white mb-1">فایلی PDFی مەلزەمە یان کتێبەکە دابنێ</p>
+                    <p className="text-[11px] text-zinc-500">کلیک بکە یان فایلەکە ڕابکێشە بۆ ناو ئەم بۆکسە</p>
+                  </div>
+                  <span className="text-[10px] text-zinc-600 font-mono block">تا قەبارەی ٢٠ مێگابایت</span>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="application/pdf"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-950/60 border border-red-500/30 rounded-xl text-red-300 text-xs font-bold text-center animate-in fade-in">
+              {error}
+            </div>
+          )}
+
+          {/* دوگمەی کورتکردنەوە */}
+          <button
+            onClick={handleSummarize}
+            disabled={!selectedFile || loading}
+            className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg active:scale-98 ${
+              selectedFile && !loading
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/25 cursor-pointer'
+                : 'bg-zinc-800/60 text-zinc-600 border border-zinc-800 cursor-not-allowed'
+            }`}
+          >
+            {loading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>KurdAI خەریکی خوێندنەوە و شیکارییە...</span>
+              </>
+            ) : (
+              <>
+                <span>⚡</span>
+                <span>شیکاری و کورتکردنەوەی PDF</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 📝 بەشی لای چەپ: پوختە و دەرەنجام */}
+        <div className="bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-5 shadow-2xl flex flex-col justify-between space-y-4">
+          
+          <div className="flex items-center justify-between text-xs font-bold text-zinc-400 border-b border-slate-800/60 pb-2">
+            <span className="flex items-center gap-1.5 text-rose-400">
+              <span>✨</span>
+              <span>کورتەی بەرهەمهێنراوی KurdAI:</span>
+            </span>
+            <span className="text-[10px] text-zinc-500 font-mono">
+              {summary ? `${summary.length} پیت` : ''}
+            </span>
+          </div>
+
+          {/* بۆکسی پیشاندانی کورتە */}
+          <div className="flex-1 min-h-[220px] sm:min-h-[280px] bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 overflow-y-auto">
+            {loading ? (
+              <div className="h-full flex flex-col items-center justify-center space-y-3 py-12 text-center">
+                <div className="w-10 h-10 border-3 border-rose-400 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-medium text-rose-400/90 animate-pulse">KurdAI بە ووردی پەڕە بە پەڕە شیکاری فایلەکە دەکات...</p>
+              </div>
+            ) : summary ? (
+              <div className="text-slate-100 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap text-right font-medium select-text">
+                {summary}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center py-16 text-center text-zinc-600 space-y-2">
+                <span className="text-3xl opacity-30">📑</span>
+                <p className="text-xs font-medium">پاش کورتکردنەوە، تەواوی پوختە و خاڵە گرنگەکان لێرەدا دەردەکەون</p>
+              </div>
             )}
           </div>
+
+          {/* دوگمەکانی کردار */}
+          {summary && !loading && (
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-xs">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={copyToClipboard}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-md active:scale-95 border border-slate-700"
+                >
+                  <span>{copied ? "✓" : "📋"}</span>
+                  <span>{copied ? "کۆپی کرا" : "کۆپیکردن"}</span>
+                </button>
+
+                <button
+                  onClick={handlePlayAudio}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 border ${
+                    isPlayingAudio
+                      ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
+                      : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-zinc-300'
+                  }`}
+                >
+                  <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
+                  <span>{isPlayingAudio ? "وەستاندن" : "گوێگرتن"}</span>
+                </button>
+              </div>
+
+              <button
+                onClick={downloadAsText}
+                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 border border-slate-800"
+                title="داگرتن وەک فایلی دەق"
+              >
+                <span>💾</span>
+                <span>داگرتن</span>
+              </button>
+            </div>
+          )}
+
         </div>
 
       </div>
 
+      {/* 📜 مۆداڵی مێژووی کورتکراوەکان */}
       {isHistoryOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)}></div>
-          
-          <div className="relative bg-[#0b0b0e] border border-zinc-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[75vh]">
-            
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-3 mb-3 shrink-0">
-              <button 
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-white flex items-center gap-1.5">
+                <span>📜</span>
+                <span>مێژووی کورتکراوەکانی پێشوو</span>
+              </h3>
+              <button
                 onClick={() => setIsHistoryOpen(false)}
-                className="w-7 h-7 bg-zinc-900 text-zinc-400 hover:text-white rounded-full flex items-center justify-center text-xs border border-zinc-800 transition-all"
+                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-zinc-400 hover:text-white flex items-center justify-center text-xs"
               >
                 ✕
               </button>
-              <span className="text-sm font-black text-white">📜 مێژووی کورتکردنەوەی فایلی PDF</span>
             </div>
 
-            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 pl-1">
+            <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
-                <div className="text-center py-12 text-zinc-600 text-xs italic">
-                  هیچ مێژوویەکی کورتکردنەوە لەم ئامێرەدا پاشەکەوت نەکراوە.
-                </div>
+                <p className="text-center py-8 text-xs text-zinc-500">هیچ مێژوویەک پاشەکەوت نەکراوە.</p>
               ) : (
                 history.map((item) => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => handleLoadHistoryItem(item)}
-                    className="p-3 bg-zinc-900/40 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl cursor-pointer transition-all flex flex-col text-right group space-y-1.5 active:scale-[0.99]"
+                    className="p-3 bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 rounded-xl cursor-pointer transition-all space-y-1"
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-zinc-500 font-mono bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-900">
-                        {item.timestamp}
-                      </span>
-                      <p className="text-zinc-200 text-xs font-bold truncate max-w-[70%] group-hover:text-emerald-400 transition-colors">
-                        📄 {item.fileName}
-                      </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-rose-300 truncate max-w-[200px]">{item.fileName}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{item.timestamp}</span>
                     </div>
-                    <p className="text-zinc-500 text-[11px] truncate border-t border-zinc-900/60 pt-1.5 italic">
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
                       {item.summaryResult}
                     </p>
                   </div>
@@ -292,16 +477,13 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language }) => 
             </div>
 
             {history.length > 0 && (
-              <div className="border-t border-zinc-900 pt-3 mt-3 flex justify-center shrink-0">
-                <button 
-                  onClick={clearHistory} 
-                  className="w-full py-2 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black rounded-xl transition-all active:scale-95"
-                >
-                  🗑️ سڕینەوەی گشتی مێژوو
-                </button>
-              </div>
+              <button
+                onClick={clearHistory}
+                className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 text-xs font-bold rounded-xl transition-all"
+              >
+                🗑️ سڕینەوەی هەموو مێژوو
+              </button>
             )}
-            
           </div>
         </div>
       )}
