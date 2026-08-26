@@ -496,13 +496,17 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
         
         {/* هێمای ئاڵای پیرۆزی کوردستان و تیشکی سووری خوێناوی */}
         <div className="relative">
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 p-1 shadow-[0_0_50px_rgba(225,29,72,0.5)] animate-pulse">
-            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-4xl sm:text-5xl">
-              ☀️
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 p-1 shadow-[0_0_50px_rgba(225,29,72,0.6)] animate-pulse">
+            <div className="w-full h-full rounded-full bg-slate-950 p-0.5 overflow-hidden flex items-center justify-center">
+              <img 
+                src="/logo.jpg" 
+                alt="Kurdistan Flag Logo" 
+                className="w-full h-full rounded-full object-cover shadow-2xl"
+              />
             </div>
           </div>
-          <span className="absolute -bottom-2 right-1/2 translate-x-1/2 text-lg bg-slate-900 border border-red-500/50 px-3 py-0.5 rounded-full shadow-lg">
-            🇹🇯
+          <span className="absolute -bottom-2 right-1/2 translate-x-1/2 text-xs font-black bg-slate-900 border border-red-500/50 text-rose-300 px-3 py-0.5 rounded-full shadow-lg">
+            Kurdistan
           </span>
         </div>
 
