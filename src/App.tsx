@@ -27,6 +27,7 @@ import KurdishOCR from './components/KurdishOCR';
 import ParaphraseTool from './components/ParaphraseTool';
 import GraduationResearch from './components/GraduationResearch';
 import BrainTrainer from './components/BrainTrainer';
+import ExamMaker from './components/ExamMaker';
 import { View } from './types';
 
 interface VerificationModalProps {
@@ -354,6 +355,7 @@ const App: React.FC = () => {
       case View.PARAPHRASE: return <ParaphraseTool language={language} />;
       case View.GRADUATION_RESEARCH: return <GraduationResearch language={language} />;
       case View.BRAIN_TRAINER: return <BrainTrainer language={language} />;
+      case View.EXAM_MAKER: return <ExamMaker language={language} />;
       
       case 'user_feedback' as View: return <UserFeedback language={language} />;
       

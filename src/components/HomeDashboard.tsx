@@ -70,6 +70,11 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
       image: 'research.jpg'
     },
     { 
+      id: View.EXAM_MAKER, 
+      label: language === 'ku' ? 'دروستکەری تاقیکردنەوە' : 'صانع الاختبارات والأسئلة', 
+      image: 'research.jpg'
+    },
+    { 
       id: View.BRAIN_TRAINER, 
       label: language === 'ku' ? 'فێرکردنی مێشک' : 'تدريب الذكاء', 
       image: 'brain_trainer.jpg'

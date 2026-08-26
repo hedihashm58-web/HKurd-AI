@@ -1023,6 +1023,58 @@ async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Requ
     )
     return {"response": response_text.strip()}
 
+# 📝 ڕاوتی دروستکەری پرسیاری تاقیکردنەوە (Smart Exam & Quiz Maker AI)
+class ExamMakerRequest(BaseModel):
+    text: str
+    difficulty: Optional[str] = "medium"
+    question_count: Optional[int] = 10
+    include_mcq: Optional[bool] = True
+    include_blanks: Optional[bool] = True
+    include_true_false: Optional[bool] = True
+    include_short_answer: Optional[bool] = True
+    email: str
+
+@app.post("/api/exam-maker")
+async def exam_maker_endpoint(request: ExamMakerRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
+    validate_content(request.text)
+    check_user_limit(request.email, "chat", fastapi_req)
+    
+    exam_prompt = (
+        "تۆ پرۆفیسۆر و لێهاتووترین پسپۆڕی داڕشتنی پرسیاری تاقیکردنەوەی ئەکادیمی و زانستیت (Smart Exam & Quiz Architect AI).\n\n"
+        "🎯 ئەرکی بنەڕەتی: لەسەر بنەمای ئەم دەق و مەلزەمەیەی کە مامۆستاکە پێشکەشی کردووە، تاقیکردنەوەیەکی زۆر ستاندارد، زانستی، پوخت و تەواو ڕێکخراو دروست بکە.\n\n"
+        "یاسا زێڕینەکان:\n"
+        "١. تەنها و تەنها لە زانیاری ناو ئەم دەقە پرسیار دروست بکە. لە خۆتەوە هیچ زانیاری دەرەکی یان نادروست زیاد مەکە.\n"
+        "٢. پرسیارەکان بە شێوازێکی ڕوون، بێ گرێ و ڕەوان دابڕێژە بەبێ ئاڵۆزکردنی ناپێویست.\n"
+        "٣. بەشەکان بە جوانی لە یەک جیا بکەرەوە:\n\n"
+        "داڕشتەی پێویست بۆ تاقیکردنەوەکە:\n\n"
+        "📑 **[سەرپەڕەی فەرمی تاقیکردنەوە]**\n"
+        "ناوی قوتابخانە / زانکۆ: [........]  |  ناوی بابەت: [دیاریبکە بەپێی بابەتەکە]  |  ناوی قوتابی: [........]\n"
+        "پۆل / قۆناغ: [........]  |  کات: [١:٣٠ کاتژمێر]  |  کۆی نمرە: [١٠٠ نمرە]\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📌 **بەشی یەکەم: پرسیاری هەڵبژاردن (Multiple Choice - MCQ)**\n"
+        "(بۆ هەر پرسیارێک ٤ بژاردەی ڕوون و زانستی بنووسە بە A, B, C, D کە یەکێکیان وەڵامی تەواوە)\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📌 **بەشی دووەم: پڕکردنەوەی بۆشایی بە وشەی گونجاو (Fill in the Blanks)**\n"
+        "(ڕستەی گرنگ کە چەمکە سەرەکییەکەی کراوەتە بۆشایی: [ .......... ])\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📌 **بەشی سێیەم: ڕاست یان هەڵە (True or False)**\n"
+        "(ڕستەی زانستی کە قوتابی دیاریبکات (ڕاست ✓) یان (هەڵە ✗))\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📌 **بەشی چوارەم: پرسیاری کورت و شیکاری (Short Answer Questions)**\n"
+        "(پرسیاری پێناسە، هۆکار، یان شیکردنەوەی چەمکە سەرەکییەکان)\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔑 **کلیلی وەڵامە نموونەییەکان (Answer Key - تایبەت بە مامۆستا)**\n"
+        "(وەڵامی تەواو و کورت بۆ هەموو پرسیارەکانی بەشی ١ و ٢ و ٣ و ٤ بە ڕوونی).\n\n"
+        f"دەقی بنەڕەتی مامۆستاکە:\n{request.text.strip()}"
+    )
+    
+    response_text = generate_content_with_fallback(
+        model_name='gemini-2.5-flash',
+        text_prompt=exam_prompt
+    )
+    return {"response": response_text.strip()}
+
 # 🌐 ڕاوتی تایبەتی کورتکەرەوەی وێب و بەستەر (Web Summarizer AI)
 class WebSummarizeRequest(BaseModel):
     url: str

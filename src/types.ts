@@ -13,6 +13,7 @@ export enum View {
   PARAPHRASE = 'paraphrase',
   GRADUATION_RESEARCH = 'graduation_research',
   BRAIN_TRAINER = 'brain_trainer',
+  EXAM_MAKER = 'exam_maker',
   USER_FEEDBACK = 'user_feedback'
 }
 
