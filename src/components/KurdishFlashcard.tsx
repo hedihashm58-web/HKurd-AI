@@ -304,7 +304,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
             <button
               onClick={handleGenerateCard}
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer border border-amber-300"
+              className="w-full py-4 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-sm sm:text-base rounded-2xl transition-all shadow-[0_0_30px_rgba(245,158,11,0.35)] hover:shadow-[0_0_40px_rgba(245,158,11,0.55)] active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer border border-amber-400/50 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
             >
               <span>✨</span>
               <span>گەڕان بە دوای وشەیەکی تری کوردی</span>
@@ -325,11 +325,11 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
               </p>
             </div>
 
-            {/* 🌟 دوگمەی گەورە و زۆر ڕوون لە ناوەڕاستدا */}
+            {/* 🌟 دوگمەی گەورە و زۆر ڕوون بە نوسینی سپی و دیار */}
             <button
               onClick={handleGenerateCard}
               disabled={loading}
-              className="px-8 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl transition-all shadow-[0_0_35px_rgba(245,158,11,0.4)] hover:shadow-[0_0_45px_rgba(245,158,11,0.6)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer border-2 border-amber-300"
+              className="px-8 py-4 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-sm sm:text-base rounded-2xl transition-all shadow-[0_0_35px_rgba(245,158,11,0.45)] hover:shadow-[0_0_45px_rgba(245,158,11,0.65)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer border-2 border-amber-400/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
             >
               <span className="text-lg">✨</span>
               <span>گەڕان بە دوای وشەی پەتی</span>
