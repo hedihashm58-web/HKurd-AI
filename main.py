@@ -760,6 +760,40 @@ async def list_knowledge_endpoint():
     except Exception as e:
         return {"items": [], "error": str(e)}
 
+# 📸 ڕاوتی تایبەت و زۆر پێشکەوتووی دەرهێنانی دەق لە وێنە (High Precision Kurdish OCR)
+class OCRRequest(BaseModel):
+    image: str
+    mimeType: Optional[str] = "image/jpeg"
+    email: Optional[str] = "ocr_user"
+
+@app.post("/api/ocr")
+async def ocr_endpoint(request: OCRRequest):
+    if not request.image:
+        raise HTTPException(status_code=400, detail="وێنە پێویستە بۆ دەرهێنانی دەق!")
+    
+    ocr_prompt = (
+        "You are an expert, highly accurate Optical Character Recognition (OCR) engine specialized in Kurdish (Sorani & Badini / Kurmanji in Arabic script and Latin script), Arabic, English, and numbers.\n"
+        "TASK: Transcribe and extract EVERY SINGLE piece of text, sentence, word, number, title, bullet, and punctuation mark from this image with 100% exact fidelity.\n\n"
+        "CRITICAL INSTRUCTIONS:\n"
+        "1. Output ONLY the raw extracted text verbatim as written in the image.\n"
+        "2. Do NOT summarize, edit, translate, or correct the text.\n"
+        "3. Do NOT add any preamble, conversational greeting, intro, or concluding notes (STRICTLY NO 'Here is the extracted text:', NO 'لە خوارەوە دەقەکە دەبینیت', NO quotes).\n"
+        "4. Pay extreme attention to Kurdish specific letters: ڵ, ڕ, ڤ, ۆ, ێ, گ, چ, پ, ژ, ە, ی and preserve all dots, curves, and diacritics.\n"
+        "5. Preserve original line breaks, paragraph structure, lists, and numbers exactly as laid out in the image.\n"
+        "6. If the image has handwriting or printed document, read every line carefully from top to bottom."
+    )
+    
+    try:
+        response_text = generate_content_with_fallback(
+            model_name='gemini-2.5-flash',
+            text_prompt=ocr_prompt,
+            base64_image=request.image,
+            mime_type=request.mimeType or "image/jpeg"
+        )
+        return {"response": response_text.strip(), "text": response_text.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خەتا لە دەرهێنانی دەقی وێنەکە: {str(e)}")
+
 @app.post("/api/kids-ai")
 async def kids_ai_endpoint(request: KidsAIRequest, fastapi_req: Request):
     check_rate_limit(request.email)
