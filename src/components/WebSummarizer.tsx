@@ -1,28 +1,40 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 
 interface WebSummarizerProps {
-  language: 'ku' | 'ar';
+  language?: 'ku' | 'ar';
 }
 
 interface WebHistoryItem {
   id: string;
   url: string;
+  mode: string;
   summaryResult: string;
   timestamp: string;
 }
 
-const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
+const MODES = [
+  { id: 'highlights', label: '🌐 کورتەی گشتی و تەوەرەکان', desc: 'شیکاری و کورتکردنەوەی وتار و پەڕەکانی ماڵپەڕ' },
+  { id: 'news', label: '📰 هەواڵ و ڕووداوەکان', desc: 'دەرهێنانی ناونیشان، کات، شوێن، سەرچاوە و پوختەی هەواڵەکە' },
+  { id: 'facts', label: '🔍 داتا، ئامار و ڕاستییەکان', desc: 'دەرهێنانی تەواوی ژمارە، ئامار، ڕاستی و ناوی کەسایەتییەکان' },
+  { id: 'quick', label: '⚡ کورتەی ٣ خاڵی خێرا', desc: 'کورتکردنەوەی زۆر خێرا لە تەنها ٣ خاڵی بەهێزدا' },
+];
+
+const WebSummarizer: React.FC<WebSummarizerProps> = ({ language = 'ku' }) => {
   const [url, setUrl] = useState('');
+  const [selectedMode, setSelectedMode] = useState('highlights');
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<WebHistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  // 👑 لۆدکردنی مێژووی کورتکراوەکانی وێب لە لۆکاڵ ستۆرێجەوە
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     const savedHistory = localStorage.getItem('kurdai_web_summary_history');
     if (savedHistory) {
@@ -34,16 +46,14 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
     }
   }, []);
 
-  const handleSummarize = async () => {
+  const handleSummarize = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!url.trim() || loading) return;
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      setError(
-        language === 'ku' 
-          ? "⚠️ تکایە لێنکێکی فەرمی دابنێ کە بە http:// یان https:// دەستپێبکات." 
-          : "⚠️ يرجى إدخال رابط رسمي يبدأ بـ http:// أو https://"
-      );
-      return;
+
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+      setUrl(cleanUrl);
     }
 
     setLoading(true);
@@ -53,11 +63,12 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
     try {
       const userEmail = auth.currentUser?.email || "guest_user";
       
-      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
+      const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/summarize-web', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: url.trim(), 
+          url: cleanUrl,
+          mode: selectedMode,
           email: userEmail
         }), 
       });
@@ -68,42 +79,38 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
         if (data.detail && data.detail.includes("LIMIT_EXCEEDED_WEB_TRIAL")) {
           throw new Error("LIMIT_EXCEEDED_WEB_TRIAL");
         }
-        throw new Error(data.detail || (language === 'ku' ? "سێرڤەر وەڵامی نەدایەوە." : "لم يتم الرد من السيرفر."));
+        throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە.");
       }
 
-      const responseText = data.response || (language === 'ku' ? "هیچ زانیارییەک وەرنەگیرا." : "لم يتم العثور على معلومات.");
+      const responseText = data.response || "هیچ زانیارییەک لەم بەستەرەدا وەرنەگیرا.";
       setResult(responseText);
-      saveToHistory(url.trim(), responseText);
+      saveToHistory(cleanUrl, selectedMode, responseText);
 
     } catch (err: any) {
       console.error(err);
-      if (err.message.includes("LIMIT_EXCEEDED_WEB_TRIAL") || err.message.includes("تەواو بوو")) {
-        setError(
-          language === 'ku'
-            ? "⚠️ لێمیتی خۆڕایی کورتکەرەوەی وێب تەواو بوو! بۆ بەکارهێنانی بێسنوور تکایە بەشداری ئۆفەرەکان (Premium) بکە."
-            : "⚠️ انتهت فترة التجربة المجانية لتلخيص المواقع! يرجى الاشتراك في العروض للاستمرار."
-        );
+      if (err.message?.includes("LIMIT_EXCEEDED_WEB_TRIAL") || err.message?.includes("تەواو بوو")) {
+        setError("⚠️ لێمیتی بەکارهێنانی کورتکەرەوەی وێبی ئەم مانگەت تەواو بوو! تکایە بۆ بەکارهێنانی بێسنوور پلانەکەت بەرز بکەرەوە.");
       } else {
-        setError(
-          err.message || 
-          (language === 'ku' 
-            ? "ببورا، هەڵەیەک لە کاتی پەیوەندیکردن بە مێشکی کورتکەرەوەدا ڕوویدا." 
-            : "عذراً، حدث خطأ أثناء الاتصال بنظام التلخيص.")
-        );
+        setError(err.message || "ببوورە، هەڵەیەک لە کاتی پەیوەندیکردن بە ماڵپەڕەکەدا ڕوویدا.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // 👑 پاشەکەوتکردنی بەستەری کورتکراوە بۆ ناو لۆکاڵ ستۆرێج
-  const saveToHistory = (webUrl: string, summaryResult: string) => {
+  const saveToHistory = (webUrl: string, mode: string, summaryResult: string) => {
     setHistory((prevHistory) => {
-      const filtered = prevHistory.filter(item => item.url !== webUrl);
+      const filtered = prevHistory.filter(item => item.url !== webUrl || item.mode !== mode);
       const newItems = [
-        { id: Date.now().toString(), url: webUrl, summaryResult, timestamp: new Date().toLocaleDateString('ku-IQ') },
+        { 
+          id: Date.now().toString(), 
+          url: webUrl, 
+          mode, 
+          summaryResult, 
+          timestamp: new Date().toLocaleDateString('ku-IQ') 
+        },
         ...filtered
-      ].slice(0, 5);
+      ].slice(0, 10);
       
       localStorage.setItem('kurdai_web_summary_history', JSON.stringify(newItems));
       return newItems;
@@ -118,130 +125,314 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
   const handleLoadHistoryItem = (item: WebHistoryItem) => {
     setResult(item.summaryResult);
     setUrl(item.url);
+    setSelectedMode(item.mode || 'highlights');
     setIsHistoryOpen(false);
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-3" dir="rtl">
+  const copyToClipboard = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const pasteFromClipboard = async () => {
+    try {
+      const clip = await navigator.clipboard.readText();
+      if (clip) setUrl(clip);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const downloadAsText = () => {
+    if (!result) return;
+    const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+    const fileUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = `kurdai_web_summary_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.click();
+  };
+
+  // خوێندنەوە بە دەنگی دەماریی کوردی
+  const handlePlayAudio = async () => {
+    if (!result) return;
+    if (isPlayingAudio && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: result.slice(0, 500) })
+      });
+
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
       
-      {/* 👑 هێدەرێکی یەکجار شیک و دژە تێکچوون لەسەر مۆبایل */}
-      <div className="flex flex-col sm:flex-row-reverse sm:justify-between sm:items-center w-full border-b border-zinc-900 pb-4 gap-4">
-        <div className="flex justify-start sm:justify-end shrink-0">
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            className="px-4 py-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/80 hover:border-yellow-500/30 text-zinc-300 rounded-xl transition-all text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95"
-          >
-            <span>📜</span>
-            <span>مێژووی بەستەرەکان</span>
-            {history.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-yellow-500 text-zinc-950 text-[10px] font-black flex items-center justify-center font-mono">
-                {history.length}
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+      audio.play();
+    } catch (e) {
+      console.error(e);
+      setIsPlayingAudio(false);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
+      
+      {/* 🧭 سەرپەڕە */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-amber-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
+            🌐
+          </div>
+          <div>
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>کورتکەرەوە و شیکارکەری وێب</span>
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold uppercase">
+                Web AI
               </span>
+            </h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">خوێندنەوە، پشکنین و پوختەکردنی وتار و هەواڵی ماڵپەڕەکان بە زمانی کوردیی سۆرانی</p>
+          </div>
+        </div>
+
+        {/* دوگمەی مێژوو */}
+        <button
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="px-3 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 self-end sm:self-auto active:scale-95"
+        >
+          <span>📜</span>
+          <span>مێژووی بەستەرەکان ({history.length})</span>
+        </button>
+      </div>
+
+      {/* 🎛️ شێوازەکانی شیکاری */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {MODES.map(m => (
+          <button
+            key={m.id}
+            onClick={() => setSelectedMode(m.id)}
+            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 ${
+              selectedMode === m.id
+                ? 'bg-amber-950/60 border-amber-500/60 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <span className="text-xs font-black">{m.label}</span>
+            <span className="text-[10px] text-zinc-500 leading-tight truncate">{m.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 🌟 شوێنی سەرەکی: داخڵکردنی بەستەر و پیشاندانی کورتە */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        
+        {/* 🔗 بەشی لای ڕاست: بەستەری ماڵپەڕ */}
+        <div className="bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-5 shadow-2xl flex flex-col justify-between space-y-4">
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-zinc-400 border-b border-slate-800/60 pb-2">
+              <span>بەستەری ماڵپەڕ یان وتارەکە (URL):</span>
+              {url && (
+                <button
+                  onClick={() => { setUrl(''); setResult(null); }}
+                  className="text-red-400 hover:text-red-300 transition-all text-[11px]"
+                >
+                  ✕ پاککردنەوە
+                </button>
+              )}
+            </div>
+
+            {/* بۆکسی نووسینی لینک */}
+            <div className="space-y-2">
+              <div className="relative">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://rudaw.net/article/123..."
+                  className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-500/80 rounded-2xl p-3.5 pl-10 text-white text-xs sm:text-sm focus:outline-none font-mono text-left"
+                  dir="ltr"
+                />
+                <button
+                  onClick={pasteFromClipboard}
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white rounded-lg text-[11px] font-bold transition-all border border-slate-700"
+                >
+                  📋 پێوەنووساندن
+                </button>
+              </div>
+
+              {url && (
+                <div className="flex items-center justify-between text-[11px] text-zinc-400 bg-slate-950/50 p-2 rounded-xl border border-slate-800/60">
+                  <span className="truncate max-w-[240px] font-mono">{url}</span>
+                  <a
+                    href={url.startsWith('http') ? url : `https://${url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-400 hover:underline shrink-0 font-bold flex items-center gap-0.5"
+                  >
+                    <span>کردنەوەی وێبسایت</span>
+                    <span>↗</span>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 bg-slate-950/40 border border-slate-800/60 rounded-xl text-zinc-400 text-[11px] leading-relaxed space-y-1">
+              <p className="font-bold text-zinc-300 flex items-center gap-1">
+                <span>💡</span>
+                <span>ماڵپەڕە پشتیوانیکراوەکان:</span>
+              </p>
+              <p>تەواوی ماڵپەڕە هەواڵییە کوردی و جیهانییەکان (ڕووداو، کەی ئێن ئێن، بی بی سی، ویکیپیدیا، وێبلاگەکان، مێدیۆم و تەواوی سەرچاوەکانی تر).</p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-950/60 border border-red-500/30 rounded-xl text-red-300 text-xs font-bold text-center animate-in fade-in">
+              {error}
+            </div>
+          )}
+
+          {/* دوگمەی کورتکردنەوە */}
+          <button
+            onClick={handleSummarize}
+            disabled={!url.trim() || loading}
+            className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg active:scale-98 ${
+              url.trim() && !loading
+                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/25 cursor-pointer'
+                : 'bg-zinc-800/60 text-zinc-600 border border-zinc-800 cursor-not-allowed'
+            }`}
+          >
+            {loading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>KurdAI خەریکی خوێندنەوەی وێبسایتەکەیە...</span>
+              </>
+            ) : (
+              <>
+                <span>⚡</span>
+                <span>خوێندنەوە و کورتکردنەوەی ماڵپەڕ</span>
+              </>
             )}
           </button>
         </div>
 
-        <div className="text-right space-y-1.5">
-          <h2 className="text-2xl sm:text-3xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight leading-tight">
-            {language === 'ku' ? 'کورتکەرەوەی ' : 'ملخص '}<span className="text-yellow-500">{language === 'ku' ? 'وێب و بەستەر' : 'المواقع والروابط'}</span>
-          </h2>
-          <p className="text-zinc-500 text-xs font-['Noto_Sans_Arabic'] leading-relaxed">
-            {language === 'ku' ? 'خوێندنەوە و کورتکردنەوەی داینامیکی ماڵپەڕەکان بە زمانی کوردی پاراو' : 'قراءة وتلخيص محتوى المواقع '}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start w-full">
-        
-        {/* 📥 کارتی داڵێکردنی لێنک */}
-        <div className="p-5 rounded-3xl bg-[#0e0e12]/90 border border-zinc-800/80 shadow-xl flex flex-col justify-between min-h-[220px] transition-all duration-300 focus-within:border-yellow-500/40">
-          <textarea
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={language === 'ku' ? "لێنکی بابەتەکە یان لاپەڕەی ماڵپەڕەکە لێرە دابنێ..." : "أدخل رابط المقال أو موقع الويب هنا..."}
-            className="w-full bg-transparent text-zinc-100 text-sm font-['Noto_Sans_Arabic'] focus:outline-none h-24 resize-none text-right placeholder:text-zinc-600 leading-relaxed font-medium"
-          />
-
-          <div className="flex justify-between items-center pt-3 border-t border-zinc-900/90 mt-2 shrink-0">
-            <span className="text-base select-none pl-1">🔗</span>
-            <div className="text-[10px] font-black text-zinc-600 font-mono tracking-widest">KurdAI WebReader v1.0</div>
-          </div>
-        </div>
-
-        {/* 📤 بۆکسی پیشاندانی ئەنجام */}
-        <div className="flex flex-col space-y-2 w-full">
-          <label className="text-[10px] font-black text-yellow-500 uppercase tracking-wider pr-1">✨ کورتەی پوختی بابەتەکە:</label>
-          <div className="p-5 rounded-3xl bg-[#0b0b0e]/90 border border-zinc-800 shadow-xl min-h-[220px] flex flex-col justify-between relative">
-            <div className="text-zinc-200 text-sm leading-[1.9] text-right min-h-[140px] whitespace-pre-wrap font-medium pb-4 select-text overflow-y-auto max-h-80 text-justify">
-              {loading ? (
-                <span className="text-zinc-600 italic animate-pulse">{language === 'ku' ? 'KurdAI خەریکی خوێندنەوە و کورتکردنەوەیە...' : 'جاري التدقيق...'}</span>
-              ) : result ? (
-                <span className="text-zinc-200">{result}</span>
-              ) : (
-                <span className="text-zinc-700 italic text-xs">{language === 'ku' ? 'دوای داگرتنی دوگمەکە، کورتەی تەواوی بەستەرەکە لێرە پیشان دەدرێت.' : 'سيظهر النص المصحح هنا.'}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
-          {error}
-        </div>
-      )}
-
-      {/* 🚀 دوگمەی ناردن */}
-      <button
-        type="button"
-        onClick={handleSummarize}
-        disabled={loading || !url.trim()}
-        className="w-full py-3.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs rounded-xl transition-all shadow-xl active:scale-[0.98] disabled:opacity-20 font-['Noto_Sans_Arabic'] uppercase tracking-wider"
-      >
-        {loading 
-          ? (language === 'ku' ? 'خەریکی خوێندنەوە و کورتکردنەوەیە...' : 'جاري القراءة والتلخيص...') 
-          : (language === 'ku' ? 'دەستپێکردنی کورتکردنەوە' : 'بدء التلخيص الذكي')}
-      </button>
-
-      {/* 👑 مۆداڵی مێژووی پۆڵایین بۆ پیشاندانی داتاکان بە خێرایی */}
-      {isHistoryOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)}></div>
+        {/* 📝 بەشی لای چەپ: پوختە و شیکاری */}
+        <div className="bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-5 shadow-2xl flex flex-col justify-between space-y-4">
           
-          <div className="relative bg-[#0b0b0e] border border-zinc-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[75vh]">
-            
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-3 mb-3 shrink-0">
-              <button 
+          <div className="flex items-center justify-between text-xs font-bold text-zinc-400 border-b border-slate-800/60 pb-2">
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <span>✨</span>
+              <span>کورتەی ماڵپەڕ بە زمانی کوردی:</span>
+            </span>
+            <span className="text-[10px] text-zinc-500 font-mono">
+              {result ? `${result.length} پیت` : ''}
+            </span>
+          </div>
+
+          {/* بۆکسی پیشاندانی کورتە */}
+          <div className="flex-1 min-h-[220px] sm:min-h-[280px] bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 overflow-y-auto">
+            {loading ? (
+              <div className="h-full flex flex-col items-center justify-center space-y-3 py-12 text-center">
+                <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-medium text-amber-400/90 animate-pulse">KurdAI بە شێوەی لایڤ دەچێتە ناو وێبسایتەکە و دەیخوێنێتەوە...</p>
+              </div>
+            ) : result ? (
+              <div className="text-slate-100 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap text-right font-medium select-text">
+                {result}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center py-16 text-center text-zinc-600 space-y-2">
+                <span className="text-3xl opacity-30">🌐</span>
+                <p className="text-xs font-medium">پاش داگرتنی دوگمەکە، کورتەی تەواوی ماڵپەڕەکە لێرە پیشان دەدرێت</p>
+              </div>
+            )}
+          </div>
+
+          {/* دوگمەکانی کردار */}
+          {result && !loading && (
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-xs">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={copyToClipboard}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-md active:scale-95 border border-slate-700"
+                >
+                  <span>{copied ? "✓" : "📋"}</span>
+                  <span>{copied ? "کۆپی کرا" : "کۆپیکردن"}</span>
+                </button>
+
+                <button
+                  onClick={handlePlayAudio}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 border ${
+                    isPlayingAudio
+                      ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
+                      : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-zinc-300'
+                  }`}
+                >
+                  <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
+                  <span>{isPlayingAudio ? "وەستاندن" : "گوێگرتن"}</span>
+                </button>
+              </div>
+
+              <button
+                onClick={downloadAsText}
+                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 border border-slate-800"
+                title="داگرتن وەک فایلی دەق"
+              >
+                <span>💾</span>
+                <span>داگرتن</span>
+              </button>
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+      {/* 📜 مۆداڵی مێژووی بەستەرەکان */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-white flex items-center gap-1.5">
+                <span>📜</span>
+                <span>مێژووی بەستەرە کورتکراوەکان</span>
+              </h3>
+              <button
                 onClick={() => setIsHistoryOpen(false)}
-                className="w-7 h-7 bg-zinc-900 text-zinc-400 hover:text-white rounded-full flex items-center justify-center text-xs border border-zinc-800 transition-all"
+                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-zinc-400 hover:text-white flex items-center justify-center text-xs"
               >
                 ✕
               </button>
-              <span className="text-sm font-black text-white">📜 مێژووی کورتکردنەوەی ماڵپەڕەکان</span>
             </div>
 
-            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 pl-1">
+            <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
-                <div className="text-center py-12 text-zinc-600 text-xs italic">
-                  هیچ مێژوویەکی کورتکردنەوە لەم ئامێرەدا پاشەکەوت نەکراوە.
-                </div>
+                <p className="text-center py-8 text-xs text-zinc-500">هیچ مێژوویەک پاشەکەوت نەکراوە.</p>
               ) : (
                 history.map((item) => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => handleLoadHistoryItem(item)}
-                    className="p-3 bg-zinc-900/40 border border-zinc-800/60 hover:border-yellow-500/30 rounded-xl cursor-pointer transition-all flex flex-col text-right group space-y-1.5 active:scale-[0.99]"
+                    className="p-3 bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 rounded-xl cursor-pointer transition-all space-y-1"
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-zinc-500 font-mono bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-900">
-                        {item.timestamp}
-                      </span>
-                      <p className="text-zinc-200 text-xs font-bold truncate max-w-[70%] group-hover:text-yellow-500 transition-colors">
-                        🔗 {item.url}
-                      </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-300 truncate max-w-[200px] font-mono">{item.url}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{item.timestamp}</span>
                     </div>
-                    <p className="text-zinc-500 text-[11px] truncate border-t border-zinc-900/60 pt-1.5 italic">
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
                       {item.summaryResult}
                     </p>
                   </div>
@@ -250,16 +441,13 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language }) => {
             </div>
 
             {history.length > 0 && (
-              <div className="border-t border-zinc-900 pt-3 mt-3 flex justify-center shrink-0">
-                <button 
-                  onClick={clearHistory} 
-                  className="w-full py-2 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black rounded-xl transition-all active:scale-95"
-                >
-                  🗑️ سڕینەوەی گشتی مێژوو
-                </button>
-              </div>
+              <button
+                onClick={clearHistory}
+                className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 text-xs font-bold rounded-xl transition-all"
+              >
+                🗑️ سڕینەوەی هەموو مێژوو
+              </button>
             )}
-            
           </div>
         </div>
       )}

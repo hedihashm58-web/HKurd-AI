@@ -977,6 +977,53 @@ async def kurdish_flashcard_endpoint(request: FlashcardRequest, fastapi_req: Req
     )
     return {"response": response_text}
 
+# 🌐 ڕاوتی تایبەتی کورتکەرەوەی وێب و بەستەر (Web Summarizer AI)
+class WebSummarizeRequest(BaseModel):
+    url: str
+    mode: Optional[str] = "highlights"
+    email: str
+
+@app.post("/api/summarize-web")
+async def summarize_web_endpoint(request: WebSummarizeRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
+    user_data = check_one_time_and_premium_limits(request.email, "web_summarizer", fastapi_req)
+    
+    clean_url = request.url.strip()
+    mode = request.mode or "highlights"
+    
+    if mode == "news":
+        web_prompt = (
+            f"تۆ مۆدێلی پسپۆڕی کورتکەرەوەی هەواڵ و ڕووداوەکانی لە وێبگەکان (News Analyst AI).\n"
+            f"تکایە بڕۆ ناو ئەم بەستەرەی خوارەوە، تەواوی بابەت و ڕووداوەکە بخوێنەوە:\n👉 {clean_url}\n\n"
+            "پاشان شیکارییەکی ڕۆژنامەوانی پوخت بە زمانی کوردی سۆرانی دابڕێژە:\n"
+            "📰 سەردێڕی سەرەکی هەواڵەکە\n"
+            "⏱️ کات و شوێنی ڕووداوەکە (ئەگەر هەبوو)\n"
+            "🔹 کورتەی ڕووداو و وردەکارییەکان\n"
+            "📌 سەرچاوە و لایەنە پەیوەندیدارەکان\n"
+            "ڕاستەوخۆ بە کوردی ڕەوان دەستپێبکە."
+        )
+    elif mode == "facts":
+        web_prompt = (
+            f"تۆ پسپۆڕی دەرهێنانی داتا، ئامار و ڕاستییەکانی لە وێبسایتەکان (Data & Facts Extractor AI).\n"
+            f"تکایە ناوەڕۆکی ئەم بەستەرە بە تەواوی بخوێنەوە:\n👉 {clean_url}\n\n"
+            "تەواوی ژمارە، ئامار، ڕاستی، بەروار و ناوی گرنگ بە شێوازی خاڵبەندی دەربهێنە و بە کوردی سۆرانی ڕوونی بکەرەوە."
+        )
+    elif mode == "quick":
+        web_prompt = (
+            f"تۆ پسپۆڕی کورتکردنەوەی زۆر خێرایت (Quick 3-Bullet Summary).\n"
+            f"تکایە ناوەڕۆکی ئەم بەستەرە:\n👉 {clean_url}\n\n"
+            "تەنها و تەنها لە ٣ خاڵی زۆر کورت، پوخت و بەهێز بە زمانی کوردی سۆرانی کورت بکەرەوە بەبێ وشەی زیادە."
+        )
+    else:
+        web_prompt = (
+            f"تۆ پسپۆڕی کورتکەرەوەی وێبی KurdAI Pro یت.\n"
+            f"تکایە ناوەڕۆکی ئەم بەستەرە بە تەواوی بخوێنەوە:\n👉 {clean_url}\n\n"
+            "کورتەیەکی زۆر دەوڵەمەند، پڕۆفێشناڵ و ڕێکخراو بە شێوازی خاڵبەندی (🔹) بە زمانی کوردی سۆرانی بێ هەڵە بنووسە."
+        )
+        
+    response_text = generate_content_with_fallback('gemini-2.5-flash', web_prompt, enable_search=True)
+    return {"response": response_text.strip()}
+
 @app.post("/api/summarize-document")
 async def summarize_document_endpoint(request: DocumentSummarizerRequest, fastapi_req: Request):
     check_rate_limit(request.email)
