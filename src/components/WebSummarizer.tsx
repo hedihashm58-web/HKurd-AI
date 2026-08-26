@@ -256,21 +256,23 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language = 'ku' }) => {
 
             {/* بۆکسی نووسینی لینک */}
             <div className="space-y-2">
-              <div className="relative">
+              <div className="flex gap-2 items-center">
                 <input
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://rudaw.net/article/123..."
-                  className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-500/80 rounded-2xl p-3.5 pl-10 text-white text-xs sm:text-sm focus:outline-none font-mono text-left"
+                  placeholder="https://example.com/article..."
+                  className="flex-1 bg-slate-950/90 border border-slate-700/80 focus:border-amber-500/80 rounded-2xl p-3.5 text-white text-xs sm:text-sm focus:outline-none font-mono text-left shadow-inner"
                   dir="ltr"
                 />
                 <button
                   onClick={pasteFromClipboard}
                   type="button"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white rounded-lg text-[11px] font-bold transition-all border border-slate-700"
+                  className="px-3 sm:px-3.5 py-3.5 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-2xl text-xs font-bold transition-all border border-slate-700 shrink-0 flex items-center gap-1 active:scale-95 shadow-md cursor-pointer"
+                  title="پێوەنووساندنی بەستەر"
                 >
-                  📋 پێوەنووساندن
+                  <span>📋</span>
+                  <span className="hidden sm:inline">پێوەنووساندن</span>
                 </button>
               </div>
 
