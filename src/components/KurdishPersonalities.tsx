@@ -300,13 +300,17 @@ interface KurdishPersonalitiesProps {
 }
 
 const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 'ku' }) => {
-  const [personalities, setPersonalities] = useState<Personality[]>([]);
+  // داتاکان ڕاستەوخۆ دەستبەجێ بە بەردەستی هەن تا شاشەکە سفر نەبێت
+  const [personalities, setPersonalities] = useState<Personality[]>(initialPersonalities);
   const [selectedPerson, setSelectedPerson] = useState<Personality | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+  
+  // ئەنیمەیشنی پڕبوونی خوێنی ئاڵتوونی/سووری نیشتمانی
+  const [isFilling, setIsFilling] = useState<boolean>(true);
+  const [fillPercent, setFillPercent] = useState<number>(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -326,7 +330,22 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
   const [pImage, setPImage] = useState('');
 
   useEffect(() => {
+    // ئەنیمەیشنی پڕبوونی خوێنی نیشتمانی بە خێرایی و شێوازی جوان
+    let current = 0;
+    const interval = setInterval(() => {
+      current += 15;
+      if (current >= 100) {
+        setFillPercent(100);
+        clearInterval(interval);
+        setTimeout(() => setIsFilling(false), 250);
+      } else {
+        setFillPercent(current);
+      }
+    }, 45);
+
     fetchPersonalities();
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -337,7 +356,6 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
   }, [selectedPerson]);
 
   const fetchPersonalities = async () => {
-    setLoading(true);
     try {
       const q = query(collection(db, 'personalities'));
       const snapshot = await getDocs(q);
@@ -345,11 +363,12 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
       snapshot.forEach((doc) => {
         loaded.push({ id: doc.id, ...doc.data() } as Personality);
       });
-      setPersonalities([...initialPersonalities, ...loaded]);
+      if (loaded.length > 0) {
+        setPersonalities([...initialPersonalities, ...loaded]);
+      }
     } catch (e) {
+      // ئەگەر کێشەی هێڵیش هەبێت، داتا سەرەکییەکان دەستبەجێ ماونەتەوە
       setPersonalities(initialPersonalities);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -469,6 +488,56 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
     
     return matchesTab && (nameStr.includes(queryStr) || titleStr.includes(queryStr) || descStr.includes(queryStr));
   });
+
+  // 🩸 شاشەی تایبەتی پڕبوونی خوێنی نیشتمانی و وەسفی کوردستان
+  if (isFilling) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 sm:py-20 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-300" dir="rtl">
+        
+        {/* هێمای ئاڵای پیرۆزی کوردستان و تیشکی سووری خوێناوی */}
+        <div className="relative">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 p-1 shadow-[0_0_50px_rgba(225,29,72,0.5)] animate-pulse">
+            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-4xl sm:text-5xl">
+              ☀️
+            </div>
+          </div>
+          <span className="absolute -bottom-2 right-1/2 translate-x-1/2 text-lg bg-slate-900 border border-red-500/50 px-3 py-0.5 rounded-full shadow-lg">
+            🇹🇯
+          </span>
+        </div>
+
+        {/* نوسینی شکۆمەندی کوردستان و خوێنی شەهیدان */}
+        <div className="space-y-2 max-w-lg">
+          <h2 className="text-base sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-300 to-amber-300">
+            « خوێنی شەهیدان ڕەنگی ئاڵمانە »
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-300 font-bold leading-relaxed">
+            کوردستان نیشتمانی جوان و سەرزەمینی شکۆی نەمرانە
+          </p>
+          <p className="text-[11px] sm:text-xs text-zinc-400 font-medium pt-1">
+            ئێمە ڕۆڵەی میدیا و کەیخوسرەوین • مێژووی سەروەری گەلی کورد
+          </p>
+        </div>
+
+        {/* 🩸 بارستەی پڕبوونی خوێن (Crimson Liquid Blood Bar) */}
+        <div className="w-full max-w-md space-y-2 pt-2">
+          <div className="w-full h-3.5 bg-slate-950 rounded-full border border-red-900/60 p-0.5 overflow-hidden shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-red-700 via-rose-600 to-red-500 transition-all duration-100 ease-out shadow-[0_0_20px_rgba(225,29,72,0.8)] relative overflow-hidden"
+              style={{ width: `${fillPercent}%` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-zinc-400 px-1">
+            <span className="text-rose-400 font-black">🩸 لۆدکردنی ئەرشیفی نەمران...</span>
+            <span className="text-amber-400 font-black">{fillPercent}%</span>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-3 sm:space-y-5 animate-in fade-in duration-500 pb-24" dir="rtl">
