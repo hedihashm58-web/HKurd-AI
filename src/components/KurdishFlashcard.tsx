@@ -21,15 +21,7 @@ interface CardData {
   category?: string;
 }
 
-const CATEGORIES = [
-  { id: 'random', label: '🎲 هەموو جۆرەکان', desc: 'وشەی ڕەسەنی بەپێزی کوردی' },
-  { id: 'rare', label: '📜 دەگمەن و کۆنەکان', desc: 'وشە ڕەسەنە نەبیستراوەکان' },
-  { id: 'nature', label: '🌲 خاک، سروشت و ژینگە', desc: 'چیا، ڕووەک، ئاژەڵ و ژینگە' },
-  { id: 'literary', label: '🖋️ ئەدەبی و شێعری', desc: 'وشەی قووڵی شاعیران و نووسەران' },
-];
-
 const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('random');
   const [card, setCard] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +30,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const handleGenerateCard = async (cat?: string) => {
-    const targetCat = cat || selectedCategory;
+  const handleGenerateCard = async () => {
     setLoading(true);
     setError(null);
 
@@ -50,7 +41,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          category: targetCat,
+          category: 'random',
           email: userEmail 
         }),
       });
@@ -156,27 +147,6 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
         </div>
       </div>
 
-      {/* 🎛️ جۆرەکانی وشە (Category Selector) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => {
-              setSelectedCategory(cat.id);
-              handleGenerateCard(cat.id);
-            }}
-            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 cursor-pointer ${
-              selectedCategory === cat.id
-                ? 'bg-amber-950/60 border-amber-500/60 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <span className="text-xs font-black">{cat.label}</span>
-            <span className="text-[10px] text-zinc-500 leading-tight truncate">{cat.desc}</span>
-          </button>
-        ))}
-      </div>
-
       {/* 🔮 کارتی سەرەکی فلاشکارت */}
       <div className="w-full bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-7 shadow-2xl space-y-5 relative overflow-hidden">
         
@@ -184,7 +154,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
           <div className="flex flex-col items-center justify-center space-y-4 py-16 text-center">
             <div className="w-12 h-12 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
             <div className="space-y-1">
-              <p className="text-sm font-bold text-amber-400 animate-pulse">KurdAI خەریکی دۆزینەوەی وشەیەکی ڕەسەن و بەپێزە...</p>
+              <p className="text-sm font-bold text-amber-400 animate-pulse">KurdAI خەریکی دۆزینەوەی وشەیەکی ڕەسەن و بەپێزی کوردییە...</p>
               <p className="text-xs text-zinc-500">پشکنینی زاراوەکانی بادینی، هەورامی، کەلهوڕی و زازاکی</p>
             </div>
           </div>
@@ -338,9 +308,9 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
               ☀️
             </div>
             <div className="space-y-1.5 max-w-md">
-              <h3 className="text-base sm:text-lg font-black text-white">بەخێربێیت بۆ گەنجینەی وشەی کوردیی پەتی</h3>
+              <h3 className="text-base sm:text-lg font-black text-white">فەرهەنگی وشەی کوردیی پەتی</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                کلیک لەسەر یەکێک لە پۆلەکانی سەرەوە بکە یان دوگمەی خوارەوە دابگرە بۆ دەرهێنانی وشەیەکی ڕەسەن لەگەڵ هاوتاکانی بە هەموو زاراوەکان.
+                کلیک لەسەر دوگمەی خوارەوە بکە بۆ دەرهێنانی وشەیەکی ڕەسەنی کوردی لەگەڵ هاوتاکانی بە زاراوەکانی کرمانجی، هەورامی، کەلهوڕی و زازاکی.
               </p>
             </div>
           </div>
@@ -352,21 +322,21 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
           </div>
         )}
 
-        {/* 🔄 دوگمەی هێنانەوەی وشەی نوێ */}
+        {/* 🔄 دوگمەی سەرەکی گەڕان و هێنانەوەی وشە */}
         <button
-          onClick={() => handleGenerateCard()}
+          onClick={handleGenerateCard}
           disabled={loading}
-          className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition-all shadow-xl shadow-amber-500/20 active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
         >
           {loading ? (
             <>
               <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
-              <span>خەریکی لێکۆڵینەوەیە لە فەرهەنگەکان...</span>
+              <span>خەریکی گەڕانە بەدوای وشەی کوردیی پەتی...</span>
             </>
           ) : (
             <>
               <span>✨</span>
-              <span>{card ? 'هێنانەوەی وشەیەکی نوێی کوردی' : 'دۆزینەوەی یەکەم وشەی پەتی'}</span>
+              <span>{card ? 'گەڕان بە دوای وشەیەکی تر' : 'گەڕان بە دوای وشەی پەتی'}</span>
             </>
           )}
         </button>
