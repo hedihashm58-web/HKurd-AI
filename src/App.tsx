@@ -260,8 +260,43 @@ const App: React.FC = () => {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#030303]" dir="rtl">
-        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#020617] relative overflow-hidden select-none p-4" dir="rtl">
+        {/* ڕووناکی و سێبەری خوێناوی لە پشتەوە */}
+        <div className="absolute w-80 h-80 rounded-full bg-red-600/15 blur-[120px] pointer-events-none animate-pulse"></div>
+        <div className="absolute w-64 h-64 rounded-full bg-rose-500/10 blur-[90px] pointer-events-none"></div>
+
+        {/* کپسوولی شوشەیی پڕبوونەوەی خوێن */}
+        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full border-2 border-red-500/50 shadow-[0_0_35px_rgba(239,68,68,0.35)] overflow-hidden bg-slate-950/80 backdrop-blur-xl flex items-center justify-center">
+          
+          {/* شلەی خوێنی پڕبووەوە بە ئەنیمەیشن */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-red-700 via-red-600 to-rose-500 liquid-fill-anim shadow-[0_0_20px_rgba(225,29,72,0.7)]">
+            <div className="absolute -top-3 inset-x-0 h-4 bg-rose-300/40 blur-[1px] animate-pulse"></div>
+          </div>
+
+          {/* لۆگۆی ژیر لە سەنتەر */}
+          <div className="relative z-10 flex flex-col items-center justify-center drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+            <span className="text-3xl sm:text-4xl animate-bounce">
+              🧠
+            </span>
+          </div>
+        </div>
+
+        {/* تێکستی شاهانەی داواکراو */}
+        <div className="text-center space-y-2 mt-7 z-10">
+          <h1 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-200 to-amber-200 tracking-tight font-['Noto_Sans_Arabic']">
+            KurdAI Pro
+          </h1>
+          <p className="text-xs sm:text-sm font-black text-red-400 tracking-wide font-['Noto_Sans_Arabic'] flex items-center justify-center gap-1.5 animate-pulse">
+            <span>✨</span>
+            <span>یەکەمین ژیریی دەستکردی کوردی</span>
+            <span>✨</span>
+          </p>
+        </div>
+
+        {/* هێڵی باربوونەوەی خێرا */}
+        <div className="w-36 h-1 bg-slate-900 rounded-full mt-6 overflow-hidden border border-slate-800/80">
+          <div className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-400 loading-line-anim rounded-full"></div>
+        </div>
       </div>
     );
   }
