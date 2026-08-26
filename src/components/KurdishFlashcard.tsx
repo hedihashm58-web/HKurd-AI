@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { auth } from '../firebase';
 
 interface FlashcardProps {
@@ -14,7 +14,7 @@ interface CardData {
   hawrami?: string;
   kelhuri?: string;
   zazaki?: string;
-  dialects?: string; // fallback
+  dialects?: string;
   english: string;
   arabic: string;
   example: string;
@@ -96,7 +96,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
 
   const copyCardInfo = () => {
     if (!card) return;
-    const textToCopy = `✨ وشەی کوردی: ${card.word}\n📖 مانا: ${card.meaning_kurdish || ''}\n⛰️ کرمانجی: ${card.kurmanji || '-'}\n🌺 هەورامی: ${card.hawrami || '-'}\n🏰 کەلهوڕی: ${card.kelhuri || '-'}\n🌊 زازاکی: ${card.zazaki || '-'}\n🇬🇧 ئینگلیزی: ${card.english}\n🇸🇦 عەرەبی: ${card.arabic}\n✍️ نموونە: "${card.example}"`;
+    const textToCopy = `✨ وشەی کوردی: ${card.word}\n📖 مانا: ${card.meaning_kurdish || ''}\n⛰️ کرمانجی: ${card.kurmanji || card.word}\n🌺 هەورامی: ${card.hawrami || card.word}\n🏰 کەلهوڕی: ${card.kelhuri || card.word}\n🌊 زازاکی: ${card.zazaki || card.word}\n🇬🇧 ئینگلیزی: ${card.english}\n🇸🇦 عەرەبی: ${card.arabic}\n✍️ نموونە: "${card.example}"`;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -135,10 +135,6 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
     }
   };
 
-  useEffect(() => {
-    handleGenerateCard('random');
-  }, []);
-
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
       
@@ -169,7 +165,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
               setSelectedCategory(cat.id);
               handleGenerateCard(cat.id);
             }}
-            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 ${
+            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 cursor-pointer ${
               selectedCategory === cat.id
                 ? 'bg-amber-950/60 border-amber-500/60 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                 : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
@@ -189,7 +185,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
             <div className="w-12 h-12 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
             <div className="space-y-1">
               <p className="text-sm font-bold text-amber-400 animate-pulse">KurdAI خەریکی دۆزینەوەی وشەیەکی ڕەسەن و بەپێزە...</p>
-              <p className="text-xs text-zinc-500">پشکنینی زاراوەکانی بادینی، هەورامی و کەلهوڕی</p>
+              <p className="text-xs text-zinc-500">پشکنینی زاراوەکانی بادینی، هەورامی، کەلهوڕی و زازاکی</p>
             </div>
           </div>
         ) : card ? (
@@ -215,7 +211,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handlePlayAudio}
-                  className={`p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                  className={`p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                     isPlayingAudio
                       ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
                       : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-zinc-200 hover:text-white'
@@ -228,7 +224,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
 
                 <button
                   onClick={copyCardInfo}
-                  className="p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                  className="p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
                   title="کۆپیکردنی زانیاریی کارتەکە"
                 >
                   <span>{copied ? "✓" : "📋"}</span>
@@ -255,7 +251,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
                     </span>
                   </div>
                   <p className="text-sm font-black text-white truncate">
-                    {card.kurmanji || '-'}
+                    {card.kurmanji && card.kurmanji !== '-' ? card.kurmanji : card.word}
                   </p>
                 </div>
 
@@ -268,7 +264,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
                     </span>
                   </div>
                   <p className="text-sm font-black text-white truncate">
-                    {card.hawrami || '-'}
+                    {card.hawrami && card.hawrami !== '-' ? card.hawrami : card.word}
                   </p>
                 </div>
 
@@ -281,7 +277,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
                     </span>
                   </div>
                   <p className="text-sm font-black text-white truncate">
-                    {card.kelhuri || '-'}
+                    {card.kelhuri && card.kelhuri !== '-' ? card.kelhuri : card.word}
                   </p>
                 </div>
 
@@ -294,18 +290,11 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
                     </span>
                   </div>
                   <p className="text-sm font-black text-white truncate">
-                    {card.zazaki || '-'}
+                    {card.zazaki && card.zazaki !== '-' ? card.zazaki : card.word}
                   </p>
                 </div>
 
               </div>
-
-              {/* ئەگەر کۆنەکە بوو */}
-              {card.dialects && !card.kurmanji && (
-                <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-right text-xs text-zinc-300">
-                  {card.dialects}
-                </div>
-              )}
             </div>
 
             {/* 🌍 وەرگێڕان بۆ زمانە بیانییەکان */}
@@ -344,9 +333,16 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
 
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-            <span className="text-4xl">☀️</span>
-            <p className="text-zinc-400 text-xs font-medium">کلیک لەسەر دوگمەی خوارەوە بکە بۆ هێنانەوەی یەکەم وشەی پەتی.</p>
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-3xl shadow-[0_0_30px_rgba(245,158,11,0.15)] animate-pulse">
+              ☀️
+            </div>
+            <div className="space-y-1.5 max-w-md">
+              <h3 className="text-base sm:text-lg font-black text-white">بەخێربێیت بۆ گەنجینەی وشەی کوردیی پەتی</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                کلیک لەسەر یەکێک لە پۆلەکانی سەرەوە بکە یان دوگمەی خوارەوە دابگرە بۆ دەرهێنانی وشەیەکی ڕەسەن لەگەڵ هاوتاکانی بە هەموو زاراوەکان.
+              </p>
+            </div>
           </div>
         )}
 
@@ -365,12 +361,12 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
           {loading ? (
             <>
               <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
-              <span>خەریکی لێکۆڵینەوەیە...</span>
+              <span>خەریکی لێکۆڵینەوەیە لە فەرهەنگەکان...</span>
             </>
           ) : (
             <>
               <span>✨</span>
-              <span>هێنانەوەی وشەیەکی نوێی کوردی</span>
+              <span>{card ? 'هێنانەوەی وشەیەکی نوێی کوردی' : 'دۆزینەوەی یەکەم وشەی پەتی'}</span>
             </>
           )}
         </button>
