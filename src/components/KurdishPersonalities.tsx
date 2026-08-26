@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, getDocs, query, doc, deleteDoc } from 'firebase/firestore';
 
