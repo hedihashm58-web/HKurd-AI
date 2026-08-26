@@ -471,52 +471,44 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-3 sm:space-y-5 animate-in fade-in duration-500 pb-24" dir="rtl">
       
-      {/* 🏛️ سەرپەڕەی شاهانەی تەلاری کەسایەتییەکان */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950/60 p-5 sm:p-7 border-2 border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.15)] backdrop-blur-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4 text-right">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-br from-amber-400 via-amber-600 to-yellow-600 p-0.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] shrink-0 flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center text-2xl sm:text-3xl">
-                🏛️
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-200 tracking-tight">
-                  {language === 'ku' ? 'تەلاری شکۆی کەسایەتییە نەمرەکانی کوردستان' : 'صرح المجد للشخصيات الكوردية الخالدة'}
-                </h1>
-                <span className="text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-bold uppercase tracking-wider">
-                  Royal Heritage
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-zinc-300 pt-1 font-medium">
-                {language === 'ku'
-                  ? 'ئەرشیفی شکۆمەندی مێژوو، ئەدەب، سەرکردایەتی و خەباتی نەتەوەیی گەلی کورد'
-                  : 'أرشيف المجد للتاريخ والأدب والقيادة والنضال القومي للشعب الكوردي'}
-              </p>
-            </div>
+      {/* 👑 سەرپەڕەی خاوێن و شیک بۆ مۆبایل و کۆمپیوتەر */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-amber-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
+            👑
           </div>
+          <div>
+            <h1 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>{language === 'ku' ? 'کەسایەتییە ناودارەکانی کورد' : 'الشخصيات الكوردية البارزة'}</span>
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold uppercase">
+                Heritage AI
+              </span>
+            </h1>
+            <p className="text-[11px] sm:text-xs text-zinc-400">
+              {language === 'ku'
+                ? 'ناسینی مێژوو، خەبات، ئەدەب و سەرکردایەتی مەزنانی گەلی کورد'
+                : 'التعرف على تاريخ ونضال وأدب وقيادات الشعب الكوردي العظماء'}
+            </p>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            <span className="px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold font-mono">
-              ✨ {filteredPersonalities.length} کەسایەتی
-            </span>
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() => setShowForm(!showForm)}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg active:scale-95 cursor-pointer"
-              >
-                {showForm 
-                  ? (language === 'ku' ? '✕ داخستن' : '✕ إغلاق')
-                  : (language === 'ku' ? '➕ زیادکردنی کەسایەتی' : '➕ إضافة شخصية')}
-              </button>
-            )}
-          </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold font-mono">
+            ✨ {filteredPersonalities.length} کەسایەتی
+          </span>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowForm(!showForm)}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              {showForm 
+                ? (language === 'ku' ? '✕ داخستن' : '✕ إغلاق')
+                : (language === 'ku' ? '➕ زیادکردن' : '➕ إضافة')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -544,10 +536,10 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
         </form>
       )}
 
-      {/* 🔍 باڕی گەڕان و فلتەری شاهانە */}
+      {/* 🔍 گەڕان و فلتەر */}
       {!selectedPerson && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
             
             {/* گەڕان */}
             <div className="relative flex-1">
@@ -555,13 +547,13 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'ku' ? '🔍 گەڕان بەدوای کەسایەتی، سەرکردە یان شاعیر...' : '🔍 البحث عن شخصية أو قائد أو شاعر...'}
-                className="w-full bg-slate-950/80 border-2 border-slate-800/90 focus:border-amber-500/80 rounded-2xl py-3.5 pr-4 pl-10 text-xs sm:text-sm text-white focus:outline-none transition-all shadow-inner placeholder-zinc-500"
+                placeholder={language === 'ku' ? '🔍 گەڕان بەدوای ناو یان ناونیشانی کەسایەتی...' : '🔍 البحث عن شخصية أو قائد أو شاعر...'}
+                className="w-full bg-slate-900/80 border border-slate-800/90 focus:border-amber-500/80 rounded-2xl py-3 pr-4 pl-10 text-xs sm:text-sm text-white focus:outline-none transition-all shadow-inner placeholder-zinc-500"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
                 >
                   ✕
                 </button>
@@ -569,25 +561,25 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
             </div>
 
             {/* فلتەرەکان */}
-            <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800/80 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-2xl border border-slate-800/80 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('all')}
-                className={`px-4 py-2.5 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer ${
+                className={`px-3 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
                   activeTab === 'all'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                {language === 'ku' ? '🏛️ هەمووی' : '🏛️ الكل'}
+                {language === 'ku' ? 'هەمووی' : 'الكل'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('political')}
-                className={`px-4 py-2.5 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer ${
+                className={`px-3 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
                   activeTab === 'political'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                    ? 'bg-emerald-600 text-white font-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -597,9 +589,9 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
               <button
                 type="button"
                 onClick={() => setActiveTab('literary')}
-                className={`px-4 py-2.5 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer ${
+                className={`px-3 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
                   activeTab === 'literary'
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                    ? 'bg-purple-600 text-white font-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -609,8 +601,8 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
 
           </div>
 
-          {/* 🌟 گرید کارتە شاهانەکان (Royal Gallery Grid) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
+          {/* 🌟 گرید کارتەکان (٢ کۆڵۆم لەسەر مۆبایل بۆ ئەوەی خوارەوەی زۆر نەمێنێت) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 animate-in fade-in duration-300">
             {filteredPersonalities.map((person, idx) => {
               const displayName = language === 'ku' ? person.name : (person.name_ar || person.name);
               const displayTitle = language === 'ku' ? person.title : (person.title_ar || person.title);
@@ -620,36 +612,34 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
               return (
                 <div
                   key={person.id || idx}
-                  onClick={() => setSelectedPerson(person)}
-                  className="group relative overflow-hidden rounded-3xl border-2 border-slate-800/90 hover:border-amber-500/60 bg-gradient-to-b from-slate-900/80 via-slate-950/90 to-slate-950 cursor-pointer flex flex-col justify-between p-5 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-amber-500/15 hover:-translate-y-1 active:scale-98 backdrop-blur-xl"
+                  onClick={() => {
+                    setSelectedPerson(person);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-800/90 hover:border-amber-500/60 bg-slate-900/70 hover:bg-slate-900 cursor-pointer flex flex-col justify-between p-3 sm:p-4.5 transition-all duration-200 shadow-lg hover:shadow-xl active:scale-97"
                 >
-                  {/* تیشکی ناوەوە */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
-
-                  <div className="relative flex flex-col items-center text-center space-y-3">
+                  <div className="flex flex-col items-center text-center space-y-2">
                     
-                    {/* فڕەیمی وێنەی پۆرترەیتی شکۆمەند */}
+                    {/* فڕەیمی پۆرترەیت */}
                     <div className="relative">
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl p-1 bg-gradient-to-br from-amber-400/80 via-amber-600/40 to-yellow-500/80 shadow-[0_0_25px_rgba(245,158,11,0.25)] group-hover:shadow-[0_0_35px_rgba(245,158,11,0.45)] transition-all duration-300">
-                        <img
-                          src={person.image}
-                          alt={displayName}
-                          loading="lazy"
-                          className="w-full h-full rounded-[22px] object-cover border-2 border-slate-950"
-                        />
-                      </div>
-                      <span className="absolute -bottom-2 right-1/2 translate-x-1/2 text-sm bg-slate-950 px-2 py-0.5 rounded-full border border-amber-500/40 shadow-md">
+                      <img
+                        src={person.image}
+                        alt={displayName}
+                        loading="lazy"
+                        className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-slate-700/80 group-hover:border-amber-400 shadow-md transition-all duration-200 group-hover:scale-105"
+                      />
+                      <span className="absolute -bottom-1 -right-1 text-[10px] sm:text-xs">
                         {isPolitical ? '👑' : '📜'}
                       </span>
                     </div>
 
-                    {/* ناوی کەسایەتی */}
-                    <h3 className="text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-amber-200 group-hover:from-amber-200 group-hover:to-yellow-300 transition-all line-clamp-2 leading-tight pt-1">
+                    {/* ناو */}
+                    <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
                       {displayName}
                     </h3>
 
                     {/* باجی ناونیشان */}
-                    <span className={`inline-block text-[10px] sm:text-[11px] font-black px-3 py-1 rounded-full border line-clamp-1 max-w-full shadow-sm ${
+                    <span className={`inline-block text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border line-clamp-1 max-w-full ${
                       isPolitical
                         ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
                         : 'bg-purple-950/60 text-purple-300 border-purple-500/30'
@@ -658,15 +648,14 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
                     </span>
 
                     {/* کورتەی ژیاننامە */}
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed font-medium">
+                    <p className="text-[10px] sm:text-xs text-zinc-400 line-clamp-2 leading-relaxed">
                       {displayDesc}
                     </p>
                   </div>
 
-                  {/* دوگمەی خوێندنەوە لە خوارەوە */}
-                  <div className="relative pt-4 mt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-black text-amber-400 group-hover:text-amber-300 transition-colors">
-                    <span>خوێندنەوەی ژیاننامە</span>
-                    <span className="text-base group-hover:translate-x-[-4px] transition-transform">←</span>
+                  {/* دوگمەی خوێندنەوە */}
+                  <div className="pt-2.5 mt-2 border-t border-slate-800/60 flex items-center justify-center text-[10px] sm:text-xs font-bold text-amber-400 group-hover:text-amber-300 transition-colors">
+                    <span>خوێندنەوە 📖</span>
                   </div>
                 </div>
               );
@@ -674,49 +663,49 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
           </div>
 
           {filteredPersonalities.length === 0 && (
-            <div className="p-16 text-center text-zinc-500 space-y-2 bg-slate-950/40 rounded-3xl border border-slate-800">
-              <span className="text-4xl block opacity-40">🔍</span>
-              <p className="text-sm font-bold">هیچ کەسایەتییەک بەم ناوە یان ناونیشانە نەدۆزرایەوە.</p>
+            <div className="p-12 text-center text-zinc-500 space-y-2">
+              <span className="text-3xl block opacity-40">🔍</span>
+              <p className="text-xs font-bold">هیچ کەسایەتییەک بەم ناوە یان ناونیشانە نەدۆزرایەوە.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* 🏛️ پەڕەی تەواوی ژیاننامەی شاهانە (Royal Detailed View) */}
+      {/* 🏛️ پەڕەی تەواوی ژیاننامە */}
       {selectedPerson && (
-        <div className="bg-slate-900/80 backdrop-blur-2xl rounded-3xl border-2 border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.15)] overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-800/90 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
           
-          {/* باڕی سەرەوەی پەڕەکە */}
-          <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-950/80 flex flex-wrap items-center justify-between gap-3">
+          {/* باڕی سەرەوە */}
+          <div className="p-3.5 sm:p-5 border-b border-slate-800/80 bg-slate-950/80 flex flex-wrap items-center justify-between gap-2.5">
             
             <button
               type="button"
               onClick={() => setSelectedPerson(null)}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white rounded-2xl text-xs font-black transition-all flex items-center gap-2 active:scale-95 cursor-pointer border border-amber-500/30 shadow-md"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border border-slate-700"
             >
               <span>←</span>
-              <span>{language === 'ku' ? 'گەڕانەوە بۆ تەلاری کەسایەتییەکان' : 'الرجوع للقاعة الرئيسية'}</span>
+              <span>{language === 'ku' ? 'گەڕانەوە بۆ لیست' : 'الرجوع للقائمة'}</span>
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handlePlayAudio}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-md cursor-pointer ${
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 border shadow-sm cursor-pointer ${
                   isPlayingAudio
                     ? 'bg-red-950/80 border-red-500/60 text-red-300 animate-pulse'
-                    : 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300 hover:text-white'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-zinc-200 hover:text-white'
                 }`}
                 title="گوێگرتن لە ژیاننامەکە بە دەنگی کوردی"
               >
                 <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
-                <span>{isPlayingAudio ? "وەستاندن" : "گوێگرتن بە دەنگ"}</span>
+                <span className="hidden sm:inline">{isPlayingAudio ? "وەستاندن" : "گوێگرتن"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={copyBiography}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-700 active:scale-95 cursor-pointer"
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 border border-slate-700 active:scale-95 cursor-pointer"
                 title="کۆپیکردنی دەقی ژیاننامەکە"
               >
                 <span>{copied ? "✓" : "📋"}</span>
@@ -726,7 +715,7 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
               <button
                 type="button"
                 onClick={downloadAsText}
-                className="px-3.5 py-2 bg-slate-950 hover:bg-slate-800 text-zinc-300 hover:text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-800 cursor-pointer"
+                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-zinc-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 border border-slate-800 cursor-pointer"
                 title="داگرتن وەک فایلی دەق"
               >
                 <span>💾</span>
@@ -737,7 +726,7 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
                 <button
                   type="button"
                   onClick={() => handleDelete(selectedPerson.id)}
-                  className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-2xl transition-all cursor-pointer"
+                  className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   🗑️ {language === 'ku' ? 'سڕینەوە' : 'حذف'}
                 </button>
@@ -746,29 +735,27 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
           </div>
 
           {/* جەستەی پەڕەی ژیاننامە */}
-          <div className="p-4 sm:p-8 space-y-6">
+          <div className="p-4 sm:p-7 space-y-5">
             
-            {/* سەرپەڕەی پۆرترەیت و پێناس */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-7 bg-gradient-to-r from-slate-950 via-slate-950/80 to-amber-950/30 p-5 sm:p-7 rounded-3xl border border-amber-500/20 text-center sm:text-right relative overflow-hidden">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl p-1 bg-gradient-to-br from-amber-400 via-amber-600 to-yellow-500 shadow-[0_0_35px_rgba(245,158,11,0.35)] shrink-0">
-                <img
-                  src={selectedPerson.image}
-                  alt={language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}
-                  className="w-full h-full rounded-[22px] object-cover border-2 border-slate-950"
-                />
-              </div>
+            {/* پۆرترەیت و ناونیشان */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 bg-slate-950/60 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800/80 text-center sm:text-right">
+              <img
+                src={selectedPerson.image}
+                alt={language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}
+                className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl object-cover border-2 border-amber-500/40 shadow-xl shrink-0"
+              />
 
-              <div className="space-y-2.5">
-                <h1 className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-200">
+              <div className="space-y-2">
+                <h1 className="text-lg sm:text-2xl font-black text-white">
                   {language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}
                 </h1>
 
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="text-xs sm:text-sm font-black text-amber-300 bg-amber-500/15 px-3.5 py-1 rounded-full border border-amber-500/30">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
+                  <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-0.5 rounded-full border border-amber-500/20">
                     {language === 'ku' ? selectedPerson.title : (selectedPerson.title_ar || selectedPerson.title)}
                   </span>
-                  <span className="text-xs font-bold text-zinc-300 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
-                    {selectedPerson.category === 'political' ? '👑 سەرکردەی نیشتمانی' : '📜 شاعیر و ئەدیبی مەزن'}
+                  <span className="text-xs font-bold text-zinc-400 bg-slate-800/80 px-3 py-0.5 rounded-full border border-slate-700">
+                    {selectedPerson.category === 'political' ? '👑 سەرکردەی نیشتمانی' : '📜 شاعیر و ئەدیب'}
                   </span>
                 </div>
 
@@ -779,14 +766,14 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
             </div>
 
             {/* دەقی تەواوی ژیاننامە */}
-            <div className="space-y-3 text-right">
+            <div className="space-y-2.5 text-right">
               <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pr-1">
                 <span>📜</span>
-                <span>تەواوی ژیاننامە، بەسەرهات و دەستکەوتە مێژووییەکان:</span>
+                <span>تەواوی ژیاننامە و مێژووی خەبات:</span>
               </span>
 
-              <div className="bg-slate-950/70 border border-slate-800/90 p-5 sm:p-8 rounded-3xl shadow-inner">
-                <p className="text-zinc-100 text-xs sm:text-sm sm:text-base leading-loose whitespace-pre-wrap text-justify font-medium select-text">
+              <div className="bg-slate-950/60 border border-slate-800/80 p-4 sm:p-6 rounded-2xl sm:rounded-3xl">
+                <p className="text-zinc-200 text-xs sm:text-sm sm:text-base leading-loose whitespace-pre-wrap text-justify font-medium select-text">
                   {language === 'ku' ? selectedPerson.fullText : (selectedPerson.fullText_ar || selectedPerson.fullText)}
                 </p>
               </div>
