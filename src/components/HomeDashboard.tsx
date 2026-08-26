@@ -2,6 +2,7 @@
 // @ts-nocheck
 import React from 'react';
 import { View } from '../types';
+import { auth } from '../firebase';
 
 interface HomeDashboardProps {
   onViewChange: (view: View) => void;
@@ -9,6 +10,8 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language }) => {
+  const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
+  const isAdmin = currentUserEmail === 'hedihashm58@gmail.com';
    
   const dashboardItems = [
     { 
@@ -78,11 +81,18 @@ const HomeDashboard: React.FC<HomeDashboardProps> = ({ onViewChange, language })
     },
   ];
 
+  const visibleItems = dashboardItems.filter(item => {
+    if (item.id === View.BRAIN_TRAINER) {
+      return isAdmin;
+    }
+    return true;
+  });
+
   return (
     <div className="w-full max-w-5xl mx-auto px-2 pt-2 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500" dir="rtl">
       
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {dashboardItems.map((item) => (
+        {visibleItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onViewChange(item.id as View)}

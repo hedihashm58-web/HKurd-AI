@@ -32,7 +32,7 @@ const BrainTrainer: React.FC<BrainTrainerProps> = ({ language = 'ku' }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'list'>('add');
 
   const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
-  const isAdmin = currentUserEmail === 'hedihashm58@gmail.com' || currentUserEmail === 'hedikurdaipro@admin.com';
+  const isAdmin = currentUserEmail === 'hedihashm58@gmail.com';
 
   // گوێگرتن لە داتابەیسی کۆگای زانیاری
   useEffect(() => {
@@ -131,6 +131,20 @@ const BrainTrainer: React.FC<BrainTrainerProps> = ({ language = 'ku' }) => {
     item.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4 animate-in fade-in" dir="rtl">
+        <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-3xl mx-auto shadow-lg">
+          🔒
+        </div>
+        <h3 className="text-base sm:text-lg font-black text-white">تایبەت بە بەڕێوەبەر (Admin Only)</h3>
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          ئەم بەشە تەنها بۆ هەژماری سەرەکی ئەدمین (<span className="text-emerald-400 font-mono font-bold">hedihashm58@gmail.com</span>) ڕێگەپێدراوە بۆ فێرکردن و کۆنتڕۆڵی مێشکی KurdAI.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
       
@@ -174,14 +188,6 @@ const BrainTrainer: React.FC<BrainTrainerProps> = ({ language = 'ku' }) => {
           </button>
         </div>
       </div>
-
-      {/* ⚠️ ئاگاداری ئەگەر ئەدمین نەبوو */}
-      {!isAdmin && (
-        <div className="bg-amber-950/40 border border-amber-500/40 p-4 rounded-2xl text-amber-200 text-xs flex items-center gap-2">
-          <span>⚠️</span>
-          <span>تێبینی: تۆ بە هەژماری سەرەکی ئەدمین (hedihashm58@gmail.com) نەهاتوویە ژوورەوە، بەڵام دەتوانیت زانیاری پێشنیار بکەیت.</span>
-        </div>
-      )}
 
       {/* ✍️ تابی یەکەم: فێرکردنی زانیاری نوێ */}
       {activeTab === 'add' && (
