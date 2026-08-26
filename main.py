@@ -994,6 +994,35 @@ async def kurdish_flashcard_endpoint(request: FlashcardRequest, fastapi_req: Req
     )
     return {"response": response_text}
 
+# 🎓 ڕاوتی تایبەتی داڕشتنەوەی ئەکادیمی و مرۆڤاندنی دەق (Anti-AI Detection & Humanizer)
+class HumanizeRequest(BaseModel):
+    text: str
+    email: str
+
+@app.post("/api/academic-humanize")
+async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Request):
+    check_rate_limit(request.email)
+    validate_content(request.text)
+    check_user_limit(request.email, "chat", fastapi_req)
+    
+    humanize_prompt = (
+        "تۆ لێهاتووترین پسپۆڕی داڕشتنەوەی ئەکادیمی و مرۆڤاندنی دەقی زانستیت (Ultimate Academic Humanizer & Anti-AI Detector Bypass AI).\n\n"
+        "🎯 ئەرکی بنەڕەتی: ئەم دەقەی خوارەوە بە شێوازێکی تەواو مرۆڤانە، زانستی، ڕەوان و ئەکادیمی دابڕێژەرەوە کە هیچ سیستمێکی دیاریکردنی زیرەکی دەستکرد (وەک Turnitin, GPTZero, CopyLeaks, ZeroGPT) پێی نەزانێت و ١٠٠٪ وەک نووسراوی ڕەسەنی مرۆڤ بناسرێت.\n\n"
+        "یاسا زێڕینەکانی جێبەجێکردن:\n"
+        "١. تێکشکاندنی قاڵب و دەستەواژە ڕۆبۆتییە دووبارەبووەکانی AI (No robotic transition clichés).\n"
+        "٢. هەمەچەشنکردنی سروشتی درێژی ڕستەکان (Burstiness & Perplexity: گۆڕینی هاوسەنگی ڕستەی کورت و درێژ بە داڕشتنێکی دەوڵەمەند).\n"
+        "٣. بەکارهێنانی وشەسازی ئەکادیمیی سروشتی بە پێی زمانی دەقەکە (ئەگەر کوردی، ئینگلیزی یان عەرەبی بوو).\n"
+        "٤. پاراستنی تەواوی ڕاستی، بیرۆکە و زانیارییە زانستییە بنەڕەتییەکانی ناو دەقەکە بەبێ کەمکردنەوە.\n"
+        "٥. تەنها و تەنها دەقی داڕێژراوەی مرۆڤانەی نوێ بنووسە بەبێ هیچ پێشەکی، وتە یان تێبینییەکی زیادە.\n\n"
+        f"دەقی بنەڕەتی:\n{request.text.strip()}"
+    )
+    
+    response_text = generate_content_with_fallback(
+        model_name='gemini-2.5-flash',
+        text_prompt=humanize_prompt
+    )
+    return {"response": response_text.strip()}
+
 # 🌐 ڕاوتی تایبەتی کورتکەرەوەی وێب و بەستەر (Web Summarizer AI)
 class WebSummarizeRequest(BaseModel):
     url: str
