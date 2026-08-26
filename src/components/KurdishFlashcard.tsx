@@ -93,7 +93,6 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // خوێندنەوەی وشە و ڕستەکە بە دەنگی دەماریی کوردی
   const handlePlayAudio = async () => {
     if (!card) return;
     if (isPlayingAudio && audioRef.current) {
@@ -133,13 +132,13 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-amber-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
         <div className="flex items-center gap-3 text-right">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
-            ☀️
+            📚
           </div>
           <div>
             <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
               <span>فەرهەنگ و وشەی پەتی کوردی</span>
               <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold uppercase">
-                Kurdish Lexicon
+                Lexicon Pro
               </span>
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400">ئاشنابوون بە وشە ڕەسەنەکان و هاوتاکانیان بە زاراوەکانی (کرمانجی، هەورامی، کەلهوڕی و زازاکی)</p>
@@ -301,18 +300,40 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
               </p>
             </div>
 
+            {/* 🔄 دوگمەی هێنانەوەی وشەیەکی نوێتر پاش هێنانەوەی وشەکە */}
+            <button
+              onClick={handleGenerateCard}
+              disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm rounded-2xl transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer border border-amber-300"
+            >
+              <span>✨</span>
+              <span>گەڕان بە دوای وشەیەکی تری کوردی</span>
+            </button>
+
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-3xl shadow-[0_0_30px_rgba(245,158,11,0.15)] animate-pulse">
-              ☀️
+          /* 🌟 شوێنی دەستپێک کاتێک هێشتا گەڕان نەکراوە */
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/15 border-2 border-amber-500/30 flex items-center justify-center text-4xl shadow-[0_0_40px_rgba(245,158,11,0.25)] animate-pulse">
+              📚
             </div>
-            <div className="space-y-1.5 max-w-md">
-              <h3 className="text-base sm:text-lg font-black text-white">فەرهەنگی وشەی کوردیی پەتی</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                کلیک لەسەر دوگمەی خوارەوە بکە بۆ دەرهێنانی وشەیەکی ڕەسەنی کوردی لەگەڵ هاوتاکانی بە زاراوەکانی کرمانجی، هەورامی، کەلهوڕی و زازاکی.
+            
+            <div className="space-y-2 max-w-md">
+              <h3 className="text-lg sm:text-xl font-black text-white">فەرهەنگی وشەی کوردیی پەتی</h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed px-2">
+                گەنجینەی دەوڵەمەندی وشە ڕەسەنەکانی کوردی لەگەڵ تەواوی هاوتاکانی بە زاراوەکانی کرمانجی، هەورامی، کەلهوڕی و زازاکی.
               </p>
             </div>
+
+            {/* 🌟 دوگمەی گەورە و زۆر ڕوون لە ناوەڕاستدا */}
+            <button
+              onClick={handleGenerateCard}
+              disabled={loading}
+              className="px-8 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl transition-all shadow-[0_0_35px_rgba(245,158,11,0.4)] hover:shadow-[0_0_45px_rgba(245,158,11,0.6)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer border-2 border-amber-300"
+            >
+              <span className="text-lg">✨</span>
+              <span>گەڕان بە دوای وشەی پەتی</span>
+            </button>
           </div>
         )}
 
@@ -321,25 +342,6 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
             {error}
           </div>
         )}
-
-        {/* 🔄 دوگمەی سەرەکی گەڕان و هێنانەوەی وشە */}
-        <button
-          onClick={handleGenerateCard}
-          disabled={loading}
-          className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition-all shadow-xl shadow-amber-500/20 active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          {loading ? (
-            <>
-              <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
-              <span>خەریکی گەڕانە بەدوای وشەی کوردیی پەتی...</span>
-            </>
-          ) : (
-            <>
-              <span>✨</span>
-              <span>{card ? 'گەڕان بە دوای وشەیەکی تر' : 'گەڕان بە دوای وشەی پەتی'}</span>
-            </>
-          )}
-        </button>
 
       </div>
 
