@@ -385,6 +385,45 @@ def send_login_code_email(target_email: str, code: str):
         return False
 
 
+# 🧠 سیستەمی فێربوون و کۆگای زانیاری کوردی (Kurdish Dynamic Knowledge Base / RAG)
+class KnowledgeItem(BaseModel):
+    topic: str
+    content: str
+    tags: Optional[List[str]] = []
+    source: Optional[str] = "custom_learning"
+    email: Optional[str] = None
+
+def retrieve_kurdish_knowledge(query: str, max_results: int = 3) -> str:
+    if not db or not query:
+        return ""
+    try:
+        words = [w.strip().lower() for w in query.split() if len(w.strip()) > 2]
+        if not words:
+            return ""
+        
+        snippets = []
+        docs_ref = db.collection('kurdish_knowledge_base')
+        
+        # گەڕان بەپێی تاگەکان و وشە سەرەکییەکان
+        for w in words[:4]:
+            try:
+                matches = docs_ref.where('tags', 'array_contains', w).limit(2).stream()
+                for doc in matches:
+                    d = doc.to_dict()
+                    snippet = f"🔹 [{d.get('topic', 'زانیاری')}]: {d.get('content', '')}"
+                    if snippet not in snippets:
+                        snippets.append(snippet)
+            except Exception:
+                pass
+            if len(snippets) >= max_results:
+                break
+                
+        if snippets:
+            return "\n\n📚 زانیاری و فەرهەنگی تایبەتی KurdAI لە داتابەیسی زانستەوە (ئەم زانیارییانە لە وەڵامەکەتدا بەکاربهێنە):\n" + "\n".join(snippets)
+    except Exception as e:
+        print(f"Knowledge Retrieval Error: {e}")
+    return ""
+
 # 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان (چاککردنی کێشەی نەبوونی پێناسە)
 def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False):
     last_error = None
@@ -664,22 +703,62 @@ async def chat_endpoint(request: ChatRequest, fastapi_req: Request):
             "تکایە بە هیچ شێوەیەک ئیمۆجی لە ناوەڕاستی نووسینەکەدا بەکارمەهێنە، تەنها لە کۆتایی پەیامەکەدا یەک یان دوو ئیمۆجی گونجاو دابنێ."
         )
 
+        # 🧠 هێنانی زانیاری و فەرهەنگی تایبەت لە کۆگای زانیاری KurdAI (RAG)
+        kurdish_knowledge = retrieve_kurdish_knowledge(raw_message)
+
         is_real_creator = (email_clean == ADMIN_EMAIL)
         if is_real_creator:
             enhanced_prompt = (
-                f"{system_context}\n"
+                f"{system_context}{kurdish_knowledge}\n"
                 "بەکارهێنەر خۆیەتی (کاک هێدی) دروستکەری زیرەکی تۆ. بەوپەڕی ڕێزەوە کورت و پوخت وەڵامی بدەرەوە:\n\n"
                 f"{request.message}"
             )
         else:
             enhanced_prompt = (
-                f"{system_context}\n"
+                f"{system_context}{kurdish_knowledge}\n"
                 f"پرسیاری بەکارهێنەر:\n\n"
                 f"{request.message}"
             )
         
         response_text = generate_content_with_fallback('gemini-2.5-flash', enhanced_prompt, request.image, request.mimeType, enable_search=True)
         return {"response": response_text}
+
+# 🧠 ڕاوتی فێرکردنی زانیاری نوێ بۆ مێشکی KurdAI (Admin & Knowledge Learner)
+@app.post("/api/knowledge/add")
+async def add_knowledge_endpoint(item: KnowledgeItem):
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    if not item.topic or not item.content:
+        raise HTTPException(status_code=400, detail="Topic and Content are required")
+    
+    clean_topic = item.topic.strip()
+    doc_id = clean_topic.replace(" ", "_")[:50]
+    
+    tags = [t.strip().lower() for t in (item.tags or []) if t.strip()]
+    for word in clean_topic.split():
+        if len(word) > 2 and word.lower() not in tags:
+            tags.append(word.lower())
+            
+    db.collection('kurdish_knowledge_base').document(doc_id).set({
+        "topic": clean_topic,
+        "content": item.content.strip(),
+        "tags": tags,
+        "source": item.source or "custom_learning",
+        "addedBy": item.email or "admin",
+        "createdAt": datetime.utcnow().isoformat()
+    })
+    return {"status": "success", "message": f"زانیاری دەربارەی ({clean_topic}) بە سەرکەوتوویی لە مێشکی KurdAI جێگیر کرا!"}
+
+@app.get("/api/knowledge/list")
+async def list_knowledge_endpoint():
+    if not db:
+        return {"items": []}
+    try:
+        docs = db.collection('kurdish_knowledge_base').order_by('createdAt', direction=firestore.Query.DESCENDING).limit(30).stream()
+        results = [{"id": d.id, **d.to_dict()} for d in docs]
+        return {"items": results}
+    except Exception as e:
+        return {"items": [], "error": str(e)}
 
 @app.post("/api/kids-ai")
 async def kids_ai_endpoint(request: KidsAIRequest, fastapi_req: Request):
