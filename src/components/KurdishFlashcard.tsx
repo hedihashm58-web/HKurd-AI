@@ -1,26 +1,45 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 
 interface FlashcardProps {
-  language: 'ku' | 'ar';
+  language?: 'ku' | 'ar';
 }
 
 interface CardData {
   word: string;
+  meaning_kurdish?: string;
+  kurmanji?: string;
+  hawrami?: string;
+  kelhuri?: string;
+  zazaki?: string;
+  dialects?: string; // fallback
   english: string;
   arabic: string;
-  dialects: string;
   example: string;
+  category?: string;
 }
 
-const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
+const CATEGORIES = [
+  { id: 'random', label: '🎲 هەموو جۆرەکان', desc: 'وشەی ڕەسەنی بەپێزی کوردی' },
+  { id: 'rare', label: '📜 دەگمەن و کۆنەکان', desc: 'وشە ڕەسەنە نەبیستراوەکان' },
+  { id: 'nature', label: '🌲 خاک، سروشت و ژینگە', desc: 'چیا، ڕووەک، ئاژەڵ و ژینگە' },
+  { id: 'literary', label: '🖋️ ئەدەبی و شێعری', desc: 'وشەی قووڵی شاعیران و نووسەران' },
+];
+
+const KurdishFlashcard: React.FC<FlashcardProps> = ({ language = 'ku' }) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('random');
   const [card, setCard] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const handleGenerateCard = async () => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleGenerateCard = async (cat?: string) => {
+    const targetCat = cat || selectedCategory;
     setLoading(true);
     setError(null);
 
@@ -30,13 +49,15 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/kurdish-flashcard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail }),
+        body: JSON.stringify({ 
+          category: targetCat,
+          email: userEmail 
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // 📥 خوێندنەوەی خەتاکانی لێمیتی ڕۆژانەی فلاشکارت لە باکێندەوە
         if (data.detail && data.detail.includes("LIMIT_EXCEEDED_FLASHCARD_DAILY")) {
           throw new Error("LIMIT_EXCEEDED_FLASHCARD_DAILY");
         }
@@ -50,20 +71,12 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
       setCard(parsedCard);
     } catch (err: any) {
       console.error(err);
-      if (err.message.includes("LIMIT_EXCEEDED_FLASHCARD_DAILY")) {
-        setError(
-          language === 'ku' 
-            ? "⚠️ لێمیتی ڕۆژانەی فلاشکارتی خۆڕایی تۆ تەواو بووە! (ڕۆژانە ١ وشە). بۆ بینینی زیاتر تکایە بەشداری ئۆفەرەکان بکە." 
-            : "⚠️ انتهت فترة التجربة المجانية اليومية للفلاش كارد! (١ كلمة يومياً). يرجى الاشتراك في العروض للاستمرار."
-        );
-      } else if (err.message.includes("LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")) {
-        setError(
-          language === 'ku' 
-            ? "⚠️ پلانی ١ مانگی ڕێگەت پێدەدات ڕۆژانە ٣ فلاشکارت ببینی. بۆ بینینی بێسنوور پلانەکەت بەرزبکەرەوە!" 
-            : "⚠️ الباقة الشهرية تتيح لك ٣ فلاش كارد يومياً فقط. لفتح الليميت بالكامل يرجى ترقية الاشتراك!"
-        );
+      if (err.message?.includes("LIMIT_EXCEEDED_FLASHCARD_DAILY")) {
+        setError("⚠️ لێمیتی ڕۆژانەی فلاشکارتی خۆڕایی تەواو بووە! تکایە بۆ بینینی زیاتر بەشداری پاکێجەکان بکە.");
+      } else if (err.message?.includes("LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")) {
+        setError("⚠️ پلانی ١ مانگی ڕێگەت پێدەدات ڕۆژانە ٣ فلاشکارت ببینی. بۆ بینینی بێسنوور پلانەکەت بەرزبکەرەوە!");
       } else {
-        setError(language === 'ku' ? "ببوورە، کێشەیەک لە لۆدکردنی فلاشکارتەکەدا هەبوو." : "عذراً، حدث خطأ أثناء تحميل الفلاش كارد.");
+        setError("ببوورە، کێشەیەک لە لۆدکردنی فلاشکارتەکەدا هەبوو.");
       }
     } finally {
       setLoading(false);
@@ -71,6 +84,7 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
   };
 
   const jsonCleanAndParse = (rawStr: string) => {
+    if (typeof rawStr !== 'string') return rawStr;
     let cleanStr = rawStr.trim();
     if (cleanStr.includes("```json")) {
       cleanStr = cleanStr.split("```json")[1].split("```")[0];
@@ -80,98 +94,288 @@ const KurdishFlashcard: React.FC<FlashcardProps> = ({ language }) => {
     return JSON.parse(cleanStr.trim());
   };
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-3" dir="rtl">
+  const copyCardInfo = () => {
+    if (!card) return;
+    const textToCopy = `✨ وشەی کوردی: ${card.word}\n📖 مانا: ${card.meaning_kurdish || ''}\n⛰️ کرمانجی: ${card.kurmanji || '-'}\n🌺 هەورامی: ${card.hawrami || '-'}\n🏰 کەلهوڕی: ${card.kelhuri || '-'}\n🌊 زازاکی: ${card.zazaki || '-'}\n🇬🇧 ئینگلیزی: ${card.english}\n🇸🇦 عەرەبی: ${card.arabic}\n✍️ نموونە: "${card.example}"`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // خوێندنەوەی وشە و ڕستەکە بە دەنگی دەماریی کوردی
+  const handlePlayAudio = async () => {
+    if (!card) return;
+    if (isPlayingAudio && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      const textToRead = `${card.word}. ${card.meaning_kurdish ? card.meaning_kurdish + '.' : ''} ${card.example}`;
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToRead.slice(0, 300) })
+      });
+
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
       
-      <div className="text-center space-y-1.5 pt-2">
-        <h2 className="text-2xl sm:text-3xl font-black text-white font-['Noto_Sans_Arabic'] tracking-tight">
-          {language === 'ku' ? 'فلاشکارتی وشە و ' : 'فلاش كارد '}<span className="text-yellow-500">{language === 'ku' ? 'زاراوەکان' : 'المصطلحات الكوردية'}</span>
-        </h2>
-        <p className="text-zinc-500 text-xs font-['Noto_Sans_Arabic']">
-          {language === 'ku' ? 'ئاشنابوون بە وشە دەگمەنەکان، هاوتاکانیان بە زاراوە جیاوازەکان و وەرگێڕانیان' : 'اكتشف الكلمات الكوردية النادرة، لهجاتها وترجمتها الاحترافية'}
-        </p>
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+      audio.play();
+    } catch (e) {
+      console.error(e);
+      setIsPlayingAudio(false);
+    }
+  };
+
+  useEffect(() => {
+    handleGenerateCard('random');
+  }, []);
+
+  return (
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
+      
+      {/* 🧭 سەرپەڕە */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-amber-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
+            ☀️
+          </div>
+          <div>
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>فەرهەنگ و وشەی پەتی کوردی</span>
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold uppercase">
+                Kurdish Lexicon
+              </span>
+            </h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">ئاشنابوون بە وشە ڕەسەنەکان و هاوتاکانیان بە زاراوەکانی (کرمانجی، هەورامی، کەلهوڕی و زازاکی)</p>
+          </div>
+        </div>
       </div>
 
-      {/* 🔮 کارتی سەرەکی پیشاندانی زانیارییەکان */}
-      <div className="w-full bg-[#0e0e12]/90 border border-zinc-800 p-6 rounded-3xl shadow-2xl relative min-h-[280px] flex flex-col justify-between overflow-hidden">
+      {/* 🎛️ جۆرەکانی وشە (Category Selector) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => {
+              setSelectedCategory(cat.id);
+              handleGenerateCard(cat.id);
+            }}
+            className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 ${
+              selectedCategory === cat.id
+                ? 'bg-amber-950/60 border-amber-500/60 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <span className="text-xs font-black">{cat.label}</span>
+            <span className="text-[10px] text-zinc-500 leading-tight truncate">{cat.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 🔮 کارتی سەرەکی فلاشکارت */}
+      <div className="w-full bg-slate-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 p-4 sm:p-7 shadow-2xl space-y-5 relative overflow-hidden">
         
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-3 py-12">
-            <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-zinc-500 text-xs italic animate-pulse">KurdAI خەریکی گەڕانە بەدوای وشەیەکی گرانبەها...</span>
+          <div className="flex flex-col items-center justify-center space-y-4 py-16 text-center">
+            <div className="w-12 h-12 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-amber-400 animate-pulse">KurdAI خەریکی دۆزینەوەی وشەیەکی ڕەسەن و بەپێزە...</p>
+              <p className="text-xs text-zinc-500">پشکنینی زاراوەکانی بادینی، هەورامی و کەلهوڕی</p>
+            </div>
           </div>
         ) : card ? (
-          <div className="space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="space-y-5 animate-in zoom-in-95 duration-300">
             
-            {/* وشەی سەرەکی */}
-            <div className="text-center pb-3 border-b border-zinc-900">
-              <span className="text-xs text-zinc-500 block mb-1">وشەی هەڵبژێردراو:</span>
-              <h1 className="text-3xl font-black text-yellow-500 tracking-wide">{card.word}</h1>
+            {/* 👑 سەرپەڕەی وشەکە */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-gradient-to-r from-amber-500/10 via-slate-950/60 to-amber-500/10 p-5 rounded-2xl border border-amber-500/20 text-center sm:text-right">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-amber-400/80 uppercase tracking-wider block">
+                  {card.category ? `پۆل: ${card.category}` : 'وشەی پەتی و ڕەسەن:'}
+                </span>
+                <h1 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-200 tracking-tight font-['Noto_Sans_Arabic']">
+                  {card.word}
+                </h1>
+                {card.meaning_kurdish && (
+                  <p className="text-xs sm:text-sm text-zinc-300 font-medium pt-1">
+                    {card.meaning_kurdish}
+                  </p>
+                )}
+              </div>
+
+              {/* دوگمەکانی خێرای لای سەرەوە */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handlePlayAudio}
+                  className={`p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                    isPlayingAudio
+                      ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-zinc-200 hover:text-white'
+                  }`}
+                  title="گوێگرتن بە دەنگی کوردی"
+                >
+                  <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
+                  <span className="hidden sm:inline">{isPlayingAudio ? "وەستاندن" : "گوێگرتن"}</span>
+                </button>
+
+                <button
+                  onClick={copyCardInfo}
+                  className="p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="کۆپیکردنی زانیاریی کارتەکە"
+                >
+                  <span>{copied ? "✓" : "📋"}</span>
+                  <span className="hidden sm:inline">{copied ? "کۆپی کرا" : "کۆپیکردن"}</span>
+                </button>
+              </div>
             </div>
 
-            {/* زاراوەکانی تر و هاوتاکان */}
-            {card.dialects && (
-              <div className="p-3 bg-zinc-950/40 border border-zinc-900 rounded-xl flex flex-col gap-1 text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase">🗣️ بە دیالێکتەکانی تر (کرمانجی / هەورامی...):</span>
-                <p className="text-zinc-300 text-xs font-semibold leading-relaxed">{card.dialects}</p>
-              </div>
-            )}
+            {/* ⛰️ زاراوە و شێوەزارەکانی کوردستانی مەزن (Dialect Grid) */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-zinc-400 flex items-center gap-1.5 pr-1">
+                <span>🗣️</span>
+                <span>هاوتای وشەکە بە زاراوەکانی تری زمانی کوردی:</span>
+              </span>
 
-            {/* وەرگێڕان بۆ زمانەکانی تر */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                
+                {/* ١. کرمانجی سەروو (بادینی) */}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-2xl text-right transition-all space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-emerald-400 flex items-center gap-1">
+                      <span>⛰️</span>
+                      <span>کرمانجی سەروو (Badînî)</span>
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white truncate">
+                    {card.kurmanji || '-'}
+                  </p>
+                </div>
+
+                {/* ٢. هەورامی (گۆرانی) */}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 hover:border-violet-500/40 rounded-2xl text-right transition-all space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-violet-400 flex items-center gap-1">
+                      <span>🌺</span>
+                      <span>هەورامی (Goranî)</span>
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white truncate">
+                    {card.hawrami || '-'}
+                  </p>
+                </div>
+
+                {/* ٣. کەلهوڕی / فەیلی / لکی */}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/40 rounded-2xl text-right transition-all space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-cyan-400 flex items-center gap-1">
+                      <span>🏰</span>
+                      <span>کەلهوڕی / فەیلی (باشوور)</span>
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white truncate">
+                    {card.kelhuri || '-'}
+                  </p>
+                </div>
+
+                {/* ٤. زازاکی / دملکی */}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 hover:border-rose-500/40 rounded-2xl text-right transition-all space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-rose-400 flex items-center gap-1">
+                      <span>🌊</span>
+                      <span>زازاکی (Zazakî / Dimilî)</span>
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white truncate">
+                    {card.zazaki || '-'}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* ئەگەر کۆنەکە بوو */}
+              {card.dialects && !card.kurmanji && (
+                <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-right text-xs text-zinc-300">
+                  {card.dialects}
+                </div>
+              )}
+            </div>
+
+            {/* 🌍 وەرگێڕان بۆ زمانە بیانییەکان */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* 🇺🇸 بۆکسی ئینگلیزی */}
-              <div className="p-3 bg-zinc-950/40 border border-zinc-900 rounded-xl text-left flex flex-col justify-between" dir="ltr">
-                <span className="text-[10px] font-black text-zinc-500 uppercase block text-right">🇺🇸 English:</span>
-                <p className="text-zinc-100 text-xs font-bold font-mono mt-1 whitespace-pre-wrap leading-relaxed">{card.english}</p>
+              {/* 🇬🇧 بۆکسی ئینگلیزی */}
+              <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-left flex flex-col justify-between space-y-1" dir="ltr">
+                <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block text-right">
+                  🇬🇧 English Translation:
+                </span>
+                <p className="text-zinc-100 text-xs sm:text-sm font-bold font-mono leading-relaxed">
+                  {card.english}
+                </p>
               </div>
               
               {/* 🇸🇦 بۆکسی عەرەبی */}
-              <div className="p-3 bg-zinc-950/40 border border-zinc-900 rounded-xl text-right flex flex-col justify-between">
-                <span className="text-[10px] font-black text-zinc-500 uppercase block">🇸🇦 العربية:</span>
-                <p className="text-zinc-100 text-xs font-bold mt-1 leading-relaxed">{card.arabic}</p>
+              <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-right flex flex-col justify-between space-y-1">
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                  🇸🇦 المعنى باللغة العربية:
+                </span>
+                <p className="text-zinc-100 text-xs sm:text-sm font-bold leading-relaxed">
+                  {card.arabic}
+                </p>
               </div>
             </div>
 
-            {/* نموونە لە ڕستەدا */}
-            <div className="p-3.5 bg-yellow-500/5 border border-yellow-500/10 rounded-xl text-right">
-              <span className="text-[10px] font-black text-yellow-500 uppercase block mb-1">✍️ بەکارهێنان لە ڕستەدا:</span>
-              <p className="text-zinc-300 text-xs leading-relaxed font-medium italic">"{card.example}"</p>
+            {/* ✍️ نموونەی بەکارهێنان لە ڕستەدا */}
+            <div className="p-4 bg-gradient-to-r from-amber-950/20 via-slate-950/60 to-amber-950/20 border border-amber-500/20 rounded-2xl text-right space-y-1.5">
+              <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <span>✍️</span>
+                <span>بەکارهێنان لە ڕستەی نموونەییدا:</span>
+              </span>
+              <p className="text-zinc-200 text-xs sm:text-sm leading-relaxed font-medium">
+                «{card.example}»
+              </p>
             </div>
 
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
-            <span className="text-4xl mb-3">🧠</span>
-            <p className="text-zinc-600 text-xs italic">کلیل لەسەر دوگمەی خوارەوە بکە بۆ هێنانەوەی یەکەم کارت.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+            <span className="text-4xl">☀️</span>
+            <p className="text-zinc-400 text-xs font-medium">کلیک لەسەر دوگمەی خوارەوە بکە بۆ هێنانەوەی یەکەم وشەی پەتی.</p>
           </div>
         )}
 
-      </div>
-
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center animate-in fade-in duration-200">
-          {error}
-        </div>
-      )}
-
-      {/* 🚀 دوگمەی بەرهەمهێنان */}
-      <button
-        onClick={handleGenerateCard}
-        disabled={loading}
-        className="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 hover:from-yellow-500 hover:to-amber-600 text-zinc-950 font-black text-sm rounded-2xl transition-all duration-200 shadow-[0_0_25px_rgba(245,158,11,0.25)] hover:shadow-[0_0_35px_rgba(245,158,11,0.45)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-20 uppercase tracking-wider flex items-center justify-center gap-2 border border-yellow-400/30"
-      >
-        {loading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
-            <span>خەریکی گەڕانە...</span>
-          </>
-        ) : (
-          <>
-            <span className="text-base">🧠</span>
-            <span>وشەیەکی نوێ بەرهەم بهێنە</span>
-          </>
+        {error && (
+          <div className="p-3 bg-red-950/60 border border-red-500/30 rounded-xl text-red-300 text-xs font-bold text-center animate-in fade-in">
+            {error}
+          </div>
         )}
-      </button>
+
+        {/* 🔄 دوگمەی هێنانەوەی وشەی نوێ */}
+        <button
+          onClick={() => handleGenerateCard()}
+          disabled={loading}
+          className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-98 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {loading ? (
+            <>
+              <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+              <span>خەریکی لێکۆڵینەوەیە...</span>
+            </>
+          ) : (
+            <>
+              <span>✨</span>
+              <span>هێنانەوەی وشەیەکی نوێی کوردی</span>
+            </>
+          )}
+        </button>
+
+      </div>
 
     </div>
   );

@@ -316,6 +316,7 @@ class SocialHookRequest(BaseModel):
     email: str
 
 class FlashcardRequest(BaseModel):
+    category: Optional[str] = "random"
     email: str
 
 class GetOrCreateCodeRequest(BaseModel):
@@ -960,15 +961,30 @@ async def kurdish_flashcard_endpoint(request: FlashcardRequest, fastapi_req: Req
             raise HTTPException(status_code=403, detail="LIMIT_EXCEEDED_FLASHCARD_PREMIUM_DAILY")
         db.collection('users').document(email_clean).update({"flashcardCount": current_count + 1})
 
+    cat = request.category or "random"
+    cat_desc = {
+        "rare": "وشەیەکی زۆر دەگمەن، کۆن و ڕەسەنی کوردی",
+        "nature": "وشەیەکی ڕەسەنی کوردی پەیوەست بە سروشت، چیا، باڵندە، گیانداران یان خاک",
+        "literary": "وشەیەکی ئەدەبی، کلاسیکی و شێعریی دەوڵەمەندی کوردی",
+        "random": "وشەیەکی ڕەسەن و بەپێزی کوردیی پەتی"
+    }.get(cat, "وشەیەکی ڕەسەن و بەپێزی کوردیی پەتی")
+
     flashcard_prompt = (
-        "تۆ پسپۆڕی فەرهەنگ و زمانەوانی کوردیتی وشەیەکی بەنرخ بە فۆرماتی JSON بنووسە:\n"
+        f"تۆ گەورەترین زمانەوان و فەرهەنگنووسی زمانی کوردیت.\n"
+        f"تکایە {cat_desc} هەڵبژێرە و تەواوی زانیاری و هاوتاکانی بە زاراوە جیاوازەکانی کوردی بە شێوازی JSONی ڕاستەوخۆ و ڕێکخراو بنووسە:\n"
         "{\n"
-        '  "word": "وشەکە",\n'
-        '  "english": "English meaning",\n'
-        '  "arabic": "الرادع بالعربي",\n'
-        '  "dialects": "زاراوەکانی تر",\n'
-        '  "example": "ڕستەی نموونەیی"\n'
-        "}\n"
+        '  "word": "وشە سەرەکییەکە بە کوردی سۆرانی",\n'
+        '  "meaning_kurdish": "مانا و ڕوونکردنەوەی ووردی وشەکە بە کوردی سۆرانی",\n'
+        '  "kurmanji": "هاوتای تەواوی وشەکە بە زاراوەی کوردیی باکوور / کرمانجی سەروو (Badini)",\n'
+        '  "hawrami": "هاوتای تەواوی وشەکە بە زاراوەی هەورامی (Gorani)",\n'
+        '  "kelhuri": "هاوتای تەواوی وشەکە بە زاراوەی کەلهوڕی / فەیلی / لکی (کوردیی باشوور)",\n'
+        '  "zazaki": "هاوتای تەواوی وشەکە بە زاراوەی زازاکی / دملکی",\n'
+        '  "english": "English translation and meaning",\n'
+        '  "arabic": "المعنى باللغة العربية",\n'
+        '  "example": "ڕستەیەکی نموونەیی زۆر جوان بە زمانی کوردی سۆرانی کە ئەم وشەیەی تێدا بەکارهاتبێت",\n'
+        '  "category": "دەگمەن / ئەدەبی / سروشت / فەرهەنگی"\n'
+        "}\n\n"
+        "تێبینی زۆر گرنگ: تەنها و تەنها JSON بنووسە بەبێ هیچ دەقێکی پێشەکی یان کڵێشە."
     )
     
     response_text = generate_content_with_fallback(
