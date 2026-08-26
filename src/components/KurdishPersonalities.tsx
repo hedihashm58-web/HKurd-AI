@@ -296,15 +296,19 @@ const initialPersonalities: Personality[] = [
 ];
 
 interface KurdishPersonalitiesProps {
-  language: 'ku' | 'ar';
+  language?: 'ku' | 'ar';
 }
 
-const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language }) => {
+const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 'ku' }) => {
   const [personalities, setPersonalities] = useState<Personality[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<Personality | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [copied, setCopied] = useState<boolean>(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // پانێڵی ئەدمین
   const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
@@ -324,6 +328,14 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language })
   useEffect(() => {
     fetchPersonalities();
   }, []);
+
+  // وەستاندنی دەنگ لە کاتی گۆڕینی کەسایەتی
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+    }
+  }, [selectedPerson]);
 
   const fetchPersonalities = async () => {
     setLoading(true);
@@ -353,7 +365,7 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language })
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!pNameKu || !pFullKu) return alert(language === 'ku' ? "تکایە ناو و ژیاننامە پڕبکەرەوە" : "الرجاء ملء الاسم والسيرة الذاتية");
+    if (!pNameKu || !pFullKu) return alert(language === 'ku' ? "تکایە ناو و ژیاننامە پڕبکەرەوە" : "الرجاء ملء الاسم والسيرة الذاتية");
 
     const newPerson = {
       name: pNameKu, 
@@ -365,144 +377,375 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language })
       shortDesc_ar: pShortAr || pShortKu,
       fullText: pFullKu, 
       fullText_ar: pFullAr || pFullKu,
-      image: pImage || 'https://via.placeholder.com/150', color: 'from-indigo-600 to-slate-600'
+      image: pImage || 'https://via.placeholder.com/150',
+      color: 'from-amber-600 to-orange-600'
     };
 
     try {
       await addDoc(collection(db, 'personalities'), newPerson);
       alert(language === 'ku' ? "🎉 سەرکەوتوو بوو!" : "🎉 تم بنجاح!");
-      setShowForm(false); setPNameKu(''); setPNameAr(''); setPTitleKu(''); setPTitleAr(''); setPShortKu(''); setPShortAr(''); setPFullKu(''); setPFullAr(''); setPImage('');
+      setShowForm(false);
+      setPNameKu(''); setPNameAr(''); setPTitleKu(''); setPTitleAr(''); setPShortKu(''); setPShortAr(''); setPFullKu(''); setPFullAr(''); setPImage('');
       fetchPersonalities();
-    } catch(err) { alert(language === 'ku' ? "هەڵە ڕوویدا" : "حدث خطأ"); }
+    } catch (err) {
+      alert(language === 'ku' ? "هەڵە ڕوویدا" : "حدث خطأ");
+    }
   };
 
   const handleDelete = async (id: string | undefined) => {
-    if(!id) return alert(language === 'ku' ? "ئەم کەسایەتییە جێگیرە و ناسڕێتەوە!" : "هذه الشخصية ثابتة ولا يمكن حذفها!");
-    if(!window.confirm(language === 'ku' ? "🗑️ دڵنیای لە سڕینەوە؟" : "🗑️ هل أنت متأكد من الحذف؟")) return;
+    if (!id) return alert(language === 'ku' ? "ئەم کەسایەتییە جێگیرە و ناسڕێتەوە!" : "هذه الشخصية ثابتة ولا يمكن حذفها!");
+    if (!window.confirm(language === 'ku' ? "🗑️ دڵنیای لە سڕینەوە؟" : "🗑️ هل أنت متأكد من الحذف؟")) return;
     try {
       await deleteDoc(doc(db, 'personalities', id));
       alert(language === 'ku' ? "سڕایەوە!" : "تم الحذف!");
       setSelectedPerson(null);
       fetchPersonalities();
-    } catch (e) { alert(language === 'ku' ? "هەڵە ڕوویدا" : "حدث خطأ"); }
+    } catch (e) {
+      alert(language === 'ku' ? "هەڵە ڕوویدا" : "حدث خطأ");
+    }
+  };
+
+  const copyBiography = () => {
+    if (!selectedPerson) return;
+    const textToCopy = `${language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}\n${language === 'ku' ? selectedPerson.title : (selectedPerson.title_ar || selectedPerson.title)}\n\n${language === 'ku' ? selectedPerson.fullText : (selectedPerson.fullText_ar || selectedPerson.fullText)}`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePlayAudio = async () => {
+    if (!selectedPerson) return;
+    if (isPlayingAudio && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      const textToRead = `${selectedPerson.name}. ${selectedPerson.title}. ${selectedPerson.shortDesc}. ${selectedPerson.fullText}`.slice(0, 450);
+      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToRead })
+      });
+
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+      audio.play();
+    } catch (e) {
+      console.error(e);
+      setIsPlayingAudio(false);
+    }
   };
 
   const filteredPersonalities = personalities.filter(person => {
     const matchesTab = activeTab === 'all' || person.category === activeTab;
     
     const personName = (language === 'ku' ? person.name : (person.name_ar || person.name)) || "";
+    const personTitle = (language === 'ku' ? person.title : (person.title_ar || person.title)) || "";
     const personDesc = (language === 'ku' ? person.shortDesc : (person.shortDesc_ar || person.shortDesc)) || "";
     
     const queryStr = searchQuery.trim().toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
     const nameStr = personName.toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+    const titleStr = personTitle.toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
     const descStr = personDesc.toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
     
-    return matchesTab && (nameStr.includes(queryStr) || descStr.includes(queryStr));
+    return matchesTab && (nameStr.includes(queryStr) || titleStr.includes(queryStr) || descStr.includes(queryStr));
   });
 
   return (
-    <div className="flex flex-col h-[82vh] bg-slate-900/80 sm:bg-slate-900/50 sm:backdrop-blur-xl rounded-3xl border border-slate-800 shadow-2xl relative z-10 overflow-hidden" dir="rtl">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24" dir="rtl">
       
-      {isAdmin && (
-        <div className="p-4 bg-slate-950/60 border-b border-slate-800 text-center shrink-0">
-          <button type="button" onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-indigo-600 text-white font-black rounded-xl text-xs">
-            {showForm 
-              ? (language === 'ku' ? '✕ داخستنی فۆرم' : '✕ إغلاق النموذج')
-              : (language === 'ku' ? '➕ زیادکردنی کەسایەتی بە مۆبایل' : '➕ إضافة شخصية بالجوال')}
-          </button>
-        </div>
-      )}
-
-      {showForm && isAdmin && (
-        <form onSubmit={handleSave} className="p-4 bg-slate-950 space-y-3 overflow-y-auto max-h-[50vh] shrink-0 border-b border-slate-800 text-right">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="text" placeholder="ناوی کەسایەتی (کوردی)" value={pNameKu} onChange={e=>setPNameKu(e.target.value)} className="p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" />
-            <input type="text" placeholder="اسم الشخصية (عربي)" value={pNameAr} onChange={e=>setPNameAr(e.target.value)} className="p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" dir="rtl"/>
-            <input type="text" placeholder="ناونیشان (کوردی)" value={pTitleKu} onChange={e=>setPTitleKu(e.target.value)} className="p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" />
-            <input type="text" placeholder="اللقب (عربي)" value={pTitleAr} onChange={e=>setPTitleAr(e.target.value)} className="p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" dir="rtl"/>
-            <select value={pCat} onChange={e=>setPCategory(e.target.value)} className="p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800">
-              <option value="literary">{language === 'ku' ? '📜 ئەدیبان' : '📜 الأدباء'}</option>
-              <option value="political">{language === 'ku' ? '👑 سیاسەتمەداران' : '👑 السياسيون'}</option>
-            </select>
-            <input type="file" accept="image/*" onChange={handleSingleFile} className="text-xs text-slate-400 file:bg-yellow-500 file:py-1.5 file:px-3 file:rounded-xl cursor-pointer" />
+      {/* 🧭 سەرپەڕە */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-amber-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
+            👑
           </div>
-          <input type="text" placeholder="وەسفی کورت (کوردی)" value={pShortKu} onChange={e=>setPShortKu(e.target.value)} className="w-full p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" />
-          <input type="text" placeholder="وصف قصير (عربي)" value={pShortAr} onChange={e=>setPShortAr(e.target.value)} className="w-full p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800" dir="rtl"/>
-          <textarea placeholder="تەواوی ژیاننامە (کوردی)..." value={pFullKu} onChange={e=>setPFullKu(e.target.value)} className="w-full p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800 h-24" />
-          <textarea placeholder="السيرة الذاتية الكاملة (عربي)..." value={pFullAr} onChange={e=>setPFullAr(e.target.value)} className="w-full p-2.5 rounded-xl bg-black text-white text-xs border border-slate-800 h-24" dir="rtl"/>
-          <button type="submit" className="w-full py-3 bg-yellow-500 text-black font-black text-xs rounded-xl">🚀 {language === 'ku' ? 'بڵاوکردنەوە' : 'نشر'}</button>
+          <div>
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>{language === 'ku' ? 'کەسایەتییە ناودارەکانی کورد' : 'الشخصيات الكوردية البارزة'}</span>
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold uppercase">
+                Heritage AI
+              </span>
+            </h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">
+              {language === 'ku'
+                ? 'ناسینی مێژوو، خەبات، ئەدەب و سەرکردایەتی مەزنانی گەلی کورد'
+                : 'التعرف على تاريخ ونضال وأدب وقيادات الشعب الكوردي العظماء'}
+            </p>
+          </div>
+        </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowForm(!showForm)}
+            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer self-end sm:self-auto"
+          >
+            {showForm 
+              ? (language === 'ku' ? '✕ داخستن' : '✕ إغلاق')
+              : (language === 'ku' ? '➕ زیادکردنی کەسایەتی' : '➕ إضافة شخصية')}
+          </button>
+        )}
+      </div>
+
+      {/* 👑 فۆرمی ئەدمین بۆ زیادکردن */}
+      {showForm && isAdmin && (
+        <form onSubmit={handleSave} className="p-4 sm:p-6 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl space-y-3 shadow-2xl text-right animate-in zoom-in-95">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" placeholder="ناوی کەسایەتی (کوردی)" value={pNameKu} onChange={e => setPNameKu(e.target.value)} className="p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" />
+            <input type="text" placeholder="اسم الشخصية (عربي)" value={pNameAr} onChange={e => setPNameAr(e.target.value)} className="p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" dir="rtl"/>
+            <input type="text" placeholder="ناونیشان (کوردی)" value={pTitleKu} onChange={e => setPTitleKu(e.target.value)} className="p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" />
+            <input type="text" placeholder="اللقب (عربي)" value={pTitleAr} onChange={e => setPTitleAr(e.target.value)} className="p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" dir="rtl"/>
+            <select value={pCat} onChange={e => setPCategory(e.target.value)} className="p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none">
+              <option value="literary">{language === 'ku' ? '📜 ئەدیبان و شاعیران' : '📜 الأدباء والشعراء'}</option>
+              <option value="political">{language === 'ku' ? '👑 سەرکردە و سیاسەتمەداران' : '👑 القادة والسياسيون'}</option>
+            </select>
+            <input type="file" accept="image/*" onChange={handleSingleFile} className="text-xs text-slate-400 file:bg-amber-500 file:text-slate-950 file:font-bold file:py-2 file:px-3 file:rounded-xl cursor-pointer" />
+          </div>
+          <input type="text" placeholder="وەسفی کورت (کوردی)" value={pShortKu} onChange={e => setPShortKu(e.target.value)} className="w-full p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" />
+          <input type="text" placeholder="وصف قصير (عربي)" value={pShortAr} onChange={e => setPShortAr(e.target.value)} className="w-full p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none" dir="rtl"/>
+          <textarea placeholder="تەواوی ژیاننامە (کوردی)..." value={pFullKu} onChange={e => setPFullKu(e.target.value)} className="w-full p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none h-24" />
+          <textarea placeholder="السيرة الذاتية الكاملة (عربي)..." value={pFullAr} onChange={e => setPFullAr(e.target.value)} className="w-full p-3 rounded-xl bg-slate-950 text-white text-xs border border-slate-800 focus:border-amber-500 outline-none h-24" dir="rtl"/>
+          <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all cursor-pointer">
+            🚀 {language === 'ku' ? 'بڵاوکردنەوەی کەسایەتی' : 'نشر الشخصية'}
+          </button>
         </form>
       )}
 
-      {!selectedPerson ? (
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth overscroll-contain">
-          <div className="mb-6 mt-2 text-center animate-in fade-in slide-in-from-top-4 duration-500">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight mb-2 sm:mb-3">
-              {language === 'ku' ? 'کەسایەتییە ناودارەکانی کورد' : 'الشخصيات الكوردية البارزة'}
-            </h2>
-            <p className="text-slate-400 text-xs max-w-xl mx-auto leading-relaxed px-2">
-              {language === 'ku' 
-                ? 'مێژووی نەتەوەیەک لە ڕێگەی کار و بەرهەمی کەسایەتییەکانییەوە دەخوێندرێتەوە.' 
-                : 'تاريخ الأمة يُقرأ من خلال أعمال وإنجازات شخصياتها.'}
-            </p>
-          </div>
-
-          <div className="max-w-md mx-auto mb-6">
-            <div className="relative mb-4">
-              <input type="text" className="w-full bg-slate-950/40 border border-slate-800/80 rounded-2xl py-3 pr-4 pl-4 text-sm text-slate-200 focus:outline-none" placeholder={language === 'ku' ? 'گەڕان بەدوای کەسایەتی...' : 'البحث عن شخصية...'} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-            <div className="flex justify-center gap-1 bg-slate-950/40 p-1 rounded-2xl border border-slate-800/80">
-              <button type="button" onClick={() => setActiveTab('all')} className={`flex-1 py-2 text-xs font-bold rounded-xl ${activeTab === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>
-                {language === 'ku' ? 'هەمووی' : 'الكل'}
-              </button>
-              <button type="button" onClick={() => setActiveTab('literary')} className={`flex-1 py-2 text-xs font-bold rounded-xl ${activeTab === 'literary' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>
-                {language === 'ku' ? '📜 ئەدیبان' : '📜 الأدباء'}
-              </button>
-              <button type="button" onClick={() => setActiveTab('political')} className={`flex-1 py-2 text-xs font-bold rounded-xl ${activeTab === 'political' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>
-                {language === 'ku' ? '👑 سیاسەتمەداران' : '👑 السياسيون'}
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 animate-in fade-in duration-300">
-            {filteredPersonalities.map((person, idx) => (
-              <div key={person.id || idx} onClick={() => setSelectedPerson(person)} className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/80 hover:border-slate-500 cursor-pointer flex flex-col transition-all duration-300">
-                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${person.color || 'from-indigo-500 to-slate-500'} opacity-70`}></div>
-                <div className="p-2 sm:p-4 md:p-6 flex-1 flex flex-col items-center text-center">
-                  <img src={person.image} alt={language === 'ku' ? person.name : (person.name_ar || person.name)} loading="lazy" className="w-12 h-12 sm:w-20 sm:h-20 rounded-full object-cover border border-slate-700 shadow-lg mb-2"/>
-                  <h3 className="text-[10px] sm:text-base font-bold text-white mb-1 leading-tight">{language === 'ku' ? person.name : (person.name_ar || person.name)}</h3>
-                  <div className="text-indigo-400 text-[8px] sm:text-[10px] font-bold mb-2 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{language === 'ku' ? person.title : (person.title_ar || person.title)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col bg-slate-900 animate-in fade-in duration-200 h-full">
-          <div className="p-4 sm:p-6 border-b border-slate-800 bg-slate-950/40 flex justify-between items-center gap-4">
-            <div className="flex flex-col text-right flex-1">
-              <h2 className="text-sm sm:text-2xl font-black text-white">{language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}</h2>
-              <span className="text-indigo-400 text-[10px] sm:text-xs font-bold mt-1">{language === 'ku' ? selectedPerson.title : (selectedPerson.title_ar || selectedPerson.title)}</span>
-            </div>
-            <div className="flex gap-2">
-              {isAdmin && selectedPerson.id && !initialPersonalities.some(p => p.name === selectedPerson.name) && (
-                <button type="button" onClick={() => handleDelete(selectedPerson.id)} className="px-3 py-1.5 bg-red-600 text-white font-black text-xs rounded-xl transition-all">
-                  {language === 'ku' ? '🗑️ سڕینەوە' : '🗑️ حذف'}
+      {/* 🔍 گەڕان و فلتەرکردن */}
+      {!selectedPerson && (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+            
+            {/* بارێکی گەڕانی گونجاو بۆ مۆبایل */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={language === 'ku' ? '🔍 گەڕان بەدوای ناو یان ناونیشانی کەسایەتی...' : '🔍 البحث عن اسم أو لقب الشخصية...'}
+                className="w-full bg-slate-900/80 border border-slate-800/80 rounded-2xl py-3 pr-4 pl-10 text-xs sm:text-sm text-white focus:outline-none focus:border-amber-500/80 transition-all shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                >
+                  ✕
                 </button>
               )}
-              <button type="button" onClick={() => setSelectedPerson(null)} className="w-8 h-8 bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center font-bold">✕</button>
             </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-5 sm:p-8 flex flex-col md:flex-row gap-5 items-center md:items-start">
-            <img src={selectedPerson.image} alt={language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)} className="w-32 h-32 rounded-2xl object-cover border border-slate-700 shadow-md"/>
-            <div className="flex-1 text-right w-full">
-              <p className="text-slate-300 text-sm sm:text-base leading-loose whitespace-pre-wrap text-justify">
-                {language === 'ku' ? selectedPerson.fullText : (selectedPerson.fullText_ar || selectedPerson.fullText)}
-              </p>
+
+            {/* فلتەری پۆلەکان */}
+            <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-2xl border border-slate-800/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
+                  activeTab === 'all'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {language === 'ku' ? 'هەمووی' : 'الكل'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('political')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
+                  activeTab === 'political'
+                    ? 'bg-emerald-600 text-white font-black shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {language === 'ku' ? '👑 سەرکردەکان' : '👑 القادة'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('literary')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
+                  activeTab === 'literary'
+                    ? 'bg-purple-600 text-white font-black shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {language === 'ku' ? '📜 ئەدیبان' : '📜 الأدباء'}
+              </button>
             </div>
+
           </div>
+
+          {/* 🌟 گرید کارتەکان (زۆر گونجاو بۆ مۆبایل و کۆمپیوتەر) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in duration-300">
+            {filteredPersonalities.map((person, idx) => {
+              const displayName = language === 'ku' ? person.name : (person.name_ar || person.name);
+              const displayTitle = language === 'ku' ? person.title : (person.title_ar || person.title);
+              const displayDesc = language === 'ku' ? person.shortDesc : (person.shortDesc_ar || person.shortDesc);
+
+              return (
+                <div
+                  key={person.id || idx}
+                  onClick={() => setSelectedPerson(person)}
+                  className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-800/90 bg-slate-900/60 hover:bg-slate-900 hover:border-amber-500/50 cursor-pointer flex flex-col justify-between p-3.5 sm:p-5 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-amber-500/10 active:scale-98"
+                >
+                  <div className="flex flex-col items-center text-center space-y-2.5">
+                    {/* وێنەی کەسایەتی */}
+                    <div className="relative">
+                      <img
+                        src={person.image}
+                        alt={displayName}
+                        loading="lazy"
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-slate-700/80 group-hover:border-amber-400 shadow-lg transition-all duration-300 group-hover:scale-105"
+                      />
+                      <span className="absolute -bottom-1 -right-1 text-xs">
+                        {person.category === 'political' ? '👑' : '📜'}
+                      </span>
+                    </div>
+
+                    {/* ناو */}
+                    <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
+                      {displayName}
+                    </h3>
+
+                    {/* ناونیشان */}
+                    <span className="inline-block text-[10px] sm:text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 line-clamp-1 max-w-full">
+                      {displayTitle}
+                    </span>
+
+                    {/* کورتەی پێناسی کەسایەتی */}
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
+                      {displayDesc}
+                    </p>
+                  </div>
+
+                  {/* دوگمەی خوێندنەوە لە خوارەوە */}
+                  <div className="pt-3 mt-2 border-t border-slate-800/60 flex items-center justify-center text-[11px] font-bold text-zinc-400 group-hover:text-white transition-colors">
+                    <span>خوێندنەوەی ژیاننامە 📖</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredPersonalities.length === 0 && (
+            <div className="p-12 text-center text-zinc-500 space-y-2">
+              <span className="text-3xl block opacity-40">🔍</span>
+              <p className="text-xs font-bold">هیچ کەسایەتییەک بەم ناوە یان ناونیشانە نەدۆزرایەوە.</p>
+            </div>
+          )}
         </div>
       )}
+
+      {/* 📖 پەڕەی ژیاننامەی تەواو (کاتێک کلیک لەسەر کەسایەتییەک دەکرێت) */}
+      {selectedPerson && (
+        <div className="bg-slate-900/70 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] border border-slate-800/90 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+          
+          {/* سەرپەڕەی کەسایەتی لەگەڵ دوگمەی گەڕانەوە */}
+          <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-950/60 flex flex-wrap items-center justify-between gap-3">
+            
+            <button
+              type="button"
+              onClick={() => setSelectedPerson(null)}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border border-slate-700"
+            >
+              <span>←</span>
+              <span>{language === 'ku' ? 'گەڕانەوە بۆ لیست' : 'الرجوع للقائمة'}</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePlayAudio}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                  isPlayingAudio
+                    ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-zinc-200 hover:text-white'
+                }`}
+                title="گوێگرتن لە ژیاننامەکە بە دەنگی کوردی"
+              >
+                <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
+                <span className="hidden sm:inline">{isPlayingAudio ? "وەستاندن" : "گوێگرتن بە دەنگ"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={copyBiography}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-700 active:scale-95 cursor-pointer"
+                title="کۆپیکردنی دەقی ژیاننامەکە"
+              >
+                <span>{copied ? "✓" : "📋"}</span>
+                <span className="hidden sm:inline">{copied ? "کۆپی کرا" : "کۆپیکردن"}</span>
+              </button>
+
+              {isAdmin && selectedPerson.id && !initialPersonalities.some(p => p.name === selectedPerson.name) && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(selectedPerson.id)}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  🗑️ {language === 'ku' ? 'سڕینەوە' : 'حذف'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* جەستەی پەڕەکە: وێنە، ناو و تەواوی ژیاننامە */}
+          <div className="p-4 sm:p-8 space-y-6">
+            
+            {/* کارتی ناساندنی کەسایەتی */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 bg-slate-950/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800/80 text-center sm:text-right">
+              <img
+                src={selectedPerson.image}
+                alt={language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}
+                className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl object-cover border-2 border-amber-500/40 shadow-2xl shrink-0"
+              />
+              <div className="space-y-2">
+                <h1 className="text-lg sm:text-2xl font-black text-white">
+                  {language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name)}
+                </h1>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                    {language === 'ku' ? selectedPerson.title : (selectedPerson.title_ar || selectedPerson.title)}
+                  </span>
+                  <span className="text-xs font-bold text-zinc-400 bg-slate-800/60 px-3 py-1 rounded-full border border-slate-700">
+                    {selectedPerson.category === 'political' ? '👑 سەرکردە و سیاسەتمەدار' : '📜 ئەدیب و شاعیر'}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium pt-1">
+                  {language === 'ku' ? selectedPerson.shortDesc : (selectedPerson.shortDesc_ar || selectedPerson.shortDesc)}
+                </p>
+              </div>
+            </div>
+
+            {/* دەقی تەواوی ژیاننامە */}
+            <div className="space-y-3 text-right">
+              <span className="text-xs font-black text-amber-400/80 uppercase tracking-wider flex items-center gap-1.5 pr-1">
+                <span>📜</span>
+                <span>تەواوی ژیاننامە و بەسەرهات:</span>
+              </span>
+              <div className="bg-slate-950/60 border border-slate-800/80 p-4 sm:p-6 rounded-2xl sm:rounded-3xl">
+                <p className="text-zinc-200 text-xs sm:text-sm sm:text-base leading-loose whitespace-pre-wrap text-justify font-medium">
+                  {language === 'ku' ? selectedPerson.fullText : (selectedPerson.fullText_ar || selectedPerson.fullText)}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 };
