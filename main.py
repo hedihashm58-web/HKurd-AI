@@ -872,7 +872,7 @@ async def send_notification_endpoint(request: NotificationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە بڵاوکردنەوەی نۆتیفیکەیشن: {str(e)}")
 
-# 👑 چاککردنی خەتای دێڕی ٦٢٣: گۆڕینی فۆڵبەک بۆ مێتۆدی فەرمی جەیستۆن بۆ پاراستنی فۆرمات
+# 👑 ڕاوتی پشکنین و ڕاستکردنەوەی زمانەوانی و ڕێنووسی کوردی (Kurdish Grammar & Orthography AI)
 @app.post("/api/kurdish-grammar")
 async def kurdish_grammar_endpoint(request: GrammarRequest, fastapi_req: Request):
     check_rate_limit(request.email)
@@ -880,12 +880,19 @@ async def kurdish_grammar_endpoint(request: GrammarRequest, fastapi_req: Request
     check_one_time_and_premium_limits(request.email, "kurdish_grammar", fastapi_req)
     
     grammar_prompt = (
-        "تۆ پسپۆڕی سەرەکی زمان و ڕێنووسی کوردی (سۆرانی) یت. تکایە ئەم دەقەی خوارەوە بە وردی بپشکنە و تەواوی خەتاکانی ڕێنووس, خاڵبەندی, جیاکردنەوەی پیتەکانی وەک (ڕ, ڵ), پاشگرەکان و خەتاکانی زمانەوانی ڕاست بکەرەوە. "
+        "تۆ گەورەترین و زیرەکترین پسپۆڕی زمانەوانی و ڕێنووسی کوردیی سۆرانیت (Kurdish Grammar & Orthography Master AI).\n"
+        "تکایە ئەم دەقەی خوارەوە بەوپەڕی ووردی لەسەر بنەمای ڕێساکانی ئەکادیمیای کوردی بپشکنە و تەواوی خەتاکانی:\n"
+        "١. پیتە کوردییەکان: (جیاکردنەوەی ڵ/ل، ڕ/ر، ڤ/و، ۆ/و، ێ/ی، گ، چ، پ، ژ).\n"
+        "٢. پێشگر و پاشگرەکان: (دەـ، نەـ، ـدا، ـەوە، ـیان، ـمان، ـتان، نیمچەبۆشایی ZWNJ).\n"
+        "٣. خاڵبەندی و داڕشتن: (خاڵ، فاریزەی کوردی «،»، جووتکەوانە « »، نیشانەی پرسیار «؟»).\n"
+        "٤. دەستەواژە و وشەسازی: گۆڕینی وشە هەڵە و ناشیرینەکان بۆ وشەی ڕەسەن و ڕەوانی کوردی.\n\n"
+        "وەڵامەکەت تەنها و تەنها بە فۆرماتی JSON بنووسە بەم شێوەیە بەبێ هیچ دەقی پێشەکی یان کڵێشەیی:\n"
         "{\n"
-        '  "corrected": "لێرەدا تەنها دەقە ڕاستکراوەکە بنووسە",\n'
-        '  "explanation": "لێرەدا بە کورتی زانیاری بنووسە"\n'
+        '  "corrected": "دەقی تەواو ڕاستکراوە و پاککراوەی کوردی لێرەدا بنووسە",\n'
+        '  "explanation": "بە کورتی لە ٣-٤ خاڵدا باسی گۆڕانکارییە سەرەکییەکان و هۆکاری ڕاستکردنەوەکان بکە",\n'
+        '  "error_count": 2\n'
         "}\n\n"
-        f"دەقەکە:\n{request.text.strip()}"
+        f"دەقی بەکارهێنەر:\n{request.text.strip()}"
     )
     
     response_text = generate_content_with_fallback(
