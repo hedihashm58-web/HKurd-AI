@@ -76,28 +76,28 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     funFact: "شێر بەهۆی ئازایەتی و دەنگە بەرزەکەیەوە پێی دەوترێت پاشای دارستان!"
   },
   {
-    question: "ئاڵای پیرۆزی کوردستان لە چەند ڕەنگی سەرەکی پێکهاتووە؟",
+    question: "ئاڵای پیرۆزی کوردستان لە چەند ڕەنگ پێکهاتووە؟",
     category: "نیشتمان",
     categoryEmoji: "☀️",
-    imageUrl: "/logo.jpg",
-    options: ["٢ ڕەنگ", "٣ ڕەنگ (سوور، سپی، سەوز)", "٥ ڕەنگ", "١ ڕەنگ"],
+    imageUrl: "/kurdish_flag.jpg",
+    options: ["٢ ڕەنگ", "٤ ڕەنگ (سوور، سپی، سەوز، زەرد)", "٦ ڕەنگ", "١ ڕەنگ"],
     correctIndex: 1,
-    funFact: "ئاڵای کوردستان لە ڕەنگەکانی سوور، سپی و سەوز پێکهاتووە لەگەڵ خۆرە ٢١ تیشکە زێڕینەکەی ناوەڕاستی!"
+    funFact: "ئاڵای پیرۆزی کوردستان لە ٤ ڕەنگ پێکهاتووە: سوور، سپی، سەوز لەگەڵ خۆرە زەردە ٢١ تیشکەکەی ناوەڕاستی!"
   },
   {
-    question: "کام لەم میوانە لە ناوەڕاستدا دەنکە سوورە شیرینەکانی هەیە؟",
-    category: "میوەکان",
-    categoryEmoji: "🍎",
-    imageUrl: "https://images.unsplash.com/photo-1541344999736-83eca872f241?auto=format&fit=crop&w=700&q=80",
-    options: ["مۆز 🍌", "سێو 🍏", "هەنار 🍎", "پرتەقاڵ 🍊"],
+    question: "ئەم میوە بەتام و پڕ لە سوودەی لە وێنەکەدا دەبینرێت ناوی چییە؟",
+    category: "میوە بەسوودەکان",
+    categoryEmoji: "🍇",
+    imageUrl: "/kids_pomegranate.jpg",
+    options: ["مۆز 🍌", "سێو 🍏", "هەنار", "پرتەقاڵ 🍊"],
     correctIndex: 2,
-    funFact: "هەنار یەکێکە لە بەناوبانگترین و بەسوودترین میوەکانی کوردستان!"
+    funFact: "هەنار یەکێکە لە بەناوبانگترین و بەسوودترین میوەکانی کوردستان کە دەنکە سوورە بەتامەکانی پڕن لە ڤیتامین!"
   },
   {
     question: "دەنگی ئەم پشیلە شیرینە چۆنە کاتێک میهرەبان دەبێت؟",
     category: "دەنگی ئاژەڵان",
     categoryEmoji: "🐱",
-    imageUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=700&q=80",
+    imageUrl: "/kids_cat.jpg",
     options: ["هاو هاو 🐶", "میاو میاو 🐱", "قاع قاع 🦆", "حیلە حیلە 🐴"],
     correctIndex: 1,
     funFact: "پشیلە کاتێک داوای خۆشەویستی یان شیر دەکات بە نەرمی دەڵێت میاو!"
@@ -186,14 +186,14 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
   {
     question: "باڵندە جوانەکان لە وێنەکەدا بە چی لە ئاسماندا بە ئازادی دەفڕن؟",
     category: "باڵندەکان",
-    categoryEmoji: "🦅",
+    categoryEmoji: "🕊️",
     imageUrl: "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=700&q=80",
     options: ["بە باڵەکانیان 🕊️", "بە قاچەکانیان 🦶", "بە کلکیان 🐾", "بە گوێچکەیان 👂"],
     correctIndex: 0,
     funFact: "پەڕ و باڵی باڵندەکان سووک و بەهێزن کە یارمەتییان دەدات بە ئاسانی بفڕن!"
   },
   {
-    question: "کامیان گەورەترین میوەی وەرزی هاوینە کە ناوەکەی سوور و زۆر ئاودارە؟",
+    question: "کامیان گەورەترین میوەی وەرزی هاوینە کە ناوەکەی سوورە و زۆر ئاودارە؟",
     category: "میوەکان",
     categoryEmoji: "🍉",
     imageUrl: "https://images.unsplash.com/photo-1563114773-84221bd62daa?auto=format&fit=crop&w=700&q=80",
