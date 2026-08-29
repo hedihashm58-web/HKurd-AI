@@ -55,13 +55,6 @@ const WORD_GAMES = [
   { word: "چیا", hint: "چیا سەرکەش و بەرزەکانی نیشتمانە جوانەکەمان ⛰️" }
 ];
 
-const STORY_THEMES = [
-  { id: 'animals', label: '🐾 ئاژەڵە ژیرەکان', desc: 'چیرۆکی پەروەردەیی ئاژەڵانی کوردستان' },
-  { id: 'adventure', label: '⛰️ سەرکێشی لە چیاکان', desc: 'گەشتی منداڵێکی ئازا لە سروشت' },
-  { id: 'space', label: '🚀 ئەستێرە و بۆشایی ئاسمان', desc: 'گەشتێک بۆ سەر مانگ و ئەستێرەکان' },
-  { id: 'morals', label: '🌟 ڕاستگۆیی و میهرەبانی', desc: 'چیرۆکێکی پڕ لە پەند و ئامۆژگاری' },
-];
-
 interface KidsQuizQuestion {
   question: string;
   category: string;
@@ -77,7 +70,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "پاشای دارستان و بەهێزترین ئاژەڵ ناوی چییە؟",
     category: "ئاژەڵەکان",
     categoryEmoji: "🦁",
-    icon: "👑",
+    icon: "🦁",
     options: ["شێر 🦁", "ڕێوی 🦊", "کەروێشک 🐰", "سمۆرە 🐿️"],
     correctIndex: 0,
     funFact: "شێر بەهۆی ئازایەتی و دەنگە بەرزەکەیەوە پێی دەوترێت پاشای دارستان!"
@@ -95,7 +88,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم میوانە لە ناوەڕاستدا دەنکە سوورە شیرینەکانی هەیە؟",
     category: "میوەکان",
     categoryEmoji: "🍎",
-    icon: "🍇",
+    icon: "🍎",
     options: ["مۆز 🍌", "سێو 🍏", "هەنار 🍎", "پرتەقاڵ 🍊"],
     correctIndex: 2,
     funFact: "هەنار یەکێکە لە بەناوبانگترین و بەسوودترین میوەکانی کوردستان!"
@@ -104,7 +97,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "دەنگی پشیلەی شیرین چۆنە کاتێک میهرەبان دەبێت؟",
     category: "دەنگی ئاژەڵان",
     categoryEmoji: "🐱",
-    icon: "🐾",
+    icon: "🐱",
     options: ["هاو هاو 🐶", "میاو میاو 🐱", "قاع قاع 🦆", "حیلە حیلە 🐴"],
     correctIndex: 1,
     funFact: "پشیلە کاتێک داوای خۆشەویستی یان شیر دەکات بە نەرمی دەڵێت میاو!"
@@ -113,16 +106,16 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم ئاژەڵانە خرتوومێکی درێژی هەیە و گەورەترین ئاژەڵی وشکانییە؟",
     category: "ئاژەڵەکان",
     categoryEmoji: "🐘",
-    icon: "🌍",
+    icon: "🐘",
     options: ["مەیموون 🐒", "گورگ 🐺", "فیل 🐘", "ورچ 🐻"],
     correctIndex: 2,
     funFact: "فیلەکان بە خرتوومە درێژەکەیان ئاو دەخۆنەوە و لقە دار و خواردن هەڵدەگرن!"
   },
   {
-    question: "پەلکەزێڕینەی ٧ ڕەنگ دوای چی لە ئاسماندا دەردەکەوێت؟",
+    question: "پەلکەزێڕینەی ٧ ڕەنگ دوای چی لە ئاسماندا بە جوانی دەردەکەوێت؟",
     category: "سروشت",
     categoryEmoji: "🌈",
-    icon: "🌧️",
+    icon: "🌈",
     options: ["دوای بارانبارین و کاتی خۆرهەڵاتن 🌧️", "لە کاتی شەوی تاریک 🌑", "لە ناو ژووردا 🚪", "لە وەرزی زستاندا بە تەنیا ❄️"],
     correctIndex: 0,
     funFact: "تیشکی خۆر کاتێک بە ناو دڵۆپە بارانەکاندا تێدەپەڕێت، ٧ ڕەنگی جوان لە ئاسمان دروست دەکات!"
@@ -131,7 +124,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "قەڵای دێرین و مێژوویی لە ناوەندی کام شاری کوردستانە؟",
     category: "شار و شوێنەوار",
     categoryEmoji: "🏰",
-    icon: "🏛️",
+    icon: "🏰",
     options: ["سلێمانی", "هەولێر", "دهۆک", "هەڵەبجە"],
     correctIndex: 1,
     funFact: "قەڵای هەولێر یەکێکە لە کۆنترین قەڵا مێژووییەکانی هەموو جیهان!"
@@ -140,7 +133,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کامیان کەرەستەیەکی سەرەکییە بۆ وێنەکێشان و ڕەنگکردنی تابلۆکان؟",
     category: "هونەر و قوتابخانە",
     categoryEmoji: "🎨",
-    icon: "✏️",
+    icon: "🎨",
     options: ["پێڵاو 👟", "تۆپ ⚽", "بۆیەی ڕەنگاوڕەنگ و فڵچە 🎨", "سەعات ⏰"],
     correctIndex: 2,
     funFact: "بە ڕەنگەکانی زەرد و شین و سوور دەتوانیت هەموو ڕەنگە جوانەکانی دنیا بەدەست بهێنیت!"
@@ -149,7 +142,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "خۆری گەورە لە ئاسماندا چ خزمەتێک بە ئێمە و زەوی دەکات؟",
     category: "زانستی گەردوون",
     categoryEmoji: "☀️",
-    icon: "✨",
+    icon: "☀️",
     options: ["ڕووناکی و گەرمی پێدەبەخشێت ☀️", "بەفر دەبارێنێت ❄️", "شەو دروست دەکات 🌙", "ئاوی لێ دەڕژێت 🌊"],
     correctIndex: 0,
     funFact: "بێ خۆر هیچ ڕووەک و دارێک گەورە نابێت و زەوی سارد و تاریک دەبوو!"
@@ -158,7 +151,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "هەنگ لە ناو شانەکەی خۆیدا چییەکی زۆر بەتام و شیرین دروست دەکات؟",
     category: "مێرووە بەسوودەکان",
     categoryEmoji: "🐝",
-    icon: "🍯",
+    icon: "🐝",
     options: ["هەنگوین 🍯", "ئاو 💧", "شەکر 🍬", "شیر 🥛"],
     correctIndex: 0,
     funFact: "هەنگ بە فڕین بەسەر هەزاران گوڵدا هەنگوینی بەسوود بۆ تەندروستیمان ئامادە دەکات!"
@@ -167,7 +160,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم ئاژەڵانە زۆر حەزی لە گێزەرە و گوێیە درێژەکانی دەجوڵێنێت؟",
     category: "ئاژەڵە شیرینەکان",
     categoryEmoji: "🐰",
-    icon: "🥕",
+    icon: "🐰",
     options: ["کەروێشک 🐰", "ڕێوی 🦊", "کیسەڵ 🐢", "شێر 🦁"],
     correctIndex: 0,
     funFact: "کەروێشک زۆر خێرا ڕادەکات و زۆر حەزی لە سەوزە و گێزەری تازەیە!"
@@ -176,7 +169,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "پێش خواردنی ژەمەکان دەبێت چی بکەین بۆ پاراستنی تەندروستیمان؟",
     category: "تەندروستی و پاکوخاوێنی",
     categoryEmoji: "🧼",
-    icon: "✨",
+    icon: "🧼",
     options: ["دەستەکانمان بە ئاو و سابوون بشۆین 🧼", "یەکسەر ڕابکەین بۆ دەرەوە 🏃", "پێڵاو لەپێ بکەین 👟", "بخەوین 😴"],
     correctIndex: 0,
     funFact: "شوشتنی دەستەکان میکرۆبەکان لەناو دەبات و هەمیشە تەندروست و بەهێزت دەهێڵێتەوە!"
@@ -185,7 +178,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "لە جەژنی نەورۆزدا چ هێمایەکی سەرکەوتن لەسەر چیاکان دادەگیرسێنرێت؟",
     category: "جەژن و کلتوور",
     categoryEmoji: "🔥",
-    icon: "🏔️",
+    icon: "🔥",
     options: ["ئاگر و مەشخەڵی نەورۆز 🔥", "گڵۆپی سەیارە 🚗", "یاری کۆمپیوتەر 🎮", "سەهۆڵ 🧊"],
     correctIndex: 0,
     funFact: "ئاگری نەورۆز هێمای هاتنی بەهار و سەرکەوتن و سەرفرازیی گەلی کوردە!"
@@ -203,7 +196,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کامیان گەورەترین میوەی وەرزی هاوینە کە ناوەکەی سوور و زۆر ئاودارە؟",
     category: "میوەکان",
     categoryEmoji: "🍉",
-    icon: "☀️",
+    icon: "🍉",
     options: ["شووتی 🍉", "قۆخ 🍑", "توتفەرەنگی 🍓", "گێلاس 🍒"],
     correctIndex: 0,
     funFact: "شووتی لە وەرزی گەرمای هاویندا لەشی مرۆڤ فێنک و تێر ئاو دەکاتەوە!"
@@ -212,8 +205,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
 
 const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
   const [input, setInput] = useState('');
-  const [mode, setMode] = useState<'story' | 'riddle' | 'ask' | 'names' | 'games' | 'quiz'>('story');
-  const [selectedStoryTheme, setSelectedStoryTheme] = useState('animals');
+  const [mode, setMode] = useState<'quiz' | 'story' | 'games' | 'riddle' | 'ask' | 'names'>('quiz');
   
   // کایەی وشە
   const [wordGameIndex, setWordGameIndex] = useState(0);
@@ -359,15 +351,14 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
     setQuizFinished(false);
   };
 
-  const handleKidsRequest = async (overridePrompt?: string) => {
+  const handleKidsRequest = async () => {
     setLoading(true);
     setError(null);
     setResponse(null);
 
     let finalPrompt = "";
     if (mode === 'story') {
-      const theme = STORY_THEMES.find(t => t.id === (overridePrompt || selectedStoryTheme));
-      finalPrompt = `تکایە چیرۆکێکی پەروەردەیی، شیرین و خەیاڵیی کوردی بۆ منداڵان لەسەر بابەتی (${theme?.label || "ئاژەڵانی کوردستان"}) بنووسە. با پڕ بێت لە وشەی خۆش و پەندی میهرەبانی و ئازایەتی.`;
+      finalPrompt = "تکایە چیرۆکێکی ئەفسوناوی، پەروەردەیی، زۆر شیرین و خەیاڵیی کوردی بۆ منداڵان بنووسە بە دەستەواژەی خۆش و جوان کە پڕ بێت لە پەندی میهرەبانی، هاوڕێیەتی، و ئازایەتی.";
     } else if (mode === 'riddle') {
       finalPrompt = "مەتەڵێکی کوردیی فۆلکلۆری و شیرین بۆ منداڵان لەگەڵ وەڵام و ڕوونکردنەوەکەی بنووسە.";
     } else if (mode === 'ask') {
@@ -460,11 +451,13 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
   return (
     <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-4 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-24 text-right select-none" dir="rtl">
       
-      {/* 🧭 سەرپەڕەی شاد و ڕەنگاوڕەنگ */}
+      {/* 🧭 سەرپەڕەی شاد و ئارام */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-pink-950/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800/80 shadow-xl backdrop-blur-xl">
         <div className="flex items-center gap-3 text-right">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-xl sm:text-2xl shadow-[0_0_20px_rgba(236,72,153,0.2)] shrink-0 animate-bounce">
-            🎈
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 p-0.5 shadow-[0_0_20px_rgba(245,158,11,0.25)] shrink-0 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-xl sm:text-2xl">
+              🧸
+            </div>
           </div>
           <div>
             <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
@@ -478,8 +471,8 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
         </div>
 
         {/* باجی ئەستێرەکان لە سەرەوە */}
-        <div className="flex items-center gap-2 self-end sm:self-auto bg-slate-950/70 border border-amber-500/40 px-3 py-1.5 rounded-2xl shadow-lg">
-          <span className="text-base animate-pulse">⭐</span>
+        <div className="flex items-center gap-2 self-end sm:self-auto bg-slate-950/70 border border-amber-500/40 px-3.5 py-1.5 rounded-2xl shadow-lg">
+          <span className="text-base">⭐</span>
           <span className="text-xs font-black text-amber-300 font-mono">
             {quizStars} ئەستێرە
           </span>
@@ -582,7 +575,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
                 </span>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-zinc-400">
+                  <span className="text-xs font-mono font-bold text-zinc-300 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
                     پرسیاری {quizIndex + 1} لە {KIDS_QUIZ_DATA.length}
                   </span>
                   
@@ -597,9 +590,9 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
                 </div>
               </div>
 
-              {/* دەقی پرسیار لەگەڵ ئایکۆنی ڕەنگاوڕەنگ */}
-              <div className="py-3 space-y-2">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-400/20 to-yellow-500/10 border border-amber-500/30 flex items-center justify-center text-3xl shadow-inner animate-pulse">
+              {/* 🎨 وێنەی گەورەی پرسیارەکە بە شێوازی شاز */}
+              <div className="py-2 space-y-3">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500/20 via-slate-950 to-amber-500/30 border-2 border-amber-400/50 flex items-center justify-center text-5xl sm:text-6xl shadow-[0_0_30px_rgba(245,158,11,0.3)]">
                   {currentQuiz.icon}
                 </div>
                 <h3 className="text-base sm:text-xl font-black text-white leading-relaxed px-2">
@@ -608,15 +601,15 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
               </div>
 
               {/* ٤ بژاردەی وەڵامدانەوە */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {currentQuiz.options.map((opt, idx) => {
-                  let btnClass = "bg-slate-950/80 hover:bg-slate-800 border-slate-800 text-zinc-200";
+                  let btnClass = "bg-slate-950/90 hover:bg-slate-800 border-slate-800 text-zinc-100";
 
                   if (quizAnswered) {
                     if (idx === currentQuiz.correctIndex) {
-                      btnClass = "bg-emerald-950/80 border-emerald-400 text-emerald-200 font-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-[1.02]";
+                      btnClass = "bg-emerald-950 border-emerald-400 text-emerald-200 font-black shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-[1.02]";
                     } else if (idx === quizSelectedOption) {
-                      btnClass = "bg-red-950/80 border-red-500 text-red-300";
+                      btnClass = "bg-red-950 border-red-500 text-red-300";
                     } else {
                       btnClass = "opacity-40 bg-slate-950 border-slate-900 text-zinc-500";
                     }
@@ -632,7 +625,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
                     >
                       <span>{opt}</span>
                       {quizAnswered && idx === currentQuiz.correctIndex && (
-                        <span className="text-emerald-400 text-base">✓</span>
+                        <span className="text-emerald-400 text-lg">✓</span>
                       )}
                     </button>
                   );
@@ -641,37 +634,34 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
 
               {/* پەیامی سەرکەوتن یان ڕوونکردنەوەی زانستی */}
               {quizAnswered && (
-                <div className="space-y-4 pt-3 animate-in zoom-in-95">
-                  <div className={`p-4 rounded-2xl border ${
-                    quizIsCorrect 
-                      ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200' 
-                      : 'bg-rose-950/70 border-rose-500/50 text-rose-200'
-                  }`}>
-                    <p className="text-xs sm:text-sm font-black mb-1">
-                      {quizIsCorrect 
-                        ? '🎉 ئافەرم قارەمانی ژیر! وەڵامەکەت ڕاستە (+١ ئەستێرە ⭐)' 
-                        : '❤️ وەڵامە دروستەکە ئەمە بوو، هیچ کێشە نییە هەوڵی زیاتر بدە!'}
-                    </p>
-                    <p className="text-[11px] text-zinc-300 leading-relaxed font-medium">
-                      💡 <strong>زانیاری شیرین:</strong> {currentQuiz.funFact}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleNextQuizQuestion}
-                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-2xl text-xs sm:text-sm shadow-xl active:scale-98 transition-all cursor-pointer"
-                  >
-                    ➡️ پرسیاری داهاتوو
-                  </button>
+                <div className="p-4 rounded-2xl border bg-slate-950/90 border-slate-800 text-right animate-in zoom-in-95 space-y-1.5">
+                  <p className="text-xs sm:text-sm font-black">
+                    {quizIsCorrect 
+                      ? '🎉 ئافەرم قارەمانی ژیر! وەڵامەکەت تەواوە (+١ ئەستێرە ⭐)' 
+                      : '❤️ وەڵامە دروستەکە دیاری کرا، لە پرسیاری دواتر سەرکەوتوو دەبیت!'}
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-zinc-300 leading-relaxed font-medium">
+                    💡 <strong>زانیاری شیرین:</strong> {currentQuiz.funFact}
+                  </p>
                 </div>
               )}
+
+              {/* ➡️ دوگمەی پرسیاری داهاتوو (هەمیشە زەق و دیارە) */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleNextQuizQuestion}
+                  className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black rounded-2xl text-xs sm:text-sm shadow-[0_0_25px_rgba(16,185,129,0.35)] active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>{quizAnswered ? "➡️ پرسیاری داهاتوو" : "تێپەڕاندن بۆ پرسیاری داهاتوو ➡️"}</span>
+                </button>
+              </div>
 
             </div>
           ) : (
             /* 🏆 شاشەی بردنەوە و کۆتایی تاقیکردنەوەکە */
             <div className="bg-slate-900/90 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-10 text-center space-y-5 shadow-2xl animate-in zoom-in">
-              <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-5xl shadow-[0_0_40px_rgba(245,158,11,0.5)] animate-bounce">
+              <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-5xl shadow-[0_0_40px_rgba(245,158,11,0.5)]">
                 🏆
               </div>
 
@@ -705,43 +695,23 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
         </div>
       )}
 
-      {/* 📖 بەشی چیرۆک */}
+      {/* 📖 بەشی چیرۆک (خۆکارانە چیرۆک دروست دەکات بێ چوار دوگمە) */}
       {mode === 'story' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {STORY_THEMES.map(theme => (
-              <button
-                key={theme.id}
-                onClick={() => {
-                  setSelectedStoryTheme(theme.id);
-                  handleKidsRequest(theme.id);
-                }}
-                className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between space-y-1 active:scale-95 cursor-pointer ${
-                  selectedStoryTheme === theme.id
-                    ? 'bg-pink-950/60 border-pink-500/60 text-white shadow-[0_0_20px_rgba(236,72,153,0.25)]'
-                    : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <span className="text-xs font-black">{theme.label}</span>
-                <span className="text-[10px] text-zinc-500 leading-tight truncate">{theme.desc}</span>
-              </button>
-            ))}
-          </div>
-
           <button
             onClick={() => handleKidsRequest()}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-pink-600 via-rose-500 to-pink-600 hover:from-pink-500 hover:to-rose-400 text-white font-black text-xs sm:text-sm rounded-2xl transition-all shadow-[0_0_30px_rgba(236,72,153,0.35)] active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-5 bg-gradient-to-r from-pink-600 via-rose-500 to-pink-600 hover:from-pink-500 hover:to-rose-400 text-white font-black text-xs sm:text-base rounded-3xl transition-all shadow-[0_0_35px_rgba(236,72,153,0.35)] active:scale-98 flex items-center justify-center gap-2.5 cursor-pointer"
           >
             {loading ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>خەریکی دروستکردنی چیرۆکێکی پڕ لە پەندە...</span>
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>خەریکی دروستکردنی چیرۆکێکی ئەفسوناوی نوێیە...</span>
               </>
             ) : (
               <>
-                <span>✨</span>
-                <span>دروستکردنی چیرۆکێکی خۆشی نوێ</span>
+                <span className="text-lg">✨</span>
+                <span>دروستکردنی چیرۆکێکی ئەفسوناوی نوێ بۆ منداڵان</span>
               </>
             )}
           </button>
