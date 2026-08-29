@@ -59,7 +59,7 @@ interface KidsQuizQuestion {
   question: string;
   category: string;
   categoryEmoji: string;
-  icon: string;
+  imageUrl: string;
   options: string[];
   correctIndex: number;
   funFact: string;
@@ -67,10 +67,10 @@ interface KidsQuizQuestion {
 
 const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
   {
-    question: "پاشای دارستان و بەهێزترین ئاژەڵ ناوی چییە؟",
+    question: "پاشای دارستان و بەهێزترین ئاژەڵ لە وێنەکەدا ناوی چییە؟",
     category: "ئاژەڵەکان",
     categoryEmoji: "🦁",
-    icon: "🦁",
+    imageUrl: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=700&q=80",
     options: ["شێر 🦁", "ڕێوی 🦊", "کەروێشک 🐰", "سمۆرە 🐿️"],
     correctIndex: 0,
     funFact: "شێر بەهۆی ئازایەتی و دەنگە بەرزەکەیەوە پێی دەوترێت پاشای دارستان!"
@@ -79,7 +79,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "ئاڵای پیرۆزی کوردستان لە چەند ڕەنگی سەرەکی پێکهاتووە؟",
     category: "نیشتمان",
     categoryEmoji: "☀️",
-    icon: "🇹🇯",
+    imageUrl: "/logo.jpg",
     options: ["٢ ڕەنگ", "٣ ڕەنگ (سوور، سپی، سەوز)", "٥ ڕەنگ", "١ ڕەنگ"],
     correctIndex: 1,
     funFact: "ئاڵای کوردستان لە ڕەنگەکانی سوور، سپی و سەوز پێکهاتووە لەگەڵ خۆرە ٢١ تیشکە زێڕینەکەی ناوەڕاستی!"
@@ -88,16 +88,16 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم میوانە لە ناوەڕاستدا دەنکە سوورە شیرینەکانی هەیە؟",
     category: "میوەکان",
     categoryEmoji: "🍎",
-    icon: "🍎",
+    imageUrl: "https://images.unsplash.com/photo-1541344999736-83eca872f241?auto=format&fit=crop&w=700&q=80",
     options: ["مۆز 🍌", "سێو 🍏", "هەنار 🍎", "پرتەقاڵ 🍊"],
     correctIndex: 2,
     funFact: "هەنار یەکێکە لە بەناوبانگترین و بەسوودترین میوەکانی کوردستان!"
   },
   {
-    question: "دەنگی پشیلەی شیرین چۆنە کاتێک میهرەبان دەبێت؟",
+    question: "دەنگی ئەم پشیلە شیرینە چۆنە کاتێک میهرەبان دەبێت؟",
     category: "دەنگی ئاژەڵان",
     categoryEmoji: "🐱",
-    icon: "🐱",
+    imageUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=700&q=80",
     options: ["هاو هاو 🐶", "میاو میاو 🐱", "قاع قاع 🦆", "حیلە حیلە 🐴"],
     correctIndex: 1,
     funFact: "پشیلە کاتێک داوای خۆشەویستی یان شیر دەکات بە نەرمی دەڵێت میاو!"
@@ -106,7 +106,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم ئاژەڵانە خرتوومێکی درێژی هەیە و گەورەترین ئاژەڵی وشکانییە؟",
     category: "ئاژەڵەکان",
     categoryEmoji: "🐘",
-    icon: "🐘",
+    imageUrl: "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&w=700&q=80",
     options: ["مەیموون 🐒", "گورگ 🐺", "فیل 🐘", "ورچ 🐻"],
     correctIndex: 2,
     funFact: "فیلەکان بە خرتوومە درێژەکەیان ئاو دەخۆنەوە و لقە دار و خواردن هەڵدەگرن!"
@@ -115,34 +115,34 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "پەلکەزێڕینەی ٧ ڕەنگ دوای چی لە ئاسماندا بە جوانی دەردەکەوێت؟",
     category: "سروشت",
     categoryEmoji: "🌈",
-    icon: "🌈",
+    imageUrl: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=700&q=80",
     options: ["دوای بارانبارین و کاتی خۆرهەڵاتن 🌧️", "لە کاتی شەوی تاریک 🌑", "لە ناو ژووردا 🚪", "لە وەرزی زستاندا بە تەنیا ❄️"],
     correctIndex: 0,
     funFact: "تیشکی خۆر کاتێک بە ناو دڵۆپە بارانەکاندا تێدەپەڕێت، ٧ ڕەنگی جوان لە ئاسمان دروست دەکات!"
   },
   {
-    question: "قەڵای دێرین و مێژوویی لە ناوەندی کام شاری کوردستانە؟",
+    question: "ئەم قەڵا دێرین و مێژووییە لە ناوەندی کام شاری کوردستانە؟",
     category: "شار و شوێنەوار",
     categoryEmoji: "🏰",
-    icon: "🏰",
+    imageUrl: "/erbil.jpg",
     options: ["سلێمانی", "هەولێر", "دهۆک", "هەڵەبجە"],
     correctIndex: 1,
-    funFact: "قەڵای هەولێر یەکێکە لە کۆنترین قەڵا مێژووییەکانی هەموو جیهان!"
+    funFact: "قەڵای هەولێر یەکێکە لە کۆنترین قەڵا مێژووییەکانی هەموو جیهان کە ژیانی تێدا بەردەوام بووە!"
   },
   {
     question: "کامیان کەرەستەیەکی سەرەکییە بۆ وێنەکێشان و ڕەنگکردنی تابلۆکان؟",
     category: "هونەر و قوتابخانە",
     categoryEmoji: "🎨",
-    icon: "🎨",
+    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=700&q=80",
     options: ["پێڵاو 👟", "تۆپ ⚽", "بۆیەی ڕەنگاوڕەنگ و فڵچە 🎨", "سەعات ⏰"],
     correctIndex: 2,
-    funFact: "بە ڕەنگەکانی زەرد و شین و سوور دەتوانیت هەموو ڕەنگە جوانەکانی دنیا بەدەست بهێنیت!"
+    funFact: "بە ڕەنگەکانی زەرد و شین و سوور دەتوانیت هەموو ڕەنگە جوانەکانی دنیا دروست بکەیت!"
   },
   {
     question: "خۆری گەورە لە ئاسماندا چ خزمەتێک بە ئێمە و زەوی دەکات؟",
     category: "زانستی گەردوون",
     categoryEmoji: "☀️",
-    icon: "☀️",
+    imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=700&q=80",
     options: ["ڕووناکی و گەرمی پێدەبەخشێت ☀️", "بەفر دەبارێنێت ❄️", "شەو دروست دەکات 🌙", "ئاوی لێ دەڕژێت 🌊"],
     correctIndex: 0,
     funFact: "بێ خۆر هیچ ڕووەک و دارێک گەورە نابێت و زەوی سارد و تاریک دەبوو!"
@@ -151,7 +151,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "هەنگ لە ناو شانەکەی خۆیدا چییەکی زۆر بەتام و شیرین دروست دەکات؟",
     category: "مێرووە بەسوودەکان",
     categoryEmoji: "🐝",
-    icon: "🐝",
+    imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=700&q=80",
     options: ["هەنگوین 🍯", "ئاو 💧", "شەکر 🍬", "شیر 🥛"],
     correctIndex: 0,
     funFact: "هەنگ بە فڕین بەسەر هەزاران گوڵدا هەنگوینی بەسوود بۆ تەندروستیمان ئامادە دەکات!"
@@ -160,7 +160,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کام لەم ئاژەڵانە زۆر حەزی لە گێزەرە و گوێیە درێژەکانی دەجوڵێنێت؟",
     category: "ئاژەڵە شیرینەکان",
     categoryEmoji: "🐰",
-    icon: "🐰",
+    imageUrl: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=700&q=80",
     options: ["کەروێشک 🐰", "ڕێوی 🦊", "کیسەڵ 🐢", "شێر 🦁"],
     correctIndex: 0,
     funFact: "کەروێشک زۆر خێرا ڕادەکات و زۆر حەزی لە سەوزە و گێزەری تازەیە!"
@@ -169,7 +169,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "پێش خواردنی ژەمەکان دەبێت چی بکەین بۆ پاراستنی تەندروستیمان؟",
     category: "تەندروستی و پاکوخاوێنی",
     categoryEmoji: "🧼",
-    icon: "🧼",
+    imageUrl: "https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=700&q=80",
     options: ["دەستەکانمان بە ئاو و سابوون بشۆین 🧼", "یەکسەر ڕابکەین بۆ دەرەوە 🏃", "پێڵاو لەپێ بکەین 👟", "بخەوین 😴"],
     correctIndex: 0,
     funFact: "شوشتنی دەستەکان میکرۆبەکان لەناو دەبات و هەمیشە تەندروست و بەهێزت دەهێڵێتەوە!"
@@ -178,16 +178,16 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "لە جەژنی نەورۆزدا چ هێمایەکی سەرکەوتن لەسەر چیاکان دادەگیرسێنرێت؟",
     category: "جەژن و کلتوور",
     categoryEmoji: "🔥",
-    icon: "🔥",
+    imageUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=700&q=80",
     options: ["ئاگر و مەشخەڵی نەورۆز 🔥", "گڵۆپی سەیارە 🚗", "یاری کۆمپیوتەر 🎮", "سەهۆڵ 🧊"],
     correctIndex: 0,
     funFact: "ئاگری نەورۆز هێمای هاتنی بەهار و سەرکەوتن و سەرفرازیی گەلی کوردە!"
   },
   {
-    question: "باڵندە جوانەکان بە چی لە ئاسماندا بە ئازادی دەفڕن؟",
+    question: "باڵندە جوانەکان لە وێنەکەدا بە چی لە ئاسماندا بە ئازادی دەفڕن؟",
     category: "باڵندەکان",
     categoryEmoji: "🦅",
-    icon: "🕊️",
+    imageUrl: "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=700&q=80",
     options: ["بە باڵەکانیان 🕊️", "بە قاچەکانیان 🦶", "بە کلکیان 🐾", "بە گوێچکەیان 👂"],
     correctIndex: 0,
     funFact: "پەڕ و باڵی باڵندەکان سووک و بەهێزن کە یارمەتییان دەدات بە ئاسانی بفڕن!"
@@ -196,7 +196,7 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کامیان گەورەترین میوەی وەرزی هاوینە کە ناوەکەی سوور و زۆر ئاودارە؟",
     category: "میوەکان",
     categoryEmoji: "🍉",
-    icon: "🍉",
+    imageUrl: "https://images.unsplash.com/photo-1563114773-84221bd62daa?auto=format&fit=crop&w=700&q=80",
     options: ["شووتی 🍉", "قۆخ 🍑", "توتفەرەنگی 🍓", "گێلاس 🍒"],
     correctIndex: 0,
     funFact: "شووتی لە وەرزی گەرمای هاویندا لەشی مرۆڤ فێنک و تێر ئاو دەکاتەوە!"
@@ -242,6 +242,14 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
     const savedStars = localStorage.getItem('kurdai_kids_quiz_stars');
     if (savedStars) {
       setQuizStars(parseInt(savedStars, 10));
+    }
+
+    const savedQIndex = localStorage.getItem('kurdai_kids_quiz_index');
+    if (savedQIndex) {
+      const parsed = parseInt(savedQIndex, 10);
+      if (!isNaN(parsed) && parsed < KIDS_QUIZ_DATA.length) {
+        setQuizIndex(parsed);
+      }
     }
   }, []);
 
@@ -329,7 +337,9 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
 
   const handleNextQuizQuestion = () => {
     if (quizIndex + 1 < KIDS_QUIZ_DATA.length) {
-      setQuizIndex(prev => prev + 1);
+      const nextIdx = quizIndex + 1;
+      setQuizIndex(nextIdx);
+      localStorage.setItem('kurdai_kids_quiz_index', nextIdx.toString());
       setQuizSelectedOption(null);
       setQuizAnswered(false);
       setQuizIsCorrect(false);
@@ -345,6 +355,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
 
   const handleRestartQuiz = () => {
     setQuizIndex(0);
+    localStorage.setItem('kurdai_kids_quiz_index', '0');
     setQuizSelectedOption(null);
     setQuizAnswered(false);
     setQuizIsCorrect(false);
@@ -590,11 +601,24 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
                 </div>
               </div>
 
-              {/* 🎨 وێنەی گەورەی پرسیارەکە بە شێوازی شاز */}
+              {/* 🎨 وێنەی ڕاستەقینەی پرسیارەکە */}
               <div className="py-2 space-y-3">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500/20 via-slate-950 to-amber-500/30 border-2 border-amber-400/50 flex items-center justify-center text-5xl sm:text-6xl shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                  {currentQuiz.icon}
+                <div className="relative w-full max-w-sm h-48 sm:h-56 mx-auto rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.2)] bg-slate-950">
+                  <img 
+                    src={currentQuiz.imageUrl} 
+                    alt={currentQuiz.category}
+                    className="w-full h-full object-cover rounded-[22px] transition-transform duration-300 hover:scale-105"
+                    loading="eager"
+                    onError={(e) => {
+                      e.currentTarget.src = "/baby.webp";
+                    }}
+                  />
+                  <div className="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-amber-500/30 text-xs font-bold text-amber-300 flex items-center gap-1">
+                    <span>{currentQuiz.categoryEmoji}</span>
+                    <span>{currentQuiz.category}</span>
+                  </div>
                 </div>
+
                 <h3 className="text-base sm:text-xl font-black text-white leading-relaxed px-2">
                   {currentQuiz.question}
                 </h3>
