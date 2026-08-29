@@ -65,6 +65,7 @@ interface KidsQuizQuestion {
   funFact: string;
 }
 
+// 🌟 ٥٠ پرسیاری زۆر دەوڵەمەند، زانستی و فۆتۆگرافی بۆ منداڵانی کوردستان
 const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
   {
     question: "پاشای دارستان و بەهێزترین ئاژەڵ لە وێنەکەدا ناوی چییە؟",
@@ -196,10 +197,325 @@ const KIDS_QUIZ_DATA: KidsQuizQuestion[] = [
     question: "کامیان گەورەترین میوەی وەرزی هاوینە کە ناوەکەی سوورە و زۆر ئاودارە؟",
     category: "میوەکان",
     categoryEmoji: "🍉",
-    imageUrl: "https://images.unsplash.com/photo-1563114773-84221bd62daa?auto=format&fit=crop&w=700&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1589984662646-e7b2e4962f18?auto=format&fit=crop&w=700&q=80",
     options: ["شووتی 🍉", "قۆخ 🍑", "توتفەرەنگی 🍓", "گێلاس 🍒"],
     correctIndex: 0,
     funFact: "شووتی لە وەرزی گەرمای هاویندا لەشی مرۆڤ فێنک و تێر ئاو دەکاتەوە!"
+  },
+  {
+    question: "ئەم ئاژەڵە ڕەسەن و بەوەفایەی سوارچاکی ناوی چییە؟",
+    category: "ئاژەڵە ڕەسەنەکان",
+    categoryEmoji: "🐴",
+    imageUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=700&q=80",
+    options: ["ئەسپ 🐴", "مانگا 🐄", "بزن 🐐", "کەر 🫏"],
+    correctIndex: 0,
+    funFact: "ئەسپی کوردی یەکێکە لە بەهێزترین و خێراترین ئەسپە ڕەسەنەکانی دنیا!"
+  },
+  {
+    question: "پایتەختی ڕۆشنبیری و شاری چیای گۆیژە لە کوردستان ناوی چییە؟",
+    category: "شارەکانی کوردستان",
+    categoryEmoji: "🏰",
+    imageUrl: "/slemani.jpg",
+    options: ["سلێمانی", "هەولێر", "دهۆک", "کەرکووک"],
+    correctIndex: 0,
+    funFact: "سلێمانی شاری شاعیران و هونەرمەندانی گەورەی کوردە و هەوایەکی یەکجار پاک و فێنکی هەیە!"
+  },
+  {
+    question: "ئەم میوە خڕ و سوورە شیرینەی کە ڕۆژانە دەیخۆین ناوی چییە؟",
+    category: "میوەکان",
+    categoryEmoji: "🍎",
+    imageUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=700&q=80",
+    options: ["سێو 🍎", "مۆز 🍌", "خەیار 🥒", "پیاز 🧅"],
+    correctIndex: 0,
+    funFact: "خواردنی یەک سێو لە ڕۆژێکدا تەندروستیت دەپارێزێت و وزەت پێدەبەخشێت!"
+  },
+  {
+    question: "مانگی گەشاوە لە شەودا لە کوێ بە درەوشاوەیی دەبینرێت؟",
+    category: "زانستی گەردوون",
+    categoryEmoji: "🌙",
+    imageUrl: "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?auto=format&fit=crop&w=700&q=80",
+    options: ["لە ناو ئاسمانی شەودا 🌙", "لە ژێر زەوی 🕳️", "لە ناو ئاودا 🌊", "لە ناو ماڵ 🏠"],
+    correctIndex: 0,
+    funFact: "مانگ تیشکی خۆر وەردەگرێت و لە شەودا ڕووناکییەکی نەرم بە زەوی دەبەخشێت!"
+  },
+  {
+    question: "ئەم سمۆرە شیرینەی دارستان خەریکی کۆکردنەوەی چییە؟",
+    category: "ئاژەڵە بچووکەکان",
+    categoryEmoji: "🐿️",
+    imageUrl: "https://images.unsplash.com/photo-1507666405895-422eee7d517f?auto=format&fit=crop&w=700&q=80",
+    options: ["بەڕوو و گوێز 🌰", "گۆشت 🥩", "پیتزا 🍕", "شیرینی 🍬"],
+    correctIndex: 0,
+    funFact: "سمۆرەکان بەڕووەکان لە ژێر زەویدا دەشارنەوە کە دواتر دەبنە درەختی گەورەی دارستان!"
+  },
+  {
+    question: "مەیموونە زیرەکەکان زۆر حەزیان لە خواردنی چ میوەیەکی درێژی زەردە؟",
+    category: "میوە و ئاژەڵان",
+    categoryEmoji: "🍌",
+    imageUrl: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=700&q=80",
+    options: ["مۆز 🍌", "شووتی 🍉", "پەتاتە 🥔", "سیر 🧄"],
+    correctIndex: 0,
+    funFact: "مۆز پڕە لە پۆتاسیۆم و یارمەتی ماسولکەکان دەدات بەهێز و چالاک بن!"
+  },
+  {
+    question: "ئەم هاوڕێ بەوەفایەی مرۆڤ کاتێک دڵخۆشە کلکی دەجوڵێنێت ناوی چییە؟",
+    category: "ئاژەڵە ماڵییەکان",
+    categoryEmoji: "🐶",
+    imageUrl: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=700&q=80",
+    options: ["سەگ 🐶", "گورگ 🐺", "شێر 🦁", "ورچ 🐻"],
+    correctIndex: 0,
+    funFact: "سەگەکان هەستێکی یەکجار بەهێزی بۆنکردنیان هەیە و زۆر پارێزەری مرۆڤن!"
+  },
+  {
+    question: "شاری دڵگیری چیای بەرز و کانییە فێنکەکان لە بادینان ناوی چییە؟",
+    category: "شارەکانی کوردستان",
+    categoryEmoji: "🏔️",
+    imageUrl: "/duhok.jpg",
+    options: ["دهۆک", "کەرکووک", "بەغدا", "بەسرە"],
+    correctIndex: 0,
+    funFact: "دهۆک شاری سروشتی جوان و گەشتیارییە و شوێنی شوێنەوارە دێرینەکانی کوردستانە!"
+  },
+  {
+    question: "ڕۆژانە پێش خەوتن بۆ پاراستنی ددانەکانمان دەبێت چی بەکاربهێنین؟",
+    category: "تەندروستی و پاکوخاوێنی",
+    categoryEmoji: "🪥",
+    imageUrl: "https://images.unsplash.com/photo-1559591937-e1032b4b45ef?auto=format&fit=crop&w=700&q=80",
+    options: ["فڵچەی ددان و هەویری مسواک 🪥", "شیرینی زۆر 🍭", "چەکوش 🔨", "قەڵەم ✏️"],
+    correctIndex: 0,
+    funFact: "شوشتنی ددانەکان بۆ ماوەی ٢ خولەک دەیانپارێزێت لە کلۆربوون و ددانەکانت سپی دەهێڵێتەوە!"
+  },
+  {
+    question: "ئەم میوە هێشووییە شیرینەی کە لە باخەکانی کوردستاندا پێدەگات ناوی چییە؟",
+    category: "میوە بەتامەکان",
+    categoryEmoji: "🍇",
+    imageUrl: "https://images.unsplash.com/photo-1537640538966-79f369143f8f?auto=format&fit=crop&w=700&q=80",
+    options: ["ترێ 🍇", "زەیتوون 🫒", "هەنجیر 🫐", "سێو 🍎"],
+    correctIndex: 0,
+    funFact: "ترێی کوردستان یەکێکە لە شیرینترین ترێیەکانی دنیا کە مێوژ و دۆشاوی بەتامی لێ دروست دەکرێت!"
+  },
+  {
+    question: "کامیان کەرەستەیەکی سەرەکییە بۆ یاری وەرزشیی تۆپی پێ لە یاریگادا؟",
+    category: "وەرزش و یاری",
+    categoryEmoji: "⚽",
+    imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=700&q=80",
+    options: ["تۆپ ⚽", "تەلەفزیۆن 📺", "تەلەفۆن 📱", "سەرین 🛏️"],
+    correctIndex: 0,
+    funFact: "وەرزش و تۆپی پێ دڵ و ماسولکەکانت بەهێز دەکات و هەمیشە چالاکت دەهێڵێتەوە!"
+  },
+  {
+    question: "ئەم کەرەستە دوو تایەیە چییە کە بە پێ لێدەخوڕرێت بۆ وەرزش و گەشت؟",
+    category: "وەرزش و یاری",
+    categoryEmoji: "🚲",
+    imageUrl: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=700&q=80",
+    options: ["پاسکیل 🚲", "سەیارە 🚗", "شەمەندەفەر 🚆", "فڕۆکە ✈️"],
+    correctIndex: 0,
+    funFact: "پاسکیلسواری هاوسەنگی جەستە فێر دەکات و ژینگە بە پاکی دەهێڵێتەوە چونکە دووکەڵی نییە!"
+  },
+  {
+    question: "ئەم گیاندارە باڵ نەخشینە جوانەی بەسەر گوڵەکاندا دەفڕێت چییە؟",
+    category: "باڵندە و مێروو",
+    categoryEmoji: "🦋",
+    imageUrl: "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=700&q=80",
+    options: ["پەپوولە 🦋", "مێش 🪰", "پشکۆلە 🪲", "مرواری 🦪"],
+    correctIndex: 0,
+    funFact: "پەپوولە لە کرمۆکەیەکی بچووکەوە دەبێتە جوانترین گیانداری باڵداری ناو سروشت!"
+  },
+  {
+    question: "ئەم ئاژەڵە قەبارە گەورەیەی ناو دارستان کە حەزی لە ماسی و هەنگوینە چییە؟",
+    category: "ئاژەڵە کێوییەکان",
+    categoryEmoji: "🐻",
+    imageUrl: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=700&q=80",
+    options: ["ورچ 🐻", "کەروێشک 🐰", "پشیلە 🐱", "سمۆرە 🐿️"],
+    correctIndex: 0,
+    funFact: "ورچەکان لە وەرزی زستاندا دەچنە ناو ئەشکەوتەکان و خەوی زستانە دەکەن تا بەهار!"
+  },
+  {
+    question: "شاری هێمای خۆڕاگری و گوڵە نێرگزەکانی کوردستان ناوی چییە؟",
+    category: "شارەکانی کوردستان",
+    categoryEmoji: "🌼",
+    imageUrl: "/halabja.jpg",
+    options: ["هەڵەبجە", "بەغدا", "موسڵ", "قاهیرە"],
+    correctIndex: 0,
+    funFact: "هەڵەبجە شاری مەزڵوومیەت و هێمای ئاشتییە لە هەموو جیهاندا!"
+  },
+  {
+    question: "سەرچاوەی گەورەی زانست، فێربوون و چیرۆکە شیرینەکان لە ناو چیدایە؟",
+    category: "فێربوون و زانست",
+    categoryEmoji: "📚",
+    imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=700&q=80",
+    options: ["کتێب 📚", "تۆپ ⚽", "پێڵاو 👟", "تەباغ 🍳"],
+    correctIndex: 0,
+    funFact: "خوێندنەوەی کتێب مێشکت گەشە پێدەدات و دەتباتە ناو دنیای داهێنان و سەرکەوتن!"
+  },
+  {
+    question: "ئەم ئامرازە گەورەیەی کە سەرنشینان لە ئاسماندا دەگوازێتەوە چییە؟",
+    category: "ئامرازەکانی گواستنەوە",
+    categoryEmoji: "✈️",
+    imageUrl: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=700&q=80",
+    options: ["فڕۆکە ✈️", "پاسکیل 🚲", "ئۆتۆمبێل 🚗", "پاپۆڕ 🚢"],
+    correctIndex: 0,
+    funFact: "فڕۆکەکان لە بەرزایی چەندین هەزار مەتردا زۆر خێراتر لە هەموو ئامرازەکانی تر دەفڕن!"
+  },
+  {
+    question: "ئەم ئاژەڵە لەسەرخۆیەی کە قەڵغانێکی ڕەق لەسەر پشتیەتی ناوی چییە؟",
+    category: "ئاژەڵە شیرینەکان",
+    categoryEmoji: "🐢",
+    imageUrl: "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=700&q=80",
+    options: ["کیسەڵ 🐢", "ڕێوی 🦊", "کەروێشک 🐰", "شێر 🦁"],
+    correctIndex: 0,
+    funFact: "کیسەڵەکان دەتوانن زیاتر لە ١٠٠ ساڵ بە ئارامی و تەندروستی لەسەر زەوی بژین!"
+  },
+  {
+    question: "ئەم میوە سوورە بەتامەی کە خاڵە وردەکانی لەسەرە ناوی چییە؟",
+    category: "میوەکان",
+    categoryEmoji: "🍓",
+    imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=700&q=80",
+    options: ["توتفەرەنگی (شلیک) 🍓", "مۆز 🍌", "سێو 🍏", "پرتەقاڵ 🍊"],
+    correctIndex: 0,
+    funFact: "توتفەرەنگی تەنها میوەیە کە دەنکەکانی لەسەر ڕووی دەرەوەی میوەکەیە نەک لە ناوی!"
+  },
+  {
+    question: "ئەستێرە درەوشاوەکان لە کەی ئاسمان بە جوانی ڕووناک دەکەنەوە؟",
+    category: "زانستی گەردوون",
+    categoryEmoji: "✨",
+    imageUrl: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=700&q=80",
+    options: ["لە شەوی تاریک و ساماڵدا ✨", "لە ناو نیوەڕۆ ☀️", "لە ناو ژووری داخراو 🚪", "لە ژێر زەوی 🕳️"],
+    correctIndex: 0,
+    funFact: "هەر ئەستێرەیەک کە لە ئاسماندا دەیبینیت خۆرێکی گەورەیە کە ملیۆنان کیلۆمەتر لێمانەوە دوورە!"
+  },
+  {
+    question: "باڵابەرزترین ئاژەڵی سەر زەوی بە ملە درێژەکەی ناوی چییە؟",
+    category: "ئاژەڵە باڵابەرزەکان",
+    categoryEmoji: "🦒",
+    imageUrl: "https://images.unsplash.com/photo-1538099130811-745e64318258?auto=format&fit=crop&w=700&q=80",
+    options: ["زەڕافە 🦒", "مەیموون 🐒", "گورگ 🐺", "سەگ 🐶"],
+    correctIndex: 0,
+    funFact: "زەڕافە بەهۆی ملە درێژەکەیەوە دەتوانێت بە ئاسانی گەڵای لوتکەی بەرزترین دارەکان بخوات!"
+  },
+  {
+    question: "لە وەرزی زستاندا چ دیاردەیەکی سپی و جوان چیاکانی کوردستان دادەپۆشێت؟",
+    category: "کەشوهەوا و وەرزەکان",
+    categoryEmoji: "❄️",
+    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=700&q=80",
+    options: ["بەفر ❄️", "بارانی بەخوڕ 🌧️", "تیشکی گەرم ☀️", "تۆزوخۆڵ 🌪️"],
+    correctIndex: 0,
+    funFact: "بەفری سەر چیاکانی کوردستان لە بەهاردا دەتوێتەوە و دەبێتە ئاوی پاکی کانی و ڕووبارەکان!"
+  },
+  {
+    question: "ئەم ئاژەڵە زرنگ و زیرەکەی ناو چیرۆکە فۆلکلۆرییەکان چییە؟",
+    category: "ئاژەڵە فێڵبازەکان",
+    categoryEmoji: "🦊",
+    imageUrl: "https://images.unsplash.com/photo-1516934024742-b461fba47600?auto=format&fit=crop&w=700&q=80",
+    options: ["ڕێوی 🦊", "کەر 🫏", "مانگا 🐄", "سمۆرە 🐿️"],
+    correctIndex: 0,
+    funFact: "ڕێوی هەستێکی یەکجار تیژی بیستن و بینینی هەیە بۆ دۆزینەوەی خواردن لە شەودا!"
+  },
+  {
+    question: "ئەم کەرەستە ڕەنگاوڕەنگەی بە دەزووی دەستی منداڵان لە ناو باڵادا دەفڕێت چییە؟",
+    category: "یارییەکانی منداڵان",
+    categoryEmoji: "🪁",
+    imageUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=700&q=80",
+    options: ["کۆلارە 🪁", "پاسکیل 🚲", "تۆپ ⚽", "قەڵەم ✏️"],
+    correctIndex: 0,
+    funFact: "فڕینی کۆلارە لە وەرزی نەورۆز و بەهاردا یەکێکە لە خۆشترین یارییە فۆلکلۆرییەکانی منداڵانی کورد!"
+  },
+  {
+    question: "ئەم ئاژەڵە بەزمخۆشەی لەسەر دارەکان بازدەدات و حەزی لە مۆزە چییە؟",
+    category: "ئاژەڵە زیرەکەکان",
+    categoryEmoji: "🐒",
+    imageUrl: "https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&w=700&q=80",
+    options: ["مەیموون 🐒", "پڵنگ 🐆", "گورگ 🐺", "ئاسک 🦌"],
+    correctIndex: 0,
+    funFact: "مەیموونەکان دەستیان زۆر بەهێزە و دەتوانن وەک مرۆڤ شتەکان بە پەنجەکانیان بگرن!"
+  },
+  {
+    question: "ئاوی بەخوڕی ناو شاخەکانی کوردستان کە لە بەرزاییەوە دێتە خوارێ چی پێ دەوترێت؟",
+    category: "سروشتی کوردستان",
+    categoryEmoji: "🌊",
+    imageUrl: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=700&q=80",
+    options: ["تاڤگە (وەک گەلی عەلی بەگ) 🌊", "بیابان 🏜️", "ئاگر 🔥", "پرد 🌉"],
+    correctIndex: 0,
+    funFact: "تاڤگەی گەلی عەلی بەگ یەکێکە لە جوانترین تاڤگەکانی هەموو ڕۆژهەڵاتی ناوەڕاست!"
+  },
+  {
+    question: "ئەم گیاندارە زیرەک و دۆستانەیەی ناو دەریاکان ناوی چییە؟",
+    category: "ئاژەڵانی دەریا",
+    categoryEmoji: "🐬",
+    imageUrl: "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&w=700&q=80",
+    options: ["دۆلفین 🐬", "مار 🐍", "شێر 🦁", "ڕێوی 🦊"],
+    correctIndex: 0,
+    funFact: "دۆلفینەکان زۆر میهرەبانن و حەزیان لە یاری و هاوڕێیەتییە لەگەڵ مرۆڤدا!"
+  },
+  {
+    question: "نانە خۆش و بەتامی سەر سفرەکانمان لە دانەوێڵەی چی دروست دەکرێت؟",
+    category: "خواردن و کشتوکاڵ",
+    categoryEmoji: "🌾",
+    imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=700&q=80",
+    options: ["گەنم 🌾", "دار 🌲", "بەرد 🪨", "ئاسن ⚙️"],
+    correctIndex: 0,
+    funFact: "کوردستان دێرینترین خاکی جیهانە کە مرۆڤ گەنمی تێدا چاندووە و نانی لێ دروستکردووە!"
+  },
+  {
+    question: "ئەم کەشتییە بەهێزەی بەرەو ئەستێرە و بۆشایی ئاسمان هەڵدەفڕێت چییە؟",
+    category: "زانست و گەردوون",
+    categoryEmoji: "🚀",
+    imageUrl: "https://images.unsplash.com/photo-1517976487502-570a256a4eb8?auto=format&fit=crop&w=700&q=80",
+    options: ["کەشتی بۆشایی (ڕۆکێت) 🚀", "پاسکیل 🚲", "سەیارە 🚗", "تۆپ ⚽"],
+    correctIndex: 0,
+    funFact: "کەشتی بۆشایی بە خێراییەکی زۆر زیاتر لە دەنگ بەرز دەبێتەوە تا بگاتە مانگ و ئەستێرەکان!"
+  },
+  {
+    question: "شەوانە پێش کاتژمێر چەند باشە منداڵان بخەون بۆ ئەوەی گەشەیەکی تەندروست بکەن؟",
+    category: "تەندروستی و گەشە",
+    categoryEmoji: "😴",
+    imageUrl: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=700&q=80",
+    options: ["زوو لە نێوان کاتژمێر ٨ تا ٩ی شەو 😴", "کاتژمێر ٤ی بەیانی 🌙", "هەر نەخەون ❌", "کاتی نیوەڕۆ ☀️"],
+    correctIndex: 0,
+    funFact: "هۆرمۆنی باڵابەرزبوون و گەشەی مێشک لە کاتی خەوی قووڵی سەرەتای شەودا کار دەکات!"
+  },
+  {
+    question: "ئەم گوڵە زەردە گەورەیەی کە هەمیشە ڕووی لە تیشکی خۆرە چییە؟",
+    category: "گوڵ و ڕووەک",
+    categoryEmoji: "🌻",
+    imageUrl: "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=700&q=80",
+    options: ["گوڵەبەڕۆژە 🌻", "کاکتوس 🌵", "سێو 🍎", "داربەڕوو 🌳"],
+    correctIndex: 0,
+    funFact: "گوڵەبەڕۆژە بە ڕۆژدا لەگەڵ جوڵەی خۆر سەرەکەی دەسوڕێنێت بۆ وەرگرتنی زیاتری تیشک!"
+  },
+  {
+    question: "بۆ بەهێزبوونی ماسولکە و ئێسکەکانمان، ڕۆژانە پێویستە چی بکەین؟",
+    category: "وەرزش و تەندروستی",
+    categoryEmoji: "🏃",
+    imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+    options: ["وەرزش و ڕاکردن و یاریی بەسوود 🏃", "هەموو ڕۆژ لەسەر جێگە بمێنینەوە 🛌", "شیرینی زۆر بخۆین 🍫", "دابنیشین 🪑"],
+    correctIndex: 0,
+    funFact: "وەرزش مێشکت تیژ دەکات و دەبێتە هۆی ئەوەی لە وانەکانتدا نمرەی بەرز بەدەست بهێنیت!"
+  },
+  {
+    question: "ئەم ئامرازە چییە کە کاتمان پێ دەڵێت بۆ ئەوەی لە کاتی خۆیدا کارەکانمان بکەین؟",
+    category: "ئامرازەکان",
+    categoryEmoji: "⏰",
+    imageUrl: "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?auto=format&fit=crop&w=700&q=80",
+    options: ["سەعات و کاتژمێر ⏰", "پێڵاو 👟", "تۆپ ⚽", "پەرداخ 🥛"],
+    correctIndex: 0,
+    funFact: "ڕێکخستنی کات کلیلی سەرکەوتنی هەموو مرۆڤە زیرەک و داهێنەرەکانی جیهانە!"
+  },
+  {
+    question: "کاتێک هاوڕێیەکمان یان دایک و باوکمان پێویستیان بە یارمەتی بوو، دەبێت چی بکەین؟",
+    category: "ڕەوشت و میهرەبانی",
+    categoryEmoji: "🤝",
+    imageUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=700&q=80",
+    options: ["بە خۆشحاڵییەوە یارمەتییان بدەین 🤝", "ڕابکەین و پشتگوێیان بخەین ❌", "پێبکەنین 😶", "قسە نەکەین 🤐"],
+    correctIndex: 0,
+    funFact: "میهرەبانی و دەستباربوونی کەسانی تر جوانی و گەورەیی دڵت دەردەخات!"
+  },
+  {
+    question: "چیا سەرکەش و بەرزەکانی کوردستان هێمای چی ڕەنگینن لە مێژووماندا؟",
+    category: "نیشتمانی کوردستان",
+    categoryEmoji: "⛰️",
+    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=700&q=80",
+    options: ["هێمای ئازادی و سەرفرازی و پارێزگاریی کورد ⛰️", "هێمای ساردی ❄️", "هێمای تاریکی 🌑", "هێمای خەوتن 😴"],
+    correctIndex: 0,
+    funFact: "چیاکانی کوردستان هەمیشە باشترین پەناگە و هێمای پارێزەری گەلی کورد بوون بە درێژایی مێژوو!"
   }
 ];
 
@@ -477,7 +793,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
                 Kids Pro
               </span>
             </h2>
-            <p className="text-[11px] sm:text-xs text-zinc-400">تاقیکردنەوەی ژیری، کایەی ئەستێرەکان، چیرۆکی دەنگی و مەتەڵی فۆلکلۆری</p>
+            <p className="text-[11px] sm:text-xs text-zinc-400">تاقیکردنەوەی ژیری (٥٠ قۆناغ)، کایەی ئەستێرەکان، چیرۆکی دەنگی و مەتەڵی فۆلکلۆری</p>
           </div>
         </div>
 
@@ -571,7 +887,7 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
         </button>
       </div>
 
-      {/* 🏆 بەشی تاقیکردنەوەی ژیری و ئەستێرەکان (Kids Smart Quiz & Star Collector) */}
+      {/* 🏆 بەشی تاقیکردنەوەی ژیری و ئەستێرەکان (Kids Smart Quiz & Star Collector - 50 Questions) */}
       {mode === 'quiz' && (
         <div className="space-y-4">
           
@@ -691,10 +1007,10 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
 
               <div className="space-y-2">
                 <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100">
-                  🎉 دەستەکانت خۆش بێت قارەمانی کوردستان!
+                  🎉 دەستەکانت خۆش بێت قارەمانی گەورەی کوردستان!
                 </h2>
                 <p className="text-xs sm:text-sm text-zinc-300 font-medium">
-                  تۆ هەموو قۆناغەکانی ئەم تاقیکردنەوەیەیت بە سەرکەوتوویی تەواو کرد و بوویتە خاوەنی کۆمەڵێک ئەستێرەی درەوشاوە!
+                  تۆ هەموو ٥٠ قۆناغەکانی ئەم تاقیکردنەوەیەیت بە سەرکەوتوویی و بە نایابی تەواو کرد و بوویتە خاوەنی کۆمەڵێک ئەستێرەی درەوشاوە!
                 </p>
               </div>
 
