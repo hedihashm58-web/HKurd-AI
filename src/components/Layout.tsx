@@ -395,11 +395,49 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, language }
   );
 };
 
+const getViewMeta = (view: View, lang: 'ku' | 'ar') => {
+  switch (view) {
+    case View.CHAT:
+      return { title: lang === 'ku' ? 'گفتوگۆی ژیر' : 'محادثة ذكية', icon: '💬' };
+    case View.TRANSLATE:
+      return { title: lang === 'ku' ? 'وەرگێڕانی زیرەک' : 'الترجمة الذكية', icon: '🌍' };
+    case View.KURDISH_GRAMMAR:
+      return { title: lang === 'ku' ? 'ڕاستکردنەوەی نووسین' : 'التدقيق اللغوي', icon: '✍️' };
+    case View.DOCUMENT_SUMMARIZER:
+      return { title: lang === 'ku' ? 'فایلی پی دی ئێف' : 'ملخص الملفات', icon: '📄' };
+    case View.WEB_SUMMARIZER:
+      return { title: lang === 'ku' ? 'کورتکەرەوەی وێب' : 'ملخص المواقع', icon: '🌐' };
+    case 'kids_ai':
+      return { title: lang === 'ku' ? 'جیهانی منداڵان' : 'عالم الأطفال', icon: '🧸' };
+    case View.KURDISH_FLASHCARD:
+      return { title: lang === 'ku' ? 'وشەی کوردی پەتی' : 'فلاش كارد اللغة', icon: '🧠' };
+    case View.PERSONALITIES:
+      return { title: lang === 'ku' ? 'کەسایەتییەکانی کورد' : 'شخصيات كوردية', icon: '👑' };
+    case View.OCR:
+      return { title: lang === 'ku' ? 'دەرهێنانی دەق لە وێنە' : 'استخراج النص', icon: '📸' };
+    case View.PARAPHRASE:
+      return { title: lang === 'ku' ? 'داڕشتنەوەی ئەکادیمی' : 'إعادة الصياغة', icon: '🎓' };
+    case View.GRADUATION_RESEARCH:
+      return { title: lang === 'ku' ? 'توێژینەوەی دەرچوون' : 'بحوث التخرج', icon: '📚' };
+    case View.EXAM_MAKER:
+      return { title: lang === 'ku' ? 'دروستکەری تاقیکردنەوە' : 'صانع الاختبارات', icon: '📝' };
+    case View.BRAIN_TRAINER:
+      return { title: lang === 'ku' ? 'فێرکردنی مێشک' : 'تدريب الذكاء', icon: '⚡' };
+    case View.EXPLORE:
+      return { title: lang === 'ku' ? 'نەخشەی کوردستان' : 'خارطة كوردستان', icon: '🗺️' };
+    default:
+      return { title: '', icon: '' };
+  }
+};
+
 const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage }) => {
   const [isVoiceComingSoonOpen, setIsVoiceComingSoonOpen] = useState(false);
   const [isPremiumOffersOpen, setIsPremiumOffersOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
+
+  const viewMeta = getViewMeta(activeView, language);
+  const isHome = activeView === View.HOME;
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
@@ -407,21 +445,59 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
         {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[35px] scale-125 transform translate-z-0 will-change-transform" />}
       </div>
 
-      <header className="glass-header sticky top-1 z-50 px-3 sm:px-4 lg:px-12 py-3 flex justify-between items-center border-b border-white/[0.02] mx-2 lg:mx-6 mt-2 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl bg-slate-900/60 backdrop-blur-md">
-        <div className="flex items-center gap-2 sm:gap-3 lg:gap-6 group cursor-pointer" onClick={() => onViewChange(View.HOME)}>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50"><img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" /></div>
-          <div className="flex flex-col text-right">
-            <h1 className="text-sm sm:text-lg lg:text-2xl font-black text-white tracking-tight leading-none">KurdAI <span className="text-yellow-500 italic text-[9px] lg:text-xs ml-0.5">PRO</span></h1>
-            <div className="flex items-center gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div><p className="text-[6px] sm:text-[7px] font-black text-slate-400 uppercase tracking-wider">{language === 'ku' ? 'کورد زیندووە' : 'كوردستان حيّة'}</p></div>
-          </div>
+      {/* 🧭 باڕی سەرەوەی ستاندارد و پڕۆفیشناڵ (وەک ئەپە جیهانییەکان) */}
+      <header className="glass-header sticky top-1 z-50 px-2.5 sm:px-4 lg:px-8 py-2 sm:py-2.5 flex justify-between items-center border-b border-white/[0.04] mx-2 lg:mx-6 mt-1.5 rounded-2xl sm:rounded-3xl shadow-xl bg-slate-900/80 backdrop-blur-xl transition-all duration-300">
+        
+        {/* لای ڕاست: گەڕانەوە یان لۆگۆ */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {!isHome ? (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => onViewChange(View.HOME)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700/90 text-zinc-100 hover:text-white border border-slate-700/80 rounded-xl text-xs font-black transition-all active:scale-95 shadow-sm group cursor-pointer"
+                title={language === 'ku' ? 'گەڕانەوە بۆ سەرەتا' : 'الرجوع للرئيسية'}
+              >
+                <svg className="w-4 h-4 text-amber-400 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                </svg>
+                <span className="text-[11px] sm:text-xs font-bold">{language === 'ku' ? 'گەڕانەوە' : 'رجوع'}</span>
+              </button>
+
+              {viewMeta.title && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] sm:text-xs font-black text-amber-300">
+                  <span>{viewMeta.icon}</span>
+                  <span className="max-w-[120px] sm:max-w-none truncate">{viewMeta.title}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer" onClick={() => onViewChange(View.HOME)}>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50 shadow-sm">
+                <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex flex-col text-right">
+                <h1 className="text-xs sm:text-base font-black text-white tracking-tight leading-none">
+                  KurdAI <span className="text-yellow-500 italic text-[9px] sm:text-[10px] ml-0.5">PRO</span>
+                </h1>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+                  <p className="text-[6px] sm:text-[7px] font-black text-slate-400 uppercase tracking-wider">
+                    {language === 'ku' ? 'کورد زیندووە' : 'كوردستان حيّة'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
+        {/* لای چەپ: دوگمەکانی بەکارهێنەر */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button 
             onClick={() => setIsNotificationListOpen(true)}
-            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
+            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800/80 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-sm active:scale-[0.97]"
+            title="ئاگادارییەکان"
           >
-            <div className="text-zinc-300 group-hover:text-white transition-colors text-xs sm:text-sm group-hover:animate-bounce">
+            <div className="text-zinc-300 group-hover:text-white transition-colors text-xs sm:text-sm">
               🔔
             </div>
           </button>
@@ -429,7 +505,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
           <button 
             type="button" 
             onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} 
-            className="px-2.5 sm:px-3 h-8 sm:h-9 bg-slate-800/40 border border-slate-800 hover:border-slate-700 rounded-xl transition-all text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1 shadow-sm active:scale-95"
+            className="px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-800/40 border border-slate-800/80 hover:border-slate-700 rounded-xl transition-all text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1 shadow-sm active:scale-95"
           >
             <span>🌐</span>
             <span>{language === 'ku' ? 'AR' : 'KU'}</span>
@@ -437,30 +513,20 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
           
           <button 
             onClick={() => setIsProfileOpen(true)} 
-            className="group flex items-center gap-1 px-2 sm:px-3 h-8 sm:h-9 bg-slate-800/40 border border-slate-800 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-md active:scale-[0.97]"
+            className="group flex items-center gap-1 px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-800/40 border border-slate-800/80 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-sm active:scale-[0.97]"
           >
             <span className="hidden sm:inline text-[11px] font-bold text-zinc-300 group-hover:text-white transition-colors">
               {language === 'ku' ? 'پرۆفایل' : 'الحساب'}
             </span>
-            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs transition-transform duration-300">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs">
               ⚙️
             </div>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto max-w-[1500px] px-4 pt-2 pb-6 relative z-10">
-        {activeView !== View.HOME && (
-          <div className="w-full max-w-5xl mx-auto mb-2 flex justify-start animate-in fade-in slide-in-from-top-1 duration-200">
-            <button 
-              onClick={() => onViewChange(View.HOME)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-[11px] font-bold text-slate-300 transition-all active:scale-95 hover:border-slate-700 shadow-md"
-            >
-              <span className="text-xs">⚡</span>
-              <span>{language === 'ku' ? 'گەڕانەوە' : 'العودة للمنصة الرئيسية'}</span>
-            </button>
-          </div>
-        )}
+      {/* 📱 ناوەڕۆکی پەڕە بێ بۆشایی زیادە */}
+      <main className="flex-1 container mx-auto max-w-[1500px] px-2 sm:px-4 pt-1 sm:pt-2 pb-6 relative z-10">
         {children}
       </main>
       
