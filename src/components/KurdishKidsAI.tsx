@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 import confetti from 'canvas-confetti';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface KidsAIProps {
   language?: 'ku' | 'ar';
@@ -744,8 +745,8 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
   };
 
   const handlePlayAudio = async (textToRead: string) => {
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -760,13 +761,12 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

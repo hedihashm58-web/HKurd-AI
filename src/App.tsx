@@ -153,23 +153,38 @@ const App: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [language, setLanguage] = useState<'ku' | 'ar'>('ku');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('kurdai_theme');
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('kurdai_theme', theme);
+  }, [theme]);
   
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(true);
   const [hasSeenLanding, setHasSeenLanding] = useState<boolean>(false);
 
   const requestNotificationPermission = async (email: string) => {
     try {
-      if (!('Notification' in window)) return;
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
+        const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         const messaging = getMessaging();
-        const currentToken = await getToken(messaging, { vapidKey: 'D6OgH5ATuXByEmEseL3udyEE4yudcey3CpAVEU_06aE' });
+        const currentToken = await getToken(messaging, { 
+          vapidKey: 'D6OgH5ATuXByEmEseL3udyEE4yudcey3CpAVEU_06aE',
+          serviceWorkerRegistration: swRegistration
+        });
         if (currentToken) {
           await setDoc(doc(db, "users", email), { fcmToken: currentToken }, { merge: true });
         }
       }
     } catch (error) {
-      console.error("خەتایەک لە نۆتیفیکەیشندا هەیە:", error);
+      console.warn("تێبینی لە نۆتیفیکەیشندا:", error);
     }
   };
 
@@ -330,6 +345,8 @@ const App: React.FC = () => {
         backgroundImage={bgImage}
         language={language}
         setLanguage={setLanguage}
+        theme={theme}
+        setTheme={setTheme}
       >
         {renderView()}
       </Layout>

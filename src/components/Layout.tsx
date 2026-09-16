@@ -12,6 +12,8 @@ interface LayoutProps {
   backgroundImage?: string;
   language: 'ku' | 'ar';
   setLanguage: React.Dispatch<React.SetStateAction<'ku' | 'ar'>>;
+  theme?: 'dark' | 'light';
+  setTheme?: React.Dispatch<React.SetStateAction<'dark' | 'light'>>;
 }
 
 // 🔔 مۆدێلی ئاگادارییەکان
@@ -414,9 +416,9 @@ const getViewMeta = (view: View, lang: 'ku' | 'ar') => {
     case View.PERSONALITIES:
       return { title: lang === 'ku' ? 'کەسایەتییەکانی کورد' : 'شخصيات كوردية', icon: '👑' };
     case View.OCR:
-      return { title: lang === 'ku' ? 'دەرهێنانی دەق لە وێنە' : 'استخراج النص', icon: '📸' };
+      return { title: lang === 'ku' ? 'دەرهێنانی دەق لە وێنە' : 'استخراج النص من الصورة', icon: '📸' };
     case View.PARAPHRASE:
-      return { title: lang === 'ku' ? 'داڕشتنەوەی ئەکادیمی' : 'إعادة الصياغة', icon: '🎓' };
+      return { title: lang === 'ku' ? 'داڕشتنەوەی ئەکادیمی' : 'إعادة الصياغة الأكاديمية', icon: '🎓' };
     case View.GRADUATION_RESEARCH:
       return { title: lang === 'ku' ? 'توێژینەوەی دەرچوون' : 'بحوث التخرج', icon: '📚' };
     case View.EXAM_MAKER:
@@ -430,102 +432,156 @@ const getViewMeta = (view: View, lang: 'ku' | 'ar') => {
   }
 };
 
-const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, backgroundImage, language, setLanguage, theme = 'dark', setTheme }) => {
   const [isVoiceComingSoonOpen, setIsVoiceComingSoonOpen] = useState(false);
   const [isPremiumOffersOpen, setIsPremiumOffersOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationListOpen, setIsNotificationListOpen] = useState(false);
 
-  const viewMeta = getViewMeta(activeView, language);
   const isHome = activeView === View.HOME;
+  const viewMeta = getViewMeta(activeView, language);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation" dir="rtl">
+    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation transition-colors duration-300" dir="rtl">
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-1000">
         {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[35px] scale-125 transform translate-z-0 will-change-transform" />}
       </div>
 
-      {/* 🧭 باڕی سەرەوەی ستاندارد و پڕۆفیشناڵ (وەک ئەپە جیهانییەکان) */}
-      <header className="glass-header sticky top-1 z-50 px-2.5 sm:px-4 lg:px-8 py-2 sm:py-2.5 flex justify-between items-center border-b border-white/[0.04] mx-2 lg:mx-6 mt-1.5 rounded-2xl sm:rounded-3xl shadow-xl bg-slate-900/80 backdrop-blur-xl transition-all duration-300">
+      {/* 🧭 هێدەری زیرەک و ڕاقی */}
+      <header className="glass-header sticky top-2 z-50 px-3 sm:px-6 lg:px-10 py-2.5 sm:py-3 mx-2 lg:mx-6 rounded-2xl sm:rounded-3xl border border-white/[0.06] bg-slate-900/70 backdrop-blur-xl shadow-2xl transition-all duration-300">
         
-        {/* لای ڕاست: گەڕانەوە یان لۆگۆ */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {!isHome ? (
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => onViewChange(View.HOME)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700/90 text-zinc-100 hover:text-white border border-slate-700/80 rounded-xl text-xs font-black transition-all active:scale-95 shadow-sm group cursor-pointer"
-                title={language === 'ku' ? 'گەڕانەوە بۆ سەرەتا' : 'الرجوع للرئيسية'}
-              >
-                <svg className="w-4 h-4 text-amber-400 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                </svg>
-                <span className="text-[11px] sm:text-xs font-bold">{language === 'ku' ? 'گەڕانەوە' : 'رجوع'}</span>
-              </button>
+        {!isHome ? (
+          /* 🌟 کاتێک خزمەتگوزارییەک کراوەتەوە: تەنها دوگمەی بچووکی گەڕانەوە + ناوی خزمەتگوزاری لە ناوەڕاستدا */
+          <div className="flex items-center justify-between w-full relative">
+            {/* دوگمەی بچووک و جوانی گەڕانەوە لە لای ڕاست */}
+            <button 
+              onClick={() => onViewChange(View.HOME)}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-amber-400 hover:text-amber-300 border border-white/[0.08] hover:border-amber-500/30 flex items-center justify-center transition-all active:scale-95 shadow-sm cursor-pointer group shrink-0"
+              title={language === 'ku' ? 'گەڕانەوە بۆ پەڕەی سەرەکی' : 'الرجوع للمنصة الرئيسية'}
+            >
+              <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
 
-              {viewMeta.title && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] sm:text-xs font-black text-amber-300">
-                  <span>{viewMeta.icon}</span>
-                  <span className="max-w-[120px] sm:max-w-none truncate">{viewMeta.title}</span>
-                </div>
-              )}
+            {/* ناوی خزمەتگوزاری بە ڕەنگی گۆڵدی شاهانە و بێ ئایکۆن لە ناوەڕاستدا */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center pointer-events-none">
+              <h2 className="text-sm sm:text-base md:text-lg font-black tracking-wide whitespace-nowrap bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(245,158,11,0.25)]">
+                {viewMeta.title}
+              </h2>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer" onClick={() => onViewChange(View.HOME)}>
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-700 flex items-center justify-center bg-slate-950/50 shadow-sm">
+
+            {/* بۆشایی هاوسەنگکەر لە لای چەپ تاوەکو ناونیشانەکە بە تەواوی لە سەنتەر بێت */}
+            <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 pointer-events-none"></div>
+          </div>
+        ) : (
+          /* 🏠 کاتێک لە پەڕەی سەرەکیدایت (Home): لۆگۆ و ناوی بەرنامە لە ڕاست + دوگمەکان لە چەپ */
+          <div className="flex justify-between items-center w-full">
+            {/* لای ڕاست: لۆگۆ و ناوی ڕەسەنی KurdAI PRO */}
+            <div className="flex items-center gap-2.5 sm:gap-3.5 group cursor-pointer" onClick={() => onViewChange(View.HOME)}>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700/80 flex items-center justify-center bg-slate-100 dark:bg-slate-950/60 shadow-md group-hover:border-amber-500/40 transition-colors">
                 <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col text-right">
-                <h1 className="text-xs sm:text-base font-black text-white tracking-tight leading-none">
-                  KurdAI <span className="text-yellow-500 italic text-[9px] sm:text-[10px] ml-0.5">PRO</span>
+                <h1 className={`kurdai-brand-text text-sm sm:text-base lg:text-lg font-black tracking-tight leading-none transition-colors ${
+                  theme === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
+                  KurdAI <span className="text-amber-500 italic text-[9px] sm:text-xs ml-0.5 font-bold">PRO</span>
                 </h1>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
-                  <p className="text-[6px] sm:text-[7px] font-black text-slate-400 uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                  <p className="text-[7px] sm:text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {language === 'ku' ? 'کورد زیندووە' : 'كوردستان حيّة'}
                   </p>
                 </div>
               </div>
             </div>
-          )}
-        </div>
-        
-        {/* لای چەپ: دوگمەکانی بەکارهێنەر */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button 
-            onClick={() => setIsNotificationListOpen(true)}
-            className="group flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-slate-800/40 border border-slate-800/80 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-sm active:scale-[0.97]"
-            title="ئاگادارییەکان"
-          >
-            <div className="text-zinc-300 group-hover:text-white transition-colors text-xs sm:text-sm">
-              🔔
-            </div>
-          </button>
 
-          <button 
-            type="button" 
-            onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} 
-            className="px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-800/40 border border-slate-800/80 hover:border-slate-700 rounded-xl transition-all text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1 shadow-sm active:scale-95"
-          >
-            <span>🌐</span>
-            <span>{language === 'ku' ? 'AR' : 'KU'}</span>
-          </button>
-          
-          <button 
-            onClick={() => setIsProfileOpen(true)} 
-            className="group flex items-center gap-1 px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-800/40 border border-slate-800/80 rounded-xl hover:bg-slate-700/50 hover:border-slate-700 active:bg-slate-700 transition-all shadow-sm active:scale-[0.97]"
-          >
-            <span className="hidden sm:inline text-[11px] font-bold text-zinc-300 group-hover:text-white transition-colors">
-              {language === 'ku' ? 'پرۆفایل' : 'الحساب'}
-            </span>
-            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg text-zinc-400 group-hover:text-white flex items-center justify-center text-[10px] sm:text-xs">
-              ⚙️
+            {/* لای چەپ: دوگمە ڕاقی و مۆدێرنەکان */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* ☀️ / 🌙 دوگمەی گۆڕینی مۆدی ڕووناک و تاریک */}
+              <button 
+                type="button" 
+                onClick={() => setTheme && setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shadow-sm active:scale-95 cursor-pointer group ${
+                  theme === 'light'
+                    ? 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 hover:text-amber-600'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-amber-400'
+                }`}
+                title={theme === 'dark' ? (language === 'ku' ? 'گۆڕین بۆ مۆدی ڕووناک ☀️' : 'تفعيل الوضع النهاري ☀️') : (language === 'ku' ? 'گۆڕین بۆ مۆدی تاریک 🌙' : 'تفعيل الوضع الليلي 🌙')}
+              >
+                {theme === 'dark' ? (
+                  /* Sun icon for switching to light */
+                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-amber-400 group-hover:rotate-45 group-hover:scale-110 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  /* Moon icon for switching to dark */
+                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-indigo-600 group-hover:-rotate-12 group-hover:scale-110 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* دوگمەی نۆتیفیکەیشن */}
+              <button 
+                onClick={() => setIsNotificationListOpen(true)}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shadow-sm active:scale-95 cursor-pointer group ${
+                  theme === 'light'
+                    ? 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 hover:text-amber-600'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-amber-400'
+                }`}
+                title={language === 'ku' ? 'ئاگادارییەکان' : 'الإشعارات'}
+              >
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-slate-600 dark:text-zinc-300 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </button>
+
+              {/* دوگمەی گۆڕینی زمان */}
+              <button 
+                type="button" 
+                onClick={() => setLanguage(prev => prev === 'ku' ? 'ar' : 'ku')} 
+                className={`h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer group ${
+                  theme === 'light'
+                    ? 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-200'
+                }`}
+                title="گۆڕینی زمان / تغيير اللغة"
+              >
+                <svg className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                <span className="font-mono text-xs font-black text-amber-600 dark:text-amber-400">
+                  {language === 'ku' ? 'AR' : 'KU'}
+                </span>
+              </button>
+              
+              {/* دوگمەی پرۆفایل */}
+              <button 
+                onClick={() => setIsProfileOpen(true)} 
+                className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer group ${
+                  theme === 'light'
+                    ? 'bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-700'
+                    : 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300'
+                }`}
+                title={language === 'ku' ? 'پرۆفایلی بەکارهێنەر' : 'الملف الشخصي'}
+              >
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-zinc-100 group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
+                  {language === 'ku' ? 'پرۆفایل' : 'الحساب'}
+                </span>
+              </button>
             </div>
-          </button>
-        </div>
+          </div>
+        )}
+
       </header>
 
-      {/* 📱 ناوەڕۆکی پەڕە بێ بۆشایی زیادە */}
+      {/* 📱 ناوەڕۆکی پەڕەکان بێ بۆشایی زیادە */}
       <main className="flex-1 container mx-auto max-w-[1500px] px-2 sm:px-4 pt-1 sm:pt-2 pb-6 relative z-10">
         {children}
       </main>

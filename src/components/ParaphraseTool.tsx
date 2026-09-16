@@ -1,7 +1,8 @@
 /* eslint-disable */
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { auth } from '../firebase';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface ParaphraseToolProps {
   language?: 'ku' | 'ar';
@@ -14,8 +15,6 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleParaphrase = async () => {
     if (!inputText.trim() || loading) return;
@@ -65,11 +64,11 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
     }
   };
 
-  // خوێندنەوە بە دەنگی دەماریی کوردی
+  // خوێندنەوەی دەقی داڕێژراو بە دەنگی دەماریی کوردی
   const handlePlayAudio = async () => {
     if (!outputText) return;
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -84,13 +83,12 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

@@ -1,28 +1,25 @@
 /* eslint-disable */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getMessaging, onBackgroundMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-sw.js";
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-// ⚠️ ڕێکخستنەکانی فایربەیسەکەی خۆت لێرە دابنێ
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC8ndNIUCGUJ_jsIk3wi7JTENlMDbJ4TkA",
+  authDomain: "kurdai-cb7e2.firebaseapp.com",
+  projectId: "kurdai-cb7e2",
+  storageBucket: "kurdai-cb7e2.firebasestorage.app",
+  messagingSenderId: "126978980805",
+  appId: "1:126978980805:web:b26c0ed4e952a5c92ce9ac"
 };
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
-// وەرگرتنی نامەکان کاتێک ئەپەکە داخراوە
-onBackgroundMessage(messaging, (payload) => {
-  console.log('نامەیەک لە پاشبنەما وەرگیرا: ', payload);
-  
-  const notificationTitle = payload.notification.title;
+messaging.onBackgroundMessage(function(payload) {
+  console.log('نامەیەک لە پاشبنەما وەرگیرا:', payload);
+  const notificationTitle = payload?.notification?.title || "KurdAI PRO";
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/logo.jpg' // لۆگۆی ئەپەکەت بۆ سەر شاشەی مۆبایل
+    body: payload?.notification?.body || "پەیامێکی نوێ لە KurdAI وەرگیرا",
+    icon: '/logo.jpg'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

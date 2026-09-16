@@ -2,6 +2,7 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
 import { auth } from '../firebase';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface KurdishGrammarProps {
   language: 'ku' | 'ar';
@@ -58,31 +59,16 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
         } else {
           setCorrectedText(data.response);
         }
-      } catch (jsonErr) {
-        if (typeof data.response === 'string' && data.response.trim().startsWith('{')) {
-          try {
-            const fixedJson = JSON.parse(data.response.trim());
-            setCorrectedText(fixedJson.corrected);
-            setExplanation(fixedJson.explanation || null);
-            setErrorCount(fixedJson.error_count ?? null);
-          } catch (e) {
-            setCorrectedText(data.response);
-          }
-        } else {
-          setCorrectedText(data.response);
-        }
+      } catch (e) {
+        setCorrectedText(data.response);
       }
 
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("LIMIT_EXCEEDED_GRAMMAR") || err.message?.includes("تەواو بوو")) {
-        setError(
-          language === 'ku' 
-            ? "⚠️ لێمیتی پشکنینی خۆڕایی ڕێنووس تەواو بوو! تکایە بەشداری پاکێجەکان بکە." 
-            : "⚠️ انتهت فترة التجربة المجانية لمصحح القواعد! يرجى الاشتراك للاستمرار."
-        );
+      if (err.message === "LIMIT_EXCEEDED_GRAMMAR") {
+        setError("⚠️ لێمیتی بەکارهێنانی ئەمڕۆت تەواو بووە! تکایە دواتر هەوڵ بدەرەوە یان ئەکاونتەکەت بەرز بکەرەوە.");
       } else {
-        setError(language === 'ku' ? "ببوورە، خەتایەک لە پەیوەندیکردن بە سێرڤەر ڕوویدا." : "عذراً، حدث خطأ في الخادم.");
+        setError(err.message || "پەیوەندی بە سێرڤەری زیرەکی دەستکردەوە پچڕا.");
       }
     } finally {
       setLoading(false);
@@ -119,8 +105,8 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
   // خوێندنەوەی دەقی ڕاستکراوە بە دەنگی دەماریی کوردی
   const handlePlayAudio = async () => {
     if (!correctedText) return;
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -135,13 +121,12 @@ const KurdishGrammar: React.FC<KurdishGrammarProps> = ({ language }) => {
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

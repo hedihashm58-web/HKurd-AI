@@ -2,6 +2,7 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
 import { auth } from '../firebase';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface ExamMakerProps {
   language?: 'ku' | 'ar';
@@ -133,8 +134,8 @@ const ExamMaker: React.FC<ExamMakerProps> = ({ language = 'ku' }) => {
   };
 
   const handlePlayAudio = async () => {
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -150,13 +151,12 @@ const ExamMaker: React.FC<ExamMakerProps> = ({ language = 'ku' }) => {
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

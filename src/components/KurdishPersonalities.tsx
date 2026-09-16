@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, getDocs, query, doc, deleteDoc } from 'firebase/firestore';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface Personality {
   id?: string;
@@ -444,8 +445,8 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
 
   const handlePlayAudio = async () => {
     if (!selectedPerson) return;
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -461,13 +462,12 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface HistoryItem {
   id: string;
@@ -191,10 +192,7 @@ const Translator: React.FC = () => {
 
   const handleSpeakResult = async () => {
     if (isSpeaking) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopKurdishFemaleVoice();
       setIsSpeaking(false);
       return;
     }
@@ -224,20 +222,11 @@ const Translator: React.FC = () => {
       }
 
       if (audioBlob) {
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-
-        audio.onended = () => {
-          setIsSpeaking(false);
-          audioRef.current = null;
-        };
-        audio.onerror = () => {
-          setIsSpeaking(false);
-          audioRef.current = null;
-        };
-
-        await audio.play();
+        await playKurdishFemaleVoice(
+          audioBlob,
+          () => setIsSpeaking(false),
+          () => setIsSpeaking(false)
+        );
         return;
       }
     } catch (e) {

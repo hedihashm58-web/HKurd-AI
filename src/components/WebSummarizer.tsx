@@ -2,6 +2,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
+import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface WebSummarizerProps {
   language?: 'ku' | 'ar';
@@ -155,11 +156,11 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language = 'ku' }) => {
     link.click();
   };
 
-  // خوێندنەوە بە دەنگی دەماریی کوردی
+  // خوێندنەوە بە دەنگی دەماریی ئافرەت
   const handlePlayAudio = async () => {
     if (!result) return;
-    if (isPlayingAudio && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
       setIsPlayingAudio(false);
       return;
     }
@@ -174,13 +175,12 @@ const WebSummarizer: React.FC<WebSummarizerProps> = ({ language = 'ku' }) => {
 
       if (!res.ok) throw new Error("TTS failed");
       const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      audio.play();
+      await playKurdishFemaleVoice(
+        blob,
+        () => setIsPlayingAudio(false),
+        () => setIsPlayingAudio(false)
+      );
     } catch (e) {
       console.error(e);
       setIsPlayingAudio(false);

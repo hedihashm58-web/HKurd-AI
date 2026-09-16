@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
-import { Message } from '../types';
+import { Message, playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
 import { collection, addDoc, doc, setDoc, getDoc, updateDoc, getDocs, orderBy, serverTimestamp, onSnapshot, query } from 'firebase/firestore';
@@ -349,10 +349,7 @@ const ChatInterface: React.FC = () => {
 
   const handleSpeak = async (rawText: string, index: number) => {
     if (speakingIndex === index) {
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-        audioPlayerRef.current = null;
-      }
+      stopKurdishFemaleVoice();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -361,10 +358,7 @@ const ChatInterface: React.FC = () => {
       return;
     }
 
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current = null;
-    }
+    stopKurdishFemaleVoice();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -401,23 +395,17 @@ const ChatInterface: React.FC = () => {
       }
 
       if (audioBlob && isPlayingAudioRef.current) {
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audioPlayerRef.current = audio;
-
-        audio.onended = () => {
-          setSpeakingIndex(null);
-          isPlayingAudioRef.current = false;
-          audioPlayerRef.current = null;
-        };
-
-        audio.onerror = () => {
-          setSpeakingIndex(null);
-          isPlayingAudioRef.current = false;
-          audioPlayerRef.current = null;
-        };
-
-        await audio.play();
+        await playKurdishFemaleVoice(
+          audioBlob,
+          () => {
+            setSpeakingIndex(null);
+            isPlayingAudioRef.current = false;
+          },
+          () => {
+            setSpeakingIndex(null);
+            isPlayingAudioRef.current = false;
+          }
+        );
         return;
       }
     } catch (err) {
