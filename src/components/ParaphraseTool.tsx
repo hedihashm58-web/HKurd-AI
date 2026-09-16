@@ -276,17 +276,6 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
         </div>
       )}
 
-      {/* 💡 ڕێنمایی ئەکادیمی بۆ خوێندکاران */}
-      <div className="p-4 bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-800/70 text-zinc-400 text-xs leading-relaxed space-y-1.5 text-right">
-        <p className="font-bold text-zinc-300 flex items-center gap-1.5">
-          <span>🎓</span>
-          <span>چۆن لە زانکۆ و پەیمانگا لە پشکنینی Turnitin و AI سەردەکەوێت؟</span>
-        </p>
-        <p className="text-[11px] sm:text-xs text-zinc-400">
-          سیستەمی KurdAI لە ڕێگەی گۆڕینی هاوسەنگی و درێژی ڕستەکان (Burstiness)، تێکشکاندنی قاڵبە کڵێشەییەکان و بەکارهێنانی وشەسازی مرۆڤانەی زانستی دەقەکە دادەڕێژێتەوە، بەبێ ئەوەی دەستکاری مانا و بیرۆکە بنەڕەتییەکان بکات.
-        </p>
-      </div>
-
     </div>
   );
 };
