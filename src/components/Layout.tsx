@@ -442,9 +442,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange, bac
   const viewMeta = getViewMeta(activeView, language);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation transition-colors duration-300" dir="rtl">
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-1000">
-        {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[35px] scale-125 transform translate-z-0 will-change-transform" />}
+    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#020617] text-slate-200 touch-manipulation transition-colors duration-200" dir="rtl">
+      {/* 👑 نەرمکردنی باکگراوند بێ بەکارهێنانی فلتەری قورس کە مۆبایل گەرم بکات */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-15 hidden sm:block">
+        {backgroundImage && <img src={backgroundImage} alt="Context" className="w-full h-full object-cover blur-[20px] scale-110" />}
       </div>
 
       {/* 🧭 هێدەری زیرەک و ڕاقی */}
