@@ -52,27 +52,16 @@ export const stopKurdishFemaleVoice = () => {
   }
 };
 
-// 👩‍🦰 فەنکشنی دەستکاریکردنی فۆنەتیکی کوردی بۆ ئەوەی بزوێنەرەکان بە کوردییەکی ڕەوان بیخوێننەوە
-export const normalizeKurdishForNaturalTTS = (text: string): string => {
+// 👩‍🦰 خاوێنکردنەوەی دەقی کوردی بەبێ دەستکاریکردنی پیتە ڕەسەنەکان
+export const cleanKurdishTextForTTS = (text: string): string => {
   if (!text) return '';
   return text
-    // لابردنی هێما و نیشانە نەخوازراوەکان
+    // لابردنی کۆد، لینک، ئیمۆجی و هێماکانی مارکداون
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`.*?`/g, ' ')
     .replace(/https?:\/\/\S+/g, ' ')
     .replace(/[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]/g, ' ')
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, ' ')
-    // پیتە تایبەتەکانی کوردی کە سێرڤەرەکان لێیان دەوەستن یان نایخوێننەوە
-    .replace(/ڵ/g, 'ل')
-    .replace(/ڕ/g, 'ر')
-    .replace(/ێ/g, 'ي')
-    .replace(/ۆ/g, 'و')
-    .replace(/ڤ/g, 'ف')
-    .replace(/پ/g, 'ب')
-    .replace(/چ/g, 'تش')
-    .replace(/ژ/g, 'ج')
-    .replace(/گ/g, 'ك')
-    .replace(/ە/g, 'ه')
     .replace(/[\r\n]+/g, ' . ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -98,26 +87,26 @@ export const playKurdishFemaleVoice = async (
       source.buffer = audioBuffer;
       activeVoiceSourceNode = source;
 
-      // 👩‍🦰 ڕێکخستنی خێرایی و تۆن بە شێوەیەکی لەسەرخۆ و ڕەوان
-      source.playbackRate.value = 1.12;
+      // 👩‍🦰 خێرایی تەواو لەسەرخۆ و ڕەوان (١.٠٥ بۆ دەربڕینی ڕوونی هەموو وشەکان)
+      source.playbackRate.value = 1.05;
 
-      // ١. فلتەری لابردنی تۆنی ئەستووری پیاوانە بە نەرمی (Smooth Highpass)
+      // ١. فلتەری لابردنی تۆنی ئەستووری پیاوانە (Highpass)
       const highpass = ctx.createBiquadFilter();
       highpass.type = 'highpass';
-      highpass.frequency.value = 140;
+      highpass.frequency.value = 160;
 
-      // ٢. ڕووناککردنەوەی دەنگدانەوەی وشە کوردییەکان (Vocal Articulation Band)
+      // ٢. ڕوونکردنەوەی تۆنی دەربڕینی دەنگ (Female Vocal Formant Band)
       const peaking = ctx.createBiquadFilter();
       peaking.type = 'peaking';
-      peaking.frequency.value = 2400;
-      peaking.Q.value = 0.8;
-      peaking.gain.value = 2.5;
+      peaking.frequency.value = 2800;
+      peaking.Q.value = 0.9;
+      peaking.gain.value = 3.2;
 
-      // ٣. بریقەداری و ڕوونی هاوشێوەی ستۆدیۆ (Highshelf Clarity)
+      // ٣. بریقە و شەفافیەتی ستۆدیۆ (Highshelf Clarity)
       const highshelf = ctx.createBiquadFilter();
       highshelf.type = 'highshelf';
-      highshelf.frequency.value = 7000;
-      highshelf.gain.value = 1.8;
+      highshelf.frequency.value = 6500;
+      highshelf.gain.value = 2.0;
 
       const gainNode = ctx.createGain();
       gainNode.gain.value = 1.2;
@@ -146,7 +135,7 @@ export const playKurdishFemaleVoice = async (
     const audio = new Audio(audioUrl);
     activeStandardAudio = audio;
     (audio as any).preservesPitch = false;
-    audio.playbackRate = 1.12;
+    audio.playbackRate = 1.05;
 
     audio.onended = () => {
       activeStandardAudio = null;
@@ -180,15 +169,14 @@ export const fetchAndPlayKurdishFemaleVoice = async (
 
   onStart();
 
-  const cleanText = normalizeKurdishForNaturalTTS(text).slice(0, 600);
-  const rawClean = text.replace(/```[\s\S]*?```/g, '').replace(/[#*`_]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
+  const cleanText = cleanKurdishTextForTTS(text).slice(0, 700);
 
-  // ١. هەوڵدان بۆ وەرگرتنی دەنگ لە سێرڤەری سەرەکی
+  // ١. ناردنی دەقی کوردی تەواو و ڕەسەن بۆ سێرڤەری سەرەکی
   try {
     const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText || rawClean })
+      body: JSON.stringify({ text: cleanText })
     });
 
     if (res.ok) {
@@ -202,9 +190,9 @@ export const fetchAndPlayKurdishFemaleVoice = async (
     console.warn("Primary Kurdish TTS failed, trying direct neural female stream:", e);
   }
 
-  // ٢. ئەگەر سێرڤەر وەڵامی نەدایەوە، ستریمی دەماریی فۆنەتیک دەخوێنێتەوە
+  // ٢. ئەگەر سێرڤەر وەڵامی نەدایەوە، ستریمی دەماری ڕاستەوخۆ دەخوێنێتەوە
   try {
-    const backupUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText || rawClean)}&tl=ar&client=tw-ob`;
+    const backupUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=ar&client=tw-ob`;
     const res = await fetch(backupUrl);
     if (res.ok) {
       const blob = await res.blob();
@@ -220,9 +208,9 @@ export const fetchAndPlayKurdishFemaleVoice = async (
   // ٣. سیستەمی خۆماڵی لەناو وێبگەڕدا (Browser Native Speech Synthesis)
   try {
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(cleanText || rawClean);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.pitch = 1.25;
-      utterance.rate = 0.92;
+      utterance.rate = 0.90;
 
       const voices = window.speechSynthesis.getVoices();
       const femaleVoice = voices.find(v => 
