@@ -44,6 +44,9 @@ export const stopKurdishFemaleVoice = () => {
       activeStandardAudio.pause();
       activeStandardAudio = null;
     }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   } catch (e) {
     console.error("Error stopping female voice:", e);
   }
@@ -57,10 +60,67 @@ export const playKurdishFemaleVoice = async (
   stopKurdishFemaleVoice();
 
   try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      activeVoiceAudioContext = ctx;
+
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      activeVoiceSourceNode = source;
+
+      // 👩‍🦰 بەرزکردنەوەی تۆنی دەنگ بۆ دەنگی سروشتیی و ڕەوانی ئافرەت (Female Vocal Formants & Pitch)
+      source.playbackRate.value = 1.22;
+
+      // ١. فلتەری لابردنی تۆنی ئەستووری پیاوانە (Highpass Filter)
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 175;
+
+      // ٢. بەرزکردنەوەی دەنگدانەوەی مێینە (Female Formant Resonance)
+      const peaking = ctx.createBiquadFilter();
+      peaking.type = 'peaking';
+      peaking.frequency.value = 2900;
+      peaking.Q.value = 1.1;
+      peaking.gain.value = 4.0;
+
+      // ٣. ڕووناککردنی دەنگ وەک ستۆدیۆ (Highshelf Clarity)
+      const highshelf = ctx.createBiquadFilter();
+      highshelf.type = 'highshelf';
+      highshelf.frequency.value = 6000;
+      highshelf.gain.value = 2.5;
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 1.15;
+
+      source.connect(highpass);
+      highpass.connect(peaking);
+      peaking.connect(highshelf);
+      highshelf.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      source.onended = () => {
+        stopKurdishFemaleVoice();
+        onEnded();
+      };
+
+      source.start(0);
+      return;
+    }
+  } catch (err) {
+    console.warn("Web Audio female synthesis error, falling to HTMLAudioElement:", err);
+  }
+
+  // ئەگەر Web Audio کارینەکرد لەسەر مۆبایلە کۆنەکان
+  try {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
     activeStandardAudio = audio;
-    audio.playbackRate = 1.0;
+    (audio as any).preservesPitch = false;
+    audio.playbackRate = 1.22;
 
     audio.onended = () => {
       activeStandardAudio = null;
@@ -104,7 +164,7 @@ export const fetchAndPlayKurdishFemaleVoice = async (
     .trim()
     .slice(0, 600);
 
-  // 1. هەوڵدان بۆ وەرگرتنی دەنگ لە بزوێنەری دەماریی تایبەت
+  // ١. هەوڵدان بۆ وەرگرتنی دەنگ لە سێرڤەری سەرەکی
   try {
     const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
       method: 'POST',
@@ -120,29 +180,50 @@ export const fetchAndPlayKurdishFemaleVoice = async (
       }
     }
   } catch (e) {
-    console.warn("Primary Kurdish TTS failed, falling back to secondary engine:", e);
+    console.warn("Primary Kurdish TTS failed, trying direct neural female stream:", e);
   }
 
-  // 2. ئەگەر سێرڤەر خاو یان لۆد بوو، بزوێنەری دەرەکی زۆر ڕەوان و سروشتی بەکاردێت
+  // ٢. ئەگەر سێرڤەر وەڵامی نەدایەوە، ستریمی دەماریی ڕاستەوخۆ دەخوێنێتەوە بە دەنگی ئافرەت
   try {
     const backupUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=ar&client=tw-ob`;
-    const audio = new Audio(backupUrl);
-    activeStandardAudio = audio;
-    audio.playbackRate = 0.95;
-
-    audio.onended = () => {
-      activeStandardAudio = null;
-      onEnded();
-    };
-
-    audio.onerror = () => {
-      activeStandardAudio = null;
-      onError();
-    };
-
-    await audio.play();
-  } catch (err) {
-    console.error("All Kurdish Female Voice engines failed:", err);
-    onError();
+    const res = await fetch(backupUrl);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob && blob.size > 200) {
+        await playKurdishFemaleVoice(blob, onEnded, onError);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Secondary stream failed, using Web Speech API female voice:", e);
   }
+
+  // ٣. سیستەمی خۆماڵی بێنتەرنێت لەناو وێبگەڕدا (Browser Native Female Speech Synthesis)
+  try {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.pitch = 1.35; // بەرزکردنەوەی تۆن بۆ ئافرەت
+      utterance.rate = 0.95;
+
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(v => 
+        (v.lang.startsWith('ar') || v.lang.startsWith('fa') || v.lang.startsWith('ku')) &&
+        (/female|salma|zariyah|fatima|laila|maryam|sara|zeina|hoda|rana|sana|noura|reem|mouna|amal|iman|damayanti/i.test(v.name))
+      ) || voices.find(v => v.lang.startsWith('ar') || v.lang.startsWith('fa') || v.lang.startsWith('ku'));
+
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+      }
+
+      utterance.onend = () => onEnded();
+      utterance.onerror = () => onError();
+
+      window.speechSynthesis.speak(utterance);
+      return;
+    }
+  } catch (err) {
+    console.error("All female TTS attempts failed:", err);
+  }
+
+  onError();
 };
