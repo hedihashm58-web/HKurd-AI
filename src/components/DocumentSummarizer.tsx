@@ -2,7 +2,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { auth } from '../firebase';
-import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface DocumentSummarizerProps {
   language?: 'ku' | 'ar';
@@ -178,7 +178,6 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language = 'ku'
     link.click();
   };
 
-  // خوێندنەوە بە دەنگی دەماریی ئافرەت
   const handlePlayAudio = async () => {
     if (!summary) return;
     if (isPlayingAudio) {
@@ -187,26 +186,12 @@ const DocumentSummarizer: React.FC<DocumentSummarizerProps> = ({ language = 'ku'
       return;
     }
 
-    try {
-      setIsPlayingAudio(true);
-      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: summary.slice(0, 500) })
-      });
-
-      if (!res.ok) throw new Error("TTS failed");
-      const blob = await res.blob();
-      
-      await playKurdishFemaleVoice(
-        blob,
-        () => setIsPlayingAudio(false),
-        () => setIsPlayingAudio(false)
-      );
-    } catch (e) {
-      console.error(e);
-      setIsPlayingAudio(false);
-    }
+    await fetchAndPlayKurdishFemaleVoice(
+      summary,
+      () => setIsPlayingAudio(true),
+      () => setIsPlayingAudio(false),
+      () => setIsPlayingAudio(false)
+    );
   };
 
   const formatFileSize = (bytes: number) => {

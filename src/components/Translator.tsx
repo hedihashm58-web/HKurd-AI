@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface HistoryItem {
   id: string;
@@ -198,42 +198,12 @@ const Translator: React.FC = () => {
     }
 
     if (!result) return;
-    setIsSpeaking(true);
-
-    try {
-      const ttsEndpoints = [
-        'http://127.0.0.1:8000/api/tts',
-        'https://hedihashm-kurdai-chat-brain.hf.space/api/tts'
-      ];
-
-      let audioBlob: Blob | null = null;
-      for (const endpoint of ttsEndpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: result.slice(0, 1000) })
-          });
-          if (res.ok) {
-            audioBlob = await res.blob();
-            break;
-          }
-        } catch (e) {}
-      }
-
-      if (audioBlob) {
-        await playKurdishFemaleVoice(
-          audioBlob,
-          () => setIsSpeaking(false),
-          () => setIsSpeaking(false)
-        );
-        return;
-      }
-    } catch (e) {
-      console.error("TTS error:", e);
-    }
-
-    setIsSpeaking(false);
+    await fetchAndPlayKurdishFemaleVoice(
+      result,
+      () => setIsSpeaking(true),
+      () => setIsSpeaking(false),
+      () => setIsSpeaking(false)
+    );
   };
 
   return (

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, getDocs, query, doc, deleteDoc } from 'firebase/firestore';
-import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface Personality {
   id?: string;
@@ -451,27 +451,13 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
       return;
     }
 
-    try {
-      setIsPlayingAudio(true);
-      const textToRead = `${selectedPerson.name}. ${selectedPerson.title}. ${selectedPerson.shortDesc}. ${selectedPerson.fullText}`.slice(0, 450);
-      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToRead })
-      });
-
-      if (!res.ok) throw new Error("TTS failed");
-      const blob = await res.blob();
-      
-      await playKurdishFemaleVoice(
-        blob,
-        () => setIsPlayingAudio(false),
-        () => setIsPlayingAudio(false)
-      );
-    } catch (e) {
-      console.error(e);
-      setIsPlayingAudio(false);
-    }
+    const textToRead = `${selectedPerson.name}. ${selectedPerson.title}. ${selectedPerson.shortDesc}. ${selectedPerson.fullText}`;
+    await fetchAndPlayKurdishFemaleVoice(
+      textToRead,
+      () => setIsPlayingAudio(true),
+      () => setIsPlayingAudio(false),
+      () => setIsPlayingAudio(false)
+    );
   };
 
   const filteredPersonalities = personalities.filter(person => {

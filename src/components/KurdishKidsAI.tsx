@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 import confetti from 'canvas-confetti';
-import { playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface KidsAIProps {
   language?: 'ku' | 'ar';
@@ -751,26 +751,12 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
       return;
     }
 
-    try {
-      setIsPlayingAudio(true);
-      const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToRead.slice(0, 400) })
-      });
-
-      if (!res.ok) throw new Error("TTS failed");
-      const blob = await res.blob();
-      
-      await playKurdishFemaleVoice(
-        blob,
-        () => setIsPlayingAudio(false),
-        () => setIsPlayingAudio(false)
-      );
-    } catch (e) {
-      console.error(e);
-      setIsPlayingAudio(false);
-    }
+    await fetchAndPlayKurdishFemaleVoice(
+      textToRead,
+      () => setIsPlayingAudio(true),
+      () => setIsPlayingAudio(false),
+      () => setIsPlayingAudio(false)
+    );
   };
 
   const currentQuiz = KIDS_QUIZ_DATA[quizIndex];

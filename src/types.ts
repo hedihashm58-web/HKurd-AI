@@ -57,63 +57,92 @@ export const playKurdishFemaleVoice = async (
   stopKurdishFemaleVoice();
 
   try {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) throw new Error("No Web Audio");
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    activeStandardAudio = audio;
+    audio.playbackRate = 1.0;
 
-    const ctx = new AudioCtx();
-    activeVoiceAudioContext = ctx;
-
-    const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
-    const source = ctx.createBufferSource();
-    source.buffer = decodedBuffer;
-
-    // 👩‍🦰 بەرزکردنەوەی پەیڕەوی دەنگ بۆ ئاستی دەنگی ئافرەت (Female Vocal Pitch)
-    // 1.15x بەرزکردنەوەیەکی زۆر هاوسەنگە کە دەنگەکە لە پیاوەوە دەگۆڕێت بۆ ئافرەت بێ ئەوەی ڕۆبۆتی یان خێرا بێت
-    source.playbackRate.value = 1.15;
-
-    // فلتەری نەرمکردنەوەی شەپۆلی دەنگ (Formant Shaping for Female Tone)
-    const femaleHighPass = ctx.createBiquadFilter();
-    femaleHighPass.type = 'highpass';
-    femaleHighPass.frequency.value = 160; // لابردنی زلی پیاوانە
-
-    const femalePresence = ctx.createBiquadFilter();
-    femalePresence.type = 'peaking';
-    femalePresence.frequency.value = 2400; // بەرزکردنەوەی لەرەلەری دەنگی مێینە
-    femalePresence.Q.value = 0.8;
-    femalePresence.gain.value = 3.5;
-
-    source.connect(femaleHighPass);
-    femaleHighPass.connect(femalePresence);
-    femalePresence.connect(ctx.destination);
-
-    activeVoiceSourceNode = source;
-
-    source.onended = () => {
-      activeVoiceSourceNode = null;
+    audio.onended = () => {
+      activeStandardAudio = null;
       onEnded();
     };
 
-    source.start(0);
-  } catch (err) {
-    try {
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      activeStandardAudio = audio;
-      audio.playbackRate = 1.14;
-      (audio as any).preservesPitch = false;
-
-      audio.onended = () => {
-        activeStandardAudio = null;
-        onEnded();
-      };
-      audio.onerror = () => {
-        activeStandardAudio = null;
-        onError();
-      };
-      await audio.play();
-    } catch (e) {
+    audio.onerror = () => {
+      activeStandardAudio = null;
       onError();
+    };
+
+    await audio.play();
+  } catch (err) {
+    console.error("Audio playback error:", err);
+    onError();
+  }
+};
+
+export const fetchAndPlayKurdishFemaleVoice = async (
+  text: string,
+  onStart: () => void,
+  onEnded: () => void,
+  onError: () => void
+): Promise<void> => {
+  stopKurdishFemaleVoice();
+
+  if (!text || !text.trim()) {
+    onError();
+    return;
+  }
+
+  onStart();
+
+  const cleanText = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`.*?`/g, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[#*`_~>\[\]\(\)\{\}\|=+\-\\]/g, ' ')
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 600);
+
+  // 1. هەوڵدان بۆ وەرگرتنی دەنگ لە بزوێنەری دەماریی تایبەت
+  try {
+    const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cleanText })
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob && blob.size > 200) {
+        await playKurdishFemaleVoice(blob, onEnded, onError);
+        return;
+      }
     }
+  } catch (e) {
+    console.warn("Primary Kurdish TTS failed, falling back to secondary engine:", e);
+  }
+
+  // 2. ئەگەر سێرڤەر خاو یان لۆد بوو، بزوێنەری دەرەکی زۆر ڕەوان و سروشتی بەکاردێت
+  try {
+    const backupUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=ar&client=tw-ob`;
+    const audio = new Audio(backupUrl);
+    activeStandardAudio = audio;
+    audio.playbackRate = 0.95;
+
+    audio.onended = () => {
+      activeStandardAudio = null;
+      onEnded();
+    };
+
+    audio.onerror = () => {
+      activeStandardAudio = null;
+      onError();
+    };
+
+    await audio.play();
+  } catch (err) {
+    console.error("All Kurdish Female Voice engines failed:", err);
+    onError();
   }
 };

@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
-import { Message, playKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
+import { Message, fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 import Sidebar from './Sidebar';
 import { auth, db } from '../firebase';
 import { collection, addDoc, doc, setDoc, getDoc, updateDoc, getDocs, orderBy, serverTimestamp, onSnapshot, query } from 'firebase/firestore';
@@ -358,62 +358,23 @@ const ChatInterface: React.FC = () => {
       return;
     }
 
-    stopKurdishFemaleVoice();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
 
-    const cleanText = prepareKurdishForNaturalVoice(rawText);
-    if (!cleanText) return;
-
-    setSpeakingIndex(index);
     isPlayingAudioRef.current = true;
-
-    try {
-      // 👑 ناردن بۆ بزوێنەری دەنگی دەماریی کوردی (Neural Kurdish TTS Engine)
-      const ttsEndpoints = [
-        'http://127.0.0.1:8000/api/tts',
-        'https://hedihashm-kurdai-chat-brain.hf.space/api/tts'
-      ];
-
-      let audioBlob: Blob | null = null;
-
-      for (const endpoint of ttsEndpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: cleanText.slice(0, 1500) })
-          });
-          if (res.ok) {
-            audioBlob = await res.blob();
-            break;
-          }
-        } catch (e) {
-          // ئەگەر یەکەمیان سەرنەکەوت، دەچێتە سەر دووەمیان
-        }
+    await fetchAndPlayKurdishFemaleVoice(
+      rawText,
+      () => setSpeakingIndex(index),
+      () => {
+        setSpeakingIndex(null);
+        isPlayingAudioRef.current = false;
+      },
+      () => {
+        setSpeakingIndex(null);
+        isPlayingAudioRef.current = false;
       }
-
-      if (audioBlob && isPlayingAudioRef.current) {
-        await playKurdishFemaleVoice(
-          audioBlob,
-          () => {
-            setSpeakingIndex(null);
-            isPlayingAudioRef.current = false;
-          },
-          () => {
-            setSpeakingIndex(null);
-            isPlayingAudioRef.current = false;
-          }
-        );
-        return;
-      }
-    } catch (err) {
-      console.error("Neural TTS playback error:", err);
-    }
-
-    setSpeakingIndex(null);
-    isPlayingAudioRef.current = false;
+    );
   };
 
   const handleLikeToggle = (index: number, type: 'like' | 'dislike') => {
