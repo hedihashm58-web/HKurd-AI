@@ -410,13 +410,13 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const generateCacheKey = (srcText: string) => {
-    return srcText.trim().toLowerCase().replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_').substring(0, 50);
-  };
+  const isSubmittingRef = useRef<boolean>(false);
 
   const handleSend = async (overridePrompt?: string) => { 
+    if (isSubmittingRef.current || isLoading) return; 
+
     const promptToSend = (overridePrompt || input).trim();
-    if (!promptToSend || isLoading) return; 
+    if (!promptToSend) return; 
 
     const user = auth.currentUser;
     const isAdmin = user?.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
@@ -432,7 +432,10 @@ const ChatInterface: React.FC = () => {
       }
       setMsgCountInMinute(prev => prev + 1);
     }
-    
+
+    isSubmittingRef.current = true;
+    setIsLoading(true); 
+
     const currentInput = promptToSend; 
     const imgToSave = selectedImage;
     const userMsg: Message = { role: 'user', text: currentInput, image: imgToSave || undefined, timestamp: new Date() }; 
@@ -441,67 +444,51 @@ const ChatInterface: React.FC = () => {
     setMessages(updatedMessages); 
     setInput(''); 
     setSelectedImage(null);
-    setIsLoading(true); 
 
     let activeChatId = currentChatId; 
 
-    const saveUserMessageToDB = async () => { 
-      if (user?.email) { 
-        try {
-          if (!activeChatId) { 
-            const newChatRef = doc(collection(db, 'users', user.email, 'chats')); 
-            activeChatId = newChatRef.id; 
-            setCurrentChatId(activeChatId); 
-            const chatTitle = currentInput.length > 30 ? currentInput.substring(0, 30) + '...' : currentInput; 
-            await setDoc(newChatRef, { title: chatTitle, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); 
-          } else {
-            const chatRef = doc(db, 'users', user.email, 'chats', activeChatId); 
-            await updateDoc(chatRef, { updatedAt: serverTimestamp() }); 
+    try {
+      const saveUserMessageToDB = async () => { 
+        if (user?.email) { 
+          try {
+            if (!activeChatId) { 
+              const newChatRef = doc(collection(db, 'users', user.email, 'chats')); 
+              activeChatId = newChatRef.id; 
+              setCurrentChatId(activeChatId); 
+              const chatTitle = currentInput.length > 30 ? currentInput.substring(0, 30) + '...' : currentInput; 
+              await setDoc(newChatRef, { title: chatTitle, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); 
+            } else {
+              const chatRef = doc(db, 'users', user.email, 'chats', activeChatId); 
+              await updateDoc(chatRef, { updatedAt: serverTimestamp() }); 
+            }
+            await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
+              role: 'user', 
+              text: currentInput, 
+              image: imgToSave || null,
+              timestamp: serverTimestamp() 
+            });
+          } catch (e) {
+            console.error(e); 
           }
-          await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
-            role: 'user', 
-            text: currentInput, 
-            image: imgToSave || null,
-            timestamp: serverTimestamp() 
-          });
-        } catch (e) {
-          console.error(e); 
+        }
+      };
+      
+      await saveUserMessageToDB(); 
+
+      let imageBase64: string | null = null;
+      let mimeType = "image/jpeg";
+      if (imgToSave) {
+        const parts = imgToSave.split(",");
+        if (parts.length > 1) {
+          imageBase64 = parts[1];
+          const mimeMatch = parts[0].match(/data:(.*?);/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
+          }
         }
       }
-    };
-    
-    await saveUserMessageToDB(); 
 
-    let imageBase64: string | null = null;
-    let mimeType = "image/jpeg";
-    if (imgToSave) {
-      const parts = imgToSave.split(",");
-      if (parts.length > 1) {
-        imageBase64 = parts[1];
-        const mimeMatch = parts[0].match(/data:(.*?);/);
-        if (mimeMatch) {
-          mimeType = mimeMatch[1];
-        }
-      }
-    }
-
-    if (db && !imgToSave) {
-      try {
-        const cacheKey = generateCacheKey(currentInput);
-        const cacheSnap = await getDoc(doc(db, 'global_chat_cache', cacheKey));
-        if (cacheSnap && cacheSnap.exists()) {
-          const cachedAnswer = cacheSnap.data().aiResponse;
-          setIsLoading(false);
-          setMessages(prev => [...prev, { role: 'model', text: cachedAnswer, timestamp: new Date() }]);
-          if (user?.email && activeChatId) await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { role: 'model', text: cachedAnswer, timestamp: serverTimestamp() });
-          return;
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
+      let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
 تۆ سیستەمێکی تەواو زیرەک و لێهاتووی؛ بە شێوەیەکی خۆکارانە لە مەبەست و داواکاریی بەکارهێنەر تێدەگەیت:
 - ئەگەر داوای کاری ڕیکلامی، پۆستی فرۆشتن یان سۆشیاڵ میدیای کرد: ڕاستەوخۆ پۆستێکی زۆر سەرنجڕاکێش بە شێوازی مارکێتینگی مۆدێرن، لەگەڵ هۆک (Hook)ی سەرنجڕاکێش، ئیمۆجی و هاستاگی بەهێزی کوردی بۆ دابڕێژە.
 - ئەگەر داوای سیناریۆی ڤیدیۆیی ڕیکلامی کرد: سیناریۆ و وەسفی دیمەن بە دیمەن بە شێوازی پرۆفێشناڵ بنووسە.
@@ -509,11 +496,13 @@ const ChatInterface: React.FC = () => {
 - ئەگەر پرسیاری تەندروستی، پزیشکی، دەروونی یان گشتی بوو: بە شێوازێکی زانستی و هۆشیارانە بە زمانی کوردیی پاراو وەڵام بدەرەوە.
 - لە هەموو بوارەکانی تردا وەک هاوڕێ و ڕاوێژکارێکی ژیر و نیشتمانی وەڵام بدەرەوە.
 ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.\n\n`;
-    
-    const lastFewMessages = updatedMessages.slice(-6);
-    lastFewMessages.forEach(msg => { conversationHistory += `${msg.role === 'user' ? 'بەکارهێنەر' : 'مۆدێل'}: ${msg.text}\n`; });
+      
+      const lastFewMessages = updatedMessages.slice(-6);
+      lastFewMessages.forEach(msg => {
+        const cleanedText = msg.text.length > 800 ? msg.text.slice(0, 800) + '...' : msg.text;
+        conversationHistory += `${msg.role === 'user' ? 'بەکارهێنەر' : 'مۆدێل'}: ${cleanedText}\n`;
+      });
 
-    try {
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
@@ -524,33 +513,43 @@ const ChatInterface: React.FC = () => {
           mimeType: mimeType
         }), 
       });
-      const data = await response.json();
-      if (response.status === 403 && !isAdmin) throw new Error("LIMIT_EXCEEDED_CHAT");
-      else if (response.status === 400) throw new Error("داواکارییەکەت ڕەتکرایەوە! دەقەکەت وشەی نەشیاوی تێدایە.");
-      if (!response.ok) throw new Error(data.detail || "سێرڤەر وەڵامی نەدایەوە");
 
-      setIsLoading(false);
+      const data = await response.json();
+
+      if (response.status === 403 && !isAdmin) {
+        throw new Error("LIMIT_EXCEEDED_CHAT");
+      }
+
+      if (!response.ok) {
+        const detailMsg = data.detail || data.message || data.error;
+        if (detailMsg) {
+          throw new Error(typeof detailMsg === 'string' ? detailMsg : JSON.stringify(detailMsg));
+        }
+        throw new Error("خەتایەک لە سێرڤەرەوە ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.");
+      }
+
       let aiAnswer = data.response ? data.response : "هیچ وەڵامێک نەگەڕایەوە.";
       setMessages(prev => [...prev, { role: 'model', text: aiAnswer, timestamp: new Date() }]);
 
-      if (db && aiAnswer.trim()) {
-        try {
-          await setDoc(doc(db, 'global_chat_cache', cacheKey), { userQuery: currentInput, aiResponse: aiAnswer, createdAt: serverTimestamp() });
-        } catch (e) {
-          console.error(e);
-        }
+      if (user?.email && activeChatId) {
+        await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { 
+          role: 'model', 
+          text: aiAnswer, 
+          timestamp: serverTimestamp() 
+        });
       }
-      if (user?.email && activeChatId) await addDoc(collection(db, 'users', user.email, 'chats', activeChatId, 'messages'), { role: 'model', text: aiAnswer, timestamp: serverTimestamp() });
     } catch (error: any) { 
-      setIsLoading(false); 
       let errorMessage = error.message || "خەتایەک ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.";
       
-      if (error.message.includes("LIMIT_EXCEEDED_CHAT")) {
+      if (error.message && error.message.includes("LIMIT_EXCEEDED_CHAT")) {
         errorMessage = "⚠️ لێمیتی نامەکانی ئەمڕۆت تەواو بووە! بۆ بەردەوامبوون ببە بە ئەندامی Premium.";
         setIsPremiumModalOpen(true);
       }
       
       setMessages(prev => [...prev, { role: 'model', text: errorMessage, timestamp: new Date() }]);
+    } finally {
+      setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
