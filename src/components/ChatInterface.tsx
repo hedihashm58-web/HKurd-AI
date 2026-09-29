@@ -416,7 +416,11 @@ const ChatInterface: React.FC = () => {
     if (isSubmittingRef.current || isLoading) return; 
 
     const promptToSend = (overridePrompt || input).trim();
-    if (!promptToSend) return; 
+    if (!promptToSend && !selectedImage) return; 
+
+    // دەستبەجێ قوفڵکردنی ناردن بۆ ڕێگری تەواو لە ناردنی دووبارە
+    isSubmittingRef.current = true;
+    setIsLoading(true); 
 
     const user = auth.currentUser;
     const isAdmin = user?.email?.toLowerCase().trim() === "hedihashm58@gmail.com";
@@ -428,13 +432,12 @@ const ChatInterface: React.FC = () => {
     } else {
       if (!isAdmin && msgCountInMinute >= 4) {
         alert("⚠️ لێمیتی ناردنی خێرا! تۆ ناتوانیت لە ١ خولەکدا زیاتر لە ٤ نامە بنێریت. تکایە کەمێک بوەستە.");
+        setIsLoading(false);
+        isSubmittingRef.current = false;
         return;
       }
       setMsgCountInMinute(prev => prev + 1);
     }
-
-    isSubmittingRef.current = true;
-    setIsLoading(true); 
 
     const currentInput = promptToSend; 
     const imgToSave = selectedImage;
@@ -488,26 +491,27 @@ const ChatInterface: React.FC = () => {
         }
       }
 
-      let conversationHistory = `تۆ KurdAI Pro یت. پێشکەوتووترین ژیریی دەستکردی نیشتمانی بۆ هەرێمی کوردستان کە تەنها لە لایەن (هێدی)ـەوە پەرەی پێدراوە و دروستکراوە.
-تۆ سیستەمێکی تەواو زیرەک و لێهاتووی؛ بە شێوەیەکی خۆکارانە لە مەبەست و داواکاریی بەکارهێنەر تێدەگەیت:
-- ئەگەر داوای کاری ڕیکلامی، پۆستی فرۆشتن یان سۆشیاڵ میدیای کرد: ڕاستەوخۆ پۆستێکی زۆر سەرنجڕاکێش بە شێوازی مارکێتینگی مۆدێرن، لەگەڵ هۆک (Hook)ی سەرنجڕاکێش، ئیمۆجی و هاستاگی بەهێزی کوردی بۆ دابڕێژە.
-- ئەگەر داوای سیناریۆی ڤیدیۆیی ڕیکلامی کرد: سیناریۆ و وەسفی دیمەن بە دیمەن بە شێوازی پرۆفێشناڵ بنووسە.
-- ئەگەر پرسیاری بیرکاری، هاوکێشە، زانستی یان کۆدی کرد: بە وردی و هەنگاو بە هەنگاو شیکاری بکە.
-- ئەگەر پرسیاری تەندروستی، پزیشکی، دەروونی یان گشتی بوو: بە شێوازێکی زانستی و هۆشیارانە بە زمانی کوردیی پاراو وەڵام بدەرەوە.
-- لە هەموو بوارەکانی تردا وەک هاوڕێ و ڕاوێژکارێکی ژیر و نیشتمانی وەڵام بدەرەوە.
-ساڵی ئێستا بە تەواوی بریتییە لە ٢٠٢٦. هەمیشە وەڵامەکانت لەسەر بنەمای ئەوە بن کە ئێستا لە ناو ساڵی ٢٠٢٦ داین.\n\n`;
-      
-      const lastFewMessages = updatedMessages.slice(-6);
-      lastFewMessages.forEach(msg => {
-        const cleanedText = msg.text.length > 800 ? msg.text.slice(0, 800) + '...' : msg.text;
-        conversationHistory += `${msg.role === 'user' ? 'بەکارهێنەر' : 'مۆدێل'}: ${cleanedText}\n`;
-      });
+      // تەنها نامە ڕاستەقینەکانی گفتوگۆ بەبێ نامەی بەخێرهاتنی سەرەتا بەکاردەهێنین بۆ ئەوەی دووبارە نەبێتەوە
+      const realMessages = updatedMessages.filter((msg, idx) => !(idx === 0 && msg.role === 'model'));
+
+      let conversationPayload = "";
+      if (realMessages.length > 1) {
+        // ناردنی کورتەی گفتوگۆی پێشوو بۆ پاراستنی هۆشیاری مۆدێل بەبێ درێژدادڕی
+        const pastContext = realMessages.slice(-5, -1);
+        pastContext.forEach(msg => {
+          const cleanedText = msg.text.length > 300 ? msg.text.slice(0, 300) + '...' : msg.text;
+          conversationPayload += `${msg.role === 'user' ? 'بەکارهێنەر' : 'وەڵام'}: ${cleanedText}\n`;
+        });
+        conversationPayload += `\nپرسیاری ئێستای بەکارهێنەر: ${currentInput}`;
+      } else {
+        conversationPayload = currentInput;
+      }
 
       const response = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: conversationHistory.trim(), 
+          message: conversationPayload.trim(), 
           email: user?.email || "guest_user",
           image: imageBase64,
           mimeType: mimeType
@@ -555,6 +559,7 @@ const ChatInterface: React.FC = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.repeat || e.nativeEvent.isComposing) return;
       e.preventDefault();
       handleSend();
     }
@@ -760,6 +765,7 @@ const ChatInterface: React.FC = () => {
               
               {/* دوگمەی ناردن بە دیزاینی مۆدێرن و شیک */}
               <button 
+                type="button"
                 onClick={() => handleSend()} 
                 disabled={isLoading || (!input.trim() && !selectedImage)} 
                 className={`p-2.5 rounded-full transition-all flex items-center justify-center shrink-0 mb-0.5 active:scale-95 shadow-md ${
