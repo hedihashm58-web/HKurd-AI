@@ -91,12 +91,12 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
           </div>
           <div>
             <h2 className="text-base sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>داڕشتنەوەی ئەکادیمی و مرۆڤاندنی دەق (Humanizer)</span>
+              <span>داڕشتنەوەی ئەکادیمی (Academic English Paraphraser)</span>
               <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 font-mono font-bold uppercase">
-                Anti-AI
+                Academic EN
               </span>
             </h2>
-            <p className="text-[11px] sm:text-xs text-zinc-400">داڕشتنەوە بە شێوازی ١٠٠٪ مرۆڤانە بۆ تێپەڕاندنی سیستەمەکانی پشکنینی AI و Turnitin لە زانکۆکان</p>
+            <p className="text-[11px] sm:text-xs text-zinc-400">داڕشتنەوە بە زمانی ئینگلیزیی ئەکادیمی و شێوازی ١٠٠٪ مرۆڤانە بۆ تێپەڕاندنی سیستەمەکانی پشکنینی AI و Turnitin</p>
           </div>
         </div>
 
@@ -130,8 +130,8 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="دەقی ڕاپۆرت، توێژینەوە، مەلزەمە یان وتارەکەت لێرە بنووسە یان پێوەی بنووسێنە تا بە تەواوی مرۆڤانە دابڕێژرێتەوە کە هیچ بەرنامەیەک پێی نەزانێت بە AI نووسراوە..."
-              className="w-full flex-1 bg-transparent text-white text-sm sm:text-base focus:outline-none resize-none placeholder-zinc-500 leading-relaxed text-right font-medium min-h-[160px] sm:min-h-[240px]"
+              placeholder="دەقی توێژینەوە، ئەبستراکت یان وتارەکەت لێرە بنووسە تا بە زمانی ئینگلیزیی ئەکادیمیی دەوڵەمەند (Academic English) دابڕێژرێتەوە کە ١٠٠٪ مرۆڤانە بێت و سیستەمەکانی پشکنین وەک نووسراوی مرۆڤ بیناسن..."
+              className="w-full flex-1 bg-transparent text-white text-sm sm:text-base focus:outline-none resize-none placeholder-zinc-500 leading-relaxed font-medium min-h-[160px] sm:min-h-[240px]"
               maxLength={8000}
             />
 
@@ -166,12 +166,12 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
                 {loading ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>خەریکی مرۆڤاندنە...</span>
+                    <span>خەریکی داڕشتنەوەی ئینگلیزییە...</span>
                   </>
                 ) : (
                   <>
                     <span>⚡</span>
-                    <span>داڕشتنەوەی مرۆڤانە (Bypass AI)</span>
+                    <span>داڕشتنەوە بە ئینگلیزی (Academic Paraphrase)</span>
                   </>
                 )}
               </button>
@@ -183,7 +183,7 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/40 text-xs">
               <span className="font-bold text-purple-400 flex items-center gap-1.5">
                 <span>✨</span>
-                <span>دەقی داڕێژراوەی مرۆڤانە (100% Human)</span>
+                <span>دەقی داڕێژراوەی ئینگلیزی (Academic English)</span>
               </span>
               <span className="text-[10px] text-purple-400/80 font-mono font-bold">
                 {loading ? "خەریکی کارە..." : outputText ? "تەواو بوو ✓" : ""}
@@ -195,7 +195,7 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
                 <div className="space-y-3 pt-4 animate-pulse">
                   <div className="flex items-center gap-2 text-purple-400 text-xs font-bold">
                     <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
-                    <span>KurdAI خەریکی تێکشکاندنی کڵێشەکانی AI و بەخشینی ڕۆحی مرۆڤانەیە...</span>
+                    <span>KurdAI خەریکی داڕشتنەوەیە بە زمانی ئینگلیزیی ئەکادیمی و مرۆڤانە...</span>
                   </div>
                   <div className="space-y-2">
                     <div className="h-3 bg-gradient-to-r from-purple-500/20 via-pink-500/30 to-purple-500/20 rounded-full"></div>
@@ -204,13 +204,16 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
                   </div>
                 </div>
               ) : outputText ? (
-                <div className="text-purple-100 text-sm sm:text-base leading-relaxed whitespace-pre-wrap text-right font-medium animate-in fade-in duration-300 select-text">
+                <div 
+                  dir={/^[A-Za-z]/.test(outputText.trim()) ? "ltr" : "rtl"}
+                  className={`text-purple-100 text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${/^[A-Za-z]/.test(outputText.trim()) ? "text-left font-sans" : "text-right"} font-medium animate-in fade-in duration-300 select-text`}
+                >
                   {outputText}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center py-10 text-zinc-600">
                   <span className="text-3xl mb-1 opacity-30">🛡️</span>
-                  <p className="text-xs font-medium">دەقی داڕێژراوەی سەد لە سەد مرۆڤانە لێرەدا دەردەکەوێت</p>
+                  <p className="text-xs font-medium">دەقی داڕێژراوەی ئینگلیزیی ئەکادیمی لێرەدا دەردەکەوێت</p>
                 </div>
               )}
             </div>

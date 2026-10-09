@@ -26,24 +26,27 @@ from firebase_admin import credentials, firestore, auth as firebase_auth, messag
 # ١. لۆدکردنی کلیلەکانی ژینگە
 load_dotenv()
 
-API_KEYS = [
-    os.getenv("GOOGLE_API_KEY_1"),
-    os.getenv("GOOGLE_API_KEY_2"),
-    os.getenv("GOOGLE_API_KEY_3"),
-    os.getenv("GOOGLE_API_KEY_4"),
-    os.getenv("GOOGLE_API_KEY_5"),
-    os.getenv("GOOGLE_API_KEY_6"),
-    os.getenv("GOOGLE_API_KEY_7"),
-    os.getenv("GOOGLE_API_KEY_8"),
-    os.getenv("GOOGLE_API_KEY_9"),
-    os.getenv("GOOGLE_API_KEY_10"),
+raw_keys = []
+for i in range(1, 21):
+    raw_keys.append(os.getenv(f"GOOGLE_API_KEY_{i}"))
+    raw_keys.append(os.getenv(f"GEMINI_API_KEY_{i}"))
+
+multiple_keys = os.getenv("GEMINI_API_KEYS") or os.getenv("GOOGLE_API_KEYS")
+if multiple_keys:
+    raw_keys.extend([k.strip() for k in multiple_keys.split(",") if k.strip()])
+
+raw_keys.extend([
     os.getenv("VITE_GOOGLE_API_KEY"),
     os.getenv("VITE_GEMINI_API_KEY"),
-    os.getenv("GEMINI_API_KEY")
-]
-API_KEYS = [key for key in API_KEYS if key]
+    os.getenv("GEMINI_API_KEY"),
+    os.getenv("GOOGLE_API_KEY")
+])
+
+# سڕینەوەی کلیلە دووبارەکان و بەتاڵەکان
+API_KEYS = list(dict.fromkeys([k.strip() for k in raw_keys if k and k.strip()]))
 if not API_KEYS:
     API_KEYS = ["DEMO_KEY"]
+print(f"🔑 ژمارەی کلیلە چالاکە ناوازەکان: {len(API_KEYS)}")
 
 # ٢. دەستپێکردنی فایربەیس
 db = None
@@ -426,7 +429,7 @@ def retrieve_kurdish_knowledge(query: str, max_results: int = 3) -> str:
         print(f"Knowledge Retrieval Error: {e}")
     return ""
 
-# 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان (چاککردنی کێشەی نەبوونی پێناسە)
+# 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان و دەقی درێژ
 def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False):
     last_error = None
     contents_payload = [text_prompt]
@@ -440,21 +443,55 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
         except Exception:
             pass
 
-    config = None
-    if enable_search:
-        config = types.GenerateContentConfig(
-            tools=[types.Tool(google_search=types.GoogleSearch())]
-        )
+    # بۆ دەقی درێژ، گووگڵ سێرچ دەبێتە هۆی هەڵە و لیمیت، بۆیە تەنها بۆ دەقی گونجاو چالاک دەکرێت
+    is_very_long = len(text_prompt) > 800
+    should_search = enable_search and not is_very_long
 
-    for key in API_KEYS:
-        try:
-            temp_client = genai.Client(api_key=key)
-            response = temp_client.models.generate_content(model=model_name, contents=contents_payload, config=config)
-            return response.text
-        except Exception as e:
-            last_error = e
-            continue
-    raise HTTPException(status_code=429, detail=f"تەواوی کلیلەکان لێمیتیان تەواو بووە! {str(last_error)}")
+    # دابەشکردنی فشار بەسەر هەموو کلیلەکان بە شێوازی هەڕەمەکی (Load Balancing)
+    shuffled_keys = random.sample(API_KEYS, len(API_KEYS)) if len(API_KEYS) > 1 else list(API_KEYS)
+
+    # مۆدێلە یەدەگەکان لە کاتی کێشەدا
+    models_to_try = [model_name]
+    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+        if alt_model not in models_to_try:
+            models_to_try.append(alt_model)
+
+    for current_model in models_to_try:
+        for key in shuffled_keys:
+            # ١. تاقیکردنەوە بە سێرچ ئەگەر داواکرابێت
+            if should_search:
+                try:
+                    search_config = types.GenerateContentConfig(
+                        tools=[types.Tool(google_search=types.GoogleSearch())]
+                    )
+                    temp_client = genai.Client(api_key=key)
+                    response = temp_client.models.generate_content(
+                        model=current_model, 
+                        contents=contents_payload, 
+                        config=search_config
+                    )
+                    if response and response.text:
+                        return response.text
+                except Exception as e:
+                    last_error = e
+                    # ئەگەر سێرچ شکستی هێنا، یەکسەر بەبێ سێرچ هەمان کلیل تاقی دەکاتەوە
+
+            # ٢. تاقیکردنەوەی ئاسایی بەبێ سێرچ (زۆر خێراتر و بەرگەی دەقی درێژ دەگرێت)
+            try:
+                temp_client = genai.Client(api_key=key)
+                response = temp_client.models.generate_content(
+                    model=current_model, 
+                    contents=contents_payload, 
+                    config=None
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                last_error = e
+                continue
+
+    error_detail = str(last_error) if last_error else "هەڵەی نەزانراو"
+    raise HTTPException(status_code=429, detail=f"⚠️ نەتوانرا وەڵام وەربگیرێت لە مۆدێلەکە: {error_detail}")
 
 # 👑 لۆجیکی ناردنی وەڵامەکان بە شێوازی ستریم پیت بە پیت
 def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg"):
@@ -469,17 +506,27 @@ def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Op
         except Exception:
             pass
 
-    for key in API_KEYS:
-        try:
-            temp_client = genai.Client(api_key=key)
-            response_stream = temp_client.models.generate_content_stream(model=model_name, contents=contents_payload)
-            for chunk in response_stream:
-                if chunk.text:
-                    yield chunk.text
-            return
-        except Exception:
-            continue
-    yield "⚠️ تەواوی کلیلەکانی API لێمیتیان تەواو بووە یان خەتایەک ڕوویدا."
+    shuffled_keys = random.sample(API_KEYS, len(API_KEYS)) if len(API_KEYS) > 1 else list(API_KEYS)
+    models_to_try = [model_name]
+    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+        if alt_model not in models_to_try:
+            models_to_try.append(alt_model)
+
+    for current_model in models_to_try:
+        for key in shuffled_keys:
+            try:
+                temp_client = genai.Client(api_key=key)
+                response_stream = temp_client.models.generate_content_stream(model=current_model, contents=contents_payload)
+                yielded = False
+                for chunk in response_stream:
+                    if chunk.text:
+                        yielded = True
+                        yield chunk.text
+                if yielded:
+                    return
+            except Exception:
+                continue
+    yield "⚠️ تەواوی کلیلەکانی API سەرقاڵن یان خەتایەک ڕوویدا، تکایە کەمێکی تر هەوڵ بدەرەوە."
 
 @app.post("/api/auth/send-code")
 async def send_verification_code(request: SendCodeRequest):
@@ -1008,15 +1055,19 @@ async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Requ
     check_user_limit(request.email, "chat", fastapi_req)
     
     humanize_prompt = (
-        "تۆ لێهاتووترین پسپۆڕی داڕشتنەوەی ئەکادیمی و مرۆڤاندنی دەقی زانستیت (Ultimate Academic Humanizer & Anti-AI Detector Bypass AI).\n\n"
-        "🎯 ئەرکی بنەڕەتی: ئەم دەقەی خوارەوە بە شێوازێکی تەواو مرۆڤانە، زانستی، ڕەوان و ئەکادیمی دابڕێژەرەوە کە هیچ سیستمێکی دیاریکردنی زیرەکی دەستکرد (وەک Turnitin, GPTZero, CopyLeaks, ZeroGPT) پێی نەزانێت و ١٠٠٪ وەک نووسراوی ڕەسەنی مرۆڤ بناسرێت.\n\n"
-        "یاسا زێڕینەکانی جێبەجێکردن:\n"
-        "١. تێکشکاندنی قاڵب و دەستەواژە ڕۆبۆتییە دووبارەبووەکانی AI (No robotic transition clichés).\n"
-        "٢. هەمەچەشنکردنی سروشتی درێژی ڕستەکان (Burstiness & Perplexity: گۆڕینی هاوسەنگی ڕستەی کورت و درێژ بە داڕشتنێکی دەوڵەمەند).\n"
-        "٣. بەکارهێنانی وشەسازی ئەکادیمیی سروشتی بە پێی زمانی دەقەکە (ئەگەر کوردی، ئینگلیزی یان عەرەبی بوو).\n"
-        "٤. پاراستنی تەواوی ڕاستی، بیرۆکە و زانیارییە زانستییە بنەڕەتییەکانی ناو دەقەکە بەبێ کەمکردنەوە.\n"
-        "٥. تەنها و تەنها دەقی داڕێژراوەی مرۆڤانەی نوێ بنووسە بەبێ هیچ پێشەکی، وتە یان تێبینییەکی زیادە.\n\n"
-        f"دەقی بنەڕەتی:\n{request.text.strip()}"
+        "You are the Ultimate Academic Paraphraser & Humanizer (Anti-AI Detector Bypass AI).\n\n"
+        "CRITICAL REQUIREMENT:\n"
+        "Your output MUST ALWAYS BE IN ADVANCED ACADEMIC ENGLISH.\n"
+        "DO NOT translate the text into Kurdish or any other language! The entire rewritten output MUST be 100% Academic English.\n"
+        "Even if the prompt, user instructions, or system environment use Kurdish, your generated response MUST be solely in polished Academic English.\n\n"
+        "Task Guidelines:\n"
+        "1. Rewrite and paraphrase the text using natural, scholarly, and sophisticated English vocabulary suitable for high-impact journals and university theses.\n"
+        "2. Ensure 100% human-like flow to completely bypass AI detectors (Turnitin, GPTZero, CopyLeaks, ZeroGPT).\n"
+        "3. Vary sentence structure naturally (high burstiness and perplexity: mix concise analytical sentences with well-structured compound sentences).\n"
+        "4. Eliminate robotic AI transition cliches (e.g., 'delve into', 'in conclusion', 'testament to', 'tapestry', 'it is important to note').\n"
+        "5. Preserve all original arguments, scientific data, citations, facts, and underlying meaning with absolute fidelity.\n"
+        "6. Provide ONLY the final rewritten Academic English text. Do NOT include any introductions, notes, greetings, or conversational remarks.\n\n"
+        f"Original Source Text:\n{request.text.strip()}"
     )
     
     response_text = generate_content_with_fallback(
