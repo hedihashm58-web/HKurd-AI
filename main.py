@@ -430,7 +430,7 @@ def retrieve_kurdish_knowledge(query: str, max_results: int = 3) -> str:
     return ""
 
 # 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان و دەقی درێژ
-def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False):
+def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False, temperature: Optional[float] = None):
     last_error = None
     contents_payload = [text_prompt]
     if base64_image:
@@ -462,7 +462,8 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
             if should_search:
                 try:
                     search_config = types.GenerateContentConfig(
-                        tools=[types.Tool(google_search=types.GoogleSearch())]
+                        tools=[types.Tool(google_search=types.GoogleSearch())],
+                        temperature=temperature
                     )
                     temp_client = genai.Client(api_key=key)
                     response = temp_client.models.generate_content(
@@ -479,10 +480,11 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
             # ٢. تاقیکردنەوەی ئاسایی بەبێ سێرچ (زۆر خێراتر و بەرگەی دەقی درێژ دەگرێت)
             try:
                 temp_client = genai.Client(api_key=key)
+                std_config = types.GenerateContentConfig(temperature=temperature) if temperature is not None else None
                 response = temp_client.models.generate_content(
                     model=current_model, 
                     contents=contents_payload, 
-                    config=None
+                    config=std_config
                 )
                 if response and response.text:
                     return response.text
@@ -1048,33 +1050,72 @@ class HumanizeRequest(BaseModel):
     text: str
     email: str
 
+def chunk_academic_text(text: str, max_chunk_chars: int = 1400) -> List[str]:
+    clean = text.strip()
+    if len(clean) <= max_chunk_chars:
+        return [clean]
+    
+    # دابەشکردنی پەڕەگراف بە پەڕەگراف بە پێی خاڵ یان هێڵی نوێ
+    raw_paras = clean.split("\n\n")
+    chunks = []
+    current_chunk = []
+    current_len = 0
+    
+    for p in raw_paras:
+        p_str = p.strip()
+        if not p_str:
+            continue
+        if current_len + len(p_str) > max_chunk_chars and current_chunk:
+            chunks.append("\n\n".join(current_chunk))
+            current_chunk = [p_str]
+            current_len = len(p_str)
+        else:
+            current_chunk.append(p_str)
+            current_len += len(p_str) + 2
+            
+    if current_chunk:
+        chunks.append("\n\n".join(current_chunk))
+        
+    return chunks if chunks else [clean]
+
+def build_turnitin_bypass_prompt(source_text: str) -> str:
+    return (
+        "You are an elite academic peer-reviewer and ghostwriter transforming this passage into 100% authentic, human-written scholarship that is COMPLETELY UNDETECTABLE by Turnitin, GPTZero, CopyLeaks, and ZeroGPT.\n\n"
+        "STRICT ANTI-DETECTION MANDATES:\n"
+        "1. STRICTLY BANNED AI PHRASES & CLICHES: Never use: 'paradigm shift', 'salient', 'societal constructs', 'pivotal', 'delve', 'tapestry', 'testament', 'furthermore', 'moreover', 'notably', 'demonstrably', 'pervasive', 'holistic', 'multifaceted', 'in conclusion', 'plays a key role', 'underscores', 'fosters', 'intertwined', 'beacon', 'realm of', 'it is important to note', 'it is worth mentioning'.\n"
+        "2. HIGH BURSTINESS (ASYMMETRICAL SENTENCE RHYTHM): Human writing shifts abruptly in cadence. Deliberately alternate between short, direct observations (5-9 words) and detailed, multi-clause analytical explanations (22-35 words). Never write two sentences of equal length in a row.\n"
+        "3. HIGH PERPLEXITY & DIRECT ACTIVE VOICE: Replace inflated Latinate vocabulary with precise, concrete verbs and grounded nouns. Write with the direct clarity of a top-tier university scholar drafting an original empirical study—not an AI trying to sound smart.\n"
+        "4. SYNTACTIC VARIATION: Begin sentences with varied structures (dependent clauses, prepositional phrases, contrasting connectors like 'Still', 'Yet', 'In practice', or direct subject nouns). Do not begin multiple sentences with 'The [noun]...'.\n"
+        "5. CONCEPTUAL INTEGRITY: Preserve every single factual finding, technical definition, citation, argument, and core meaning from the original source text.\n"
+        "6. STRICT LANGUAGE & PURITY: Output MUST be 100% in refined Academic English. Return ONLY the rewritten text. Absolutely no conversational filler, labels, or introductory notes.\n\n"
+        f"Original Source Text:\n{source_text}"
+    )
+
 @app.post("/api/academic-humanize")
 async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Request):
     check_rate_limit(request.email)
     validate_content(request.text)
     check_user_limit(request.email, "chat", fastapi_req)
     
-    humanize_prompt = (
-        "You are the Ultimate Academic Paraphraser & Humanizer (Anti-AI Detector Bypass AI).\n\n"
-        "CRITICAL REQUIREMENT:\n"
-        "Your output MUST ALWAYS BE IN ADVANCED ACADEMIC ENGLISH.\n"
-        "DO NOT translate the text into Kurdish or any other language! The entire rewritten output MUST be 100% Academic English.\n"
-        "Even if the prompt, user instructions, or system environment use Kurdish, your generated response MUST be solely in polished Academic English.\n\n"
-        "Task Guidelines:\n"
-        "1. Rewrite and paraphrase the text using natural, scholarly, and sophisticated English vocabulary suitable for high-impact journals and university theses.\n"
-        "2. Ensure 100% human-like flow to completely bypass AI detectors (Turnitin, GPTZero, CopyLeaks, ZeroGPT).\n"
-        "3. Vary sentence structure naturally (high burstiness and perplexity: mix concise analytical sentences with well-structured compound sentences).\n"
-        "4. Eliminate robotic AI transition cliches (e.g., 'delve into', 'in conclusion', 'testament to', 'tapestry', 'it is important to note').\n"
-        "5. Preserve all original arguments, scientific data, citations, facts, and underlying meaning with absolute fidelity.\n"
-        "6. Provide ONLY the final rewritten Academic English text. Do NOT include any introductions, notes, greetings, or conversational remarks.\n\n"
-        f"Original Source Text:\n{request.text.strip()}"
-    )
-    
-    response_text = generate_content_with_fallback(
-        model_name='gemini-2.5-flash',
-        text_prompt=humanize_prompt
-    )
-    return {"response": response_text.strip()}
+    raw_text = request.text.strip()
+    if not raw_text:
+        return {"response": ""}
+
+    chunks = chunk_academic_text(raw_text, max_chunk_chars=1400)
+    humanized_parts = []
+
+    for chunk in chunks:
+        prompt = build_turnitin_bypass_prompt(chunk)
+        part_result = generate_content_with_fallback(
+            model_name='gemini-2.5-flash',
+            text_prompt=prompt,
+            temperature=1.05
+        )
+        if part_result and part_result.strip():
+            humanized_parts.append(part_result.strip())
+
+    final_result = "\n\n".join(humanized_parts)
+    return {"response": final_result}
 
 # 📝 ڕاوتی دروستکەری پرسیاری تاقیکردنەوە (Smart Exam & Quiz Maker AI)
 class ExamMakerRequest(BaseModel):

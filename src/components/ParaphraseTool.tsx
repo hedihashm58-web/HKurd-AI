@@ -132,7 +132,7 @@ const ParaphraseTool: React.FC<ParaphraseToolProps> = ({ language = 'ku' }) => {
               onChange={(e) => setInputText(e.target.value)}
               placeholder="دەقی توێژینەوە، ئەبستراکت یان وتارەکەت لێرە بنووسە تا بە زمانی ئینگلیزیی ئەکادیمیی دەوڵەمەند (Academic English) دابڕێژرێتەوە کە ١٠٠٪ مرۆڤانە بێت و سیستەمەکانی پشکنین وەک نووسراوی مرۆڤ بیناسن..."
               className="w-full flex-1 bg-transparent text-white text-sm sm:text-base focus:outline-none resize-none placeholder-zinc-500 leading-relaxed font-medium min-h-[160px] sm:min-h-[240px]"
-              maxLength={8000}
+              maxLength={100000}
             />
 
             <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-800/40 text-xs">
