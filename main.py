@@ -1080,14 +1080,14 @@ def chunk_academic_text(text: str, max_chunk_chars: int = 1400) -> List[str]:
 
 def build_turnitin_bypass_prompt(source_text: str) -> str:
     return (
-        "You are an elite academic peer-reviewer and ghostwriter transforming this passage into 100% authentic, human-written scholarship that is COMPLETELY UNDETECTABLE by Turnitin, GPTZero, CopyLeaks, and ZeroGPT.\n\n"
+        "Rewrite this academic text so that AI detectors (GPTZero, Turnitin, CopyLeaks, ZeroGPT) detect it as 100% HUMAN WRITTEN (0% AI).\n\n"
         "STRICT ANTI-DETECTION MANDATES:\n"
-        "1. STRICTLY BANNED AI PHRASES & CLICHES: Never use: 'paradigm shift', 'salient', 'societal constructs', 'pivotal', 'delve', 'tapestry', 'testament', 'furthermore', 'moreover', 'notably', 'demonstrably', 'pervasive', 'holistic', 'multifaceted', 'in conclusion', 'plays a key role', 'underscores', 'fosters', 'intertwined', 'beacon', 'realm of', 'it is important to note', 'it is worth mentioning'.\n"
-        "2. HIGH BURSTINESS (ASYMMETRICAL SENTENCE RHYTHM): Human writing shifts abruptly in cadence. Deliberately alternate between short, direct observations (5-9 words) and detailed, multi-clause analytical explanations (22-35 words). Never write two sentences of equal length in a row.\n"
-        "3. HIGH PERPLEXITY & DIRECT ACTIVE VOICE: Replace inflated Latinate vocabulary with precise, concrete verbs and grounded nouns. Write with the direct clarity of a top-tier university scholar drafting an original empirical study—not an AI trying to sound smart.\n"
-        "4. SYNTACTIC VARIATION: Begin sentences with varied structures (dependent clauses, prepositional phrases, contrasting connectors like 'Still', 'Yet', 'In practice', or direct subject nouns). Do not begin multiple sentences with 'The [noun]...'.\n"
-        "5. CONCEPTUAL INTEGRITY: Preserve every single factual finding, technical definition, citation, argument, and core meaning from the original source text.\n"
-        "6. STRICT LANGUAGE & PURITY: Output MUST be 100% in refined Academic English. Return ONLY the rewritten text. Absolutely no conversational filler, labels, or introductory notes.\n\n"
+        "1. STOP TRYING TO SOUND OVERLY SMART OR FORMAL. AI detectors specifically flag pompous, Latinate words. Strictly ban: 'paradigm', 'paradigm shift', 'instigate', 'reordering', 'foundational', 'societal constructs', 'pivotal', 'delve', 'tapestry', 'testament', 'furthermore', 'moreover', 'notably', 'demonstrably', 'pervasive', 'holistic', 'multifaceted', 'in conclusion', 'plays a key role', 'underscores', 'fosters', 'intertwined', 'beacon', 'realm of', 'it is important to note', 'salient', 'manifests', 'pedagogical'.\n"
+        "2. PLAIN, DIRECT SCHOLARLY ENGLISH: Write like a real, intelligent human researcher who values clarity over big words. Use direct verbs: 'shifted', 'rely on', 'struggled with', 'handles', 'breaks down', 'shows', 'proves', 'fixes'.\n"
+        "3. HIGH BURSTINESS (VARY SENTENCE LENGTH): Some sentences must be very short and punchy (5-8 words). Others can be longer and compound (18-25 words). Never write two sentences of equal length in a row.\n"
+        "4. NATURAL HUMAN CADENCE: Begin sentences with varied, natural transitions ('Historically,', 'Yet,', 'In practice,', 'By contrast,', 'Still,', or direct subject nouns). Avoid starting multiple sentences with 'The [noun]...'.\n"
+        "5. CONCEPTUAL FIDELITY: Retain 100% of the technical concepts, factual arguments, domain examples, and logical meaning from the original source.\n"
+        "6. PURE OUTPUT: Output MUST be solely the rewritten English text. Absolutely no conversational filler, labels, or introductory notes.\n\n"
         f"Original Source Text:\n{source_text}"
     )
 
