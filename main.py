@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import base64
 import random
@@ -1374,24 +1375,39 @@ async def generate_kurdish_tts_audio(request: TTSRequest):
     if not edge_tts:
         raise HTTPException(status_code=500, detail="edge-tts library is not installed")
     try:
-        raw = request.text.strip()[:1500]
-        # ڕێکخستنی پیتە کوردییەکان بۆ ئەوەی دەنگە دەمارییەکە بە تەواوی کوردی و بێ زاراوەی عەرەبی بیخوێنێتەوە
-        mapped = (
-            raw.replace("ڵ", "ل")
-               .replace("ڕ", "ر")
-               .replace("ڤ", "و")
-               .replace("ۆ", "و")
-               .replace("ێ", "ی")
-               .replace("KurdAI Pro", "کورد ئەی ئای پرۆ")
-               .replace("KurdAI", "کورد ئەی ئای")
-        )
-        # بەکارهێنانی دەنگی دەماریی مۆدێرنی پیاو بە تەڵەفوزی نەرمی ئاریایی/کوردی
-        communicate = edge_tts.Communicate(mapped, "fa-IR-FaridNeural", rate="-3%", pitch="-2Hz")
+        raw = request.text.strip()[:2000]
+        # پاککردنەوە و ڕێکخستنی دەق بە دەنگی دەماریی شاهانەی مێینە بۆ کوردی سۆرانی
+        # پاراستنی تەواوی پیتە ڕەسەنەکانی کوردی سۆرانی (ێ، ۆ، ڤ، ڵ، ڕ، ژ، چ، پ، گ) بێ تێکدان
+        clean_text = raw
+        clean_text = re.sub(r'```[\s\S]*?```', ' ', clean_text)
+        clean_text = re.sub(r'`.*?`', ' ', clean_text)
+        clean_text = re.sub(r'https?://\S+', ' ', clean_text)
+        clean_text = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]', ' ', clean_text)
+
+        # خوێندنەوەی دروستی وشە و زاراوە تەکنیکییەکان بە فۆنەتیکی دەوڵەمەندی کوردی
+        replacements = [
+            ("KurdAI Pro", "کورد ئەی ئای پرۆ"),
+            ("KurdAI", "کورد ئەی ئای"),
+            ("AI", "ئەی ئای"),
+            ("PDF", "پی دی ئێف"),
+            ("OCR", "ئۆ سی ئاڕ"),
+            ("GPT", "جی پی تی"),
+            ("API", "ئەی پی ئای"),
+        ]
+        for src, dst in replacements:
+            clean_text = clean_text.replace(src, dst)
+
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+        if not clean_text:
+            clean_text = "هیچ دەقێک بەردەست نییە بۆ خوێندنەوە"
+
+        # 👑 دەنگی دەماریی شاهانەی مێینە (Dilara Neural) بە لەفزی شیرین و ڕەسەنی کوردی سۆرانی
+        communicate = edge_tts.Communicate(clean_text, "fa-IR-DilaraNeural", rate="+0%", pitch="+0Hz")
         audio_data = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 audio_data.extend(chunk["data"])
-        
+
         return StreamingResponse(BytesIO(audio_data), media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە دروستکردنی دەنگ: {str(e)}")

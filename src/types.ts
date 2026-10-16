@@ -24,24 +24,14 @@ export interface Message {
   timestamp: Date;
 }
 
-// 👩‍🦰 دەنگی دەماریی مێینەی کوردی (Neural Kurdish Female Voice)
-let activeVoiceAudioContext: any = null;
-let activeVoiceSourceNode: any = null;
+// 👑 دەنگی دەماریی مێینەی شاهانەی کوردی (Royal Kurdish Neural Female Voice)
 let activeStandardAudio: HTMLAudioElement | null = null;
 
 export const stopKurdishFemaleVoice = () => {
   try {
-    if (activeVoiceSourceNode) {
-      activeVoiceSourceNode.stop();
-      activeVoiceSourceNode.disconnect();
-      activeVoiceSourceNode = null;
-    }
-    if (activeVoiceAudioContext && activeVoiceAudioContext.state !== 'closed') {
-      activeVoiceAudioContext.close();
-      activeVoiceAudioContext = null;
-    }
     if (activeStandardAudio) {
       activeStandardAudio.pause();
+      activeStandardAudio.currentTime = 0;
       activeStandardAudio = null;
     }
     if ('speechSynthesis' in window) {
@@ -52,16 +42,27 @@ export const stopKurdishFemaleVoice = () => {
   }
 };
 
-// 👩‍🦰 خاوێنکردنەوەی دەقی کوردی بەبێ دەستکاریکردنی پیتە ڕەسەنەکان
+// 👑 خاوێنکردنەوە و ڕێکخستنی دەقی کوردی سۆرانی بۆ خوێندنەوەی پاراو و شاهانە
 export const cleanKurdishTextForTTS = (text: string): string => {
   if (!text) return '';
   return text
-    // لابردنی کۆد، لینک، ئیمۆجی و هێماکانی مارکداون
+    // لابردنی بلۆکی کۆد و کۆدی ناو دێڕ
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`.*?`/g, ' ')
+    // لابردنی لینکەکان
     .replace(/https?:\/\/\S+/g, ' ')
+    // لابردنی هێماکانی مارکداون و خاڵبەندی بێسوود
     .replace(/[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]/g, ' ')
+    // لابردنی ئیمۆجییەکان
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, ' ')
+    // دەربڕینی ڕوونی ناوە تەکنیکی و براندەکان بە کوردی
+    .replace(/\bKurdAI Pro\b/gi, 'کورد ئەی ئای پرۆ')
+    .replace(/\bKurdAI\b/gi, 'کورد ئەی ئای')
+    .replace(/\bAI\b/g, 'ئەی ئای')
+    .replace(/\bPDF\b/gi, 'پی دی ئێف')
+    .replace(/\bOCR\b/gi, 'ئۆ سی ئاڕ')
+    .replace(/\bGPT\b/gi, 'جی پی تی')
+    .replace(/\bAPI\b/gi, 'ئەی پی ئای')
     .replace(/[\r\n]+/g, ' . ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -75,75 +76,24 @@ export const playKurdishFemaleVoice = async (
   stopKurdishFemaleVoice();
 
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioCtx) {
-      const ctx = new AudioCtx();
-      activeVoiceAudioContext = ctx;
-
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      activeVoiceSourceNode = source;
-
-      // 👩‍🦰 خێرایی تەواو لەسەرخۆ و ڕەوان (١.٠٥ بۆ دەربڕینی ڕوونی هەموو وشەکان)
-      source.playbackRate.value = 1.05;
-
-      // ١. فلتەری لابردنی تۆنی ئەستووری پیاوانە (Highpass)
-      const highpass = ctx.createBiquadFilter();
-      highpass.type = 'highpass';
-      highpass.frequency.value = 160;
-
-      // ٢. ڕوونکردنەوەی تۆنی دەربڕینی دەنگ (Female Vocal Formant Band)
-      const peaking = ctx.createBiquadFilter();
-      peaking.type = 'peaking';
-      peaking.frequency.value = 2800;
-      peaking.Q.value = 0.9;
-      peaking.gain.value = 3.2;
-
-      // ٣. بریقە و شەفافیەتی ستۆدیۆ (Highshelf Clarity)
-      const highshelf = ctx.createBiquadFilter();
-      highshelf.type = 'highshelf';
-      highshelf.frequency.value = 6500;
-      highshelf.gain.value = 2.0;
-
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 1.2;
-
-      source.connect(highpass);
-      highpass.connect(peaking);
-      peaking.connect(highshelf);
-      highshelf.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      source.onended = () => {
-        stopKurdishFemaleVoice();
-        onEnded();
-      };
-
-      source.start(0);
-      return;
-    }
-  } catch (err) {
-    console.warn("Web Audio female synthesis error, falling to HTMLAudioElement:", err);
-  }
-
-  // ئەگەر وێب ئەودیۆ کارینەکرد
-  try {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
     activeStandardAudio = audio;
-    (audio as any).preservesPitch = false;
-    audio.playbackRate = 1.05;
 
     audio.onended = () => {
-      activeStandardAudio = null;
+      URL.revokeObjectURL(audioUrl);
+      if (activeStandardAudio === audio) {
+        activeStandardAudio = null;
+      }
       onEnded();
     };
 
-    audio.onerror = () => {
-      activeStandardAudio = null;
+    audio.onerror = (e) => {
+      URL.revokeObjectURL(audioUrl);
+      if (activeStandardAudio === audio) {
+        activeStandardAudio = null;
+      }
+      console.error("Audio playback error:", e);
       onError();
     };
 
@@ -169,54 +119,54 @@ export const fetchAndPlayKurdishFemaleVoice = async (
 
   onStart();
 
-  const cleanText = cleanKurdishTextForTTS(text).slice(0, 700);
-
-  // ١. ناردنی دەقی کوردی تەواو و ڕەسەن بۆ سێرڤەری سەرەکی
-  try {
-    const res = await fetch('https://hedihashm-kurdai-chat-brain.hf.space/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText })
-    });
-
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob && blob.size > 200) {
-        await playKurdishFemaleVoice(blob, onEnded, onError);
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("Primary Kurdish TTS failed, trying direct neural female stream:", e);
+  const cleanText = cleanKurdishTextForTTS(text).slice(0, 1500);
+  if (!cleanText) {
+    onError();
+    return;
   }
 
-  // ٢. ئەگەر سێرڤەر وەڵامی نەدایەوە، ستریمی دەماری ڕاستەوخۆ دەخوێنێتەوە
-  try {
-    const backupUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=ar&client=tw-ob`;
-    const res = await fetch(backupUrl);
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob && blob.size > 200) {
-        await playKurdishFemaleVoice(blob, onEnded, onError);
-        return;
+  // ١. هەوڵدان لەگەڵ سێرڤەری سەرەکی بە دەنگی دەماریی شاهانەی مێینە (Dilara Neural)
+  const endpoints = [
+    'https://hedihashm-kurdai-chat-brain.hf.space/api/tts',
+    '/api/tts',
+    'http://localhost:8000/api/tts'
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText })
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob && blob.size > 200) {
+          await playKurdishFemaleVoice(blob, onEnded, onError);
+          return;
+        }
       }
+    } catch (e) {
+      // بەردەوامبە بۆ سێرڤەری دواتر ئەگەر لە ئۆفلاین یان هێواش بوو
     }
-  } catch (e) {
-    console.warn("Secondary stream failed, using Web Speech API female voice:", e);
   }
 
-  // ٣. سیستەمی خۆماڵی لەناو وێبگەڕدا (Browser Native Speech Synthesis)
+  // ٢. سیستەمی جێگرەوەی وێبگەڕ (Web Speech API) بە دەنگی مێینەی نەرم و لەسەرخۆ
   try {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.pitch = 1.25;
-      utterance.rate = 0.90;
+      utterance.pitch = 1.0;
+      utterance.rate = 0.92;
 
       const voices = window.speechSynthesis.getVoices();
+      // گەڕان بە دوای دەنگی کوردی، پاشان فارسی/ئاریایی مێینە
       const femaleVoice = voices.find(v => 
-        (v.lang.startsWith('ar') || v.lang.startsWith('fa') || v.lang.startsWith('ku')) &&
-        (/female|salma|zariyah|fatima|laila|maryam|sara|zeina|hoda|rana|sana|noura|reem|mouna|amal|iman|damayanti/i.test(v.name))
-      ) || voices.find(v => v.lang.startsWith('ar') || v.lang.startsWith('fa') || v.lang.startsWith('ku'));
+        (v.lang.startsWith('ku') || v.lang.startsWith('ckb') || v.lang.startsWith('kmr'))
+      ) || voices.find(v => 
+        (v.lang.startsWith('fa') || v.lang.startsWith('ar')) &&
+        (/dilara|female|woman|salma|zariyah|fatima|laila|maryam|sara|zeina|hoda|rana|sana|noura|reem|mouna|amal|iman/i.test(v.name))
+      ) || voices.find(v => v.lang.startsWith('fa') || v.lang.startsWith('ar'));
 
       if (femaleVoice) {
         utterance.voice = femaleVoice;
@@ -229,7 +179,7 @@ export const fetchAndPlayKurdishFemaleVoice = async (
       return;
     }
   } catch (err) {
-    console.error("All female TTS attempts failed:", err);
+    console.error("Browser TTS fallback failed:", err);
   }
 
   onError();

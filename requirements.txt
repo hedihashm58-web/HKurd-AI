@@ -3,7 +3,7 @@ uvicorn
 google-generativeai
 pydantic
 gunicorn
-edge-tts
+edge-tts>=7.3.1
 requests
 python-dotenv
 firebase-admin
