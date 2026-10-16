@@ -46,7 +46,11 @@ export const stopKurdishFemaleVoice = () => {
 export const cleanKurdishTextForTTS = (text: string): string => {
   if (!text) return '';
   return text
-    // لابردنی بلۆکی کۆد و کۆدی ناو دێڕ
+    // ١. ڕێکخستنی جۆرەکانی کیبۆرد بۆ یونیکۆدی دروستی کوردی
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/ھ/g, 'ه')
+    // ٢. لابردنی بلۆکی کۆد و کۆدی ناو دێڕ
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`.*?`/g, ' ')
     // لابردنی لینکەکان
@@ -55,6 +59,17 @@ export const cleanKurdishTextForTTS = (text: string): string => {
     .replace(/[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]/g, ' ')
     // لابردنی ئیمۆجییەکان
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, ' ')
+    // ٣. ڕێکخستنی وشە لێکدراوەکان بۆ تەڵەفوزی زۆر ڕوون لە زمانی کوردیدا
+    .replace(/\bدەستخۆش\b/g, 'دەست خۆش')
+    .replace(/\bدەستتخۆش\b/g, 'دەستت خۆش')
+    .replace(/\bڕۆژباش\b/g, 'ڕۆژ باش')
+    .replace(/\bشەوباش\b/g, 'شەو باش')
+    .replace(/\bبەیانیباش\b/g, 'بەیانی باش')
+    .replace(/\bسەرکەوتووبیت\b/g, 'سەرکەوتوو بیت')
+    .replace(/\bسەرکەوتووبن\b/g, 'سەرکەوتوو بن')
+    .replace(/\bخۆشحاڵم\b/g, 'خۆش حاڵم')
+    .replace(/\bهەروەها\b/g, 'هەر وەها')
+    .replace(/\bلێرەدا\b/g, 'لێرە دا')
     // دەربڕینی ڕوونی ناوە تەکنیکی و براندەکان بە کوردی
     .replace(/\bKurdAI Pro\b/gi, 'کورد ئەی ئای پرۆ')
     .replace(/\bKurdAI\b/gi, 'کورد ئەی ئای')
