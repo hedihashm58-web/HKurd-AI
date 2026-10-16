@@ -593,11 +593,6 @@ const ChatInterface: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="font-bold text-zinc-200">KurdAI 2.5 Flash</span>
-            </div>
-
             <button 
               onClick={handleClearCurrentChat}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-900/80 transition-all text-xs"
