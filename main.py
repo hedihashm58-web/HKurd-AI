@@ -1365,6 +1365,8 @@ async def payment_success_endpoint(request: PaymentSuccessRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خەتا لە کاراکردنی پریمیم: {str(e)}")
 
+KURDISH_TTS_API_KEY = os.getenv("KURDISH_TTS_API_KEY", "0b21c07db21d693ee3c85b3f056eef7b60f77c6a")
+
 class TTSRequest(BaseModel):
     text: str
 
@@ -1372,63 +1374,76 @@ class TTSRequest(BaseModel):
 async def generate_kurdish_tts_audio(request: TTSRequest):
     if not request.text or not request.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
-    if not edge_tts:
-        raise HTTPException(status_code=500, detail="edge-tts library is not installed")
-    try:
-        raw = request.text.strip()[:2000]
-        # ١. ڕێکخستنی یونیکۆدە جیاوازەکانی کیبۆرد (عەرەبی و فارسی بۆ کوردی)
-        clean_text = raw.replace('ي', 'ی').replace('ك', 'ک').replace('ھ', 'ه')
+    
+    raw = request.text.strip()[:1500]
 
-        # ٢. پاککردنەوەی کۆد و هێما ناپێویستەکان
-        clean_text = re.sub(r'```[\s\S]*?```', ' ', clean_text)
-        clean_text = re.sub(r'`.*?`', ' ', clean_text)
-        clean_text = re.sub(r'https?://\S+', ' ', clean_text)
-        clean_text = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]', ' ', clean_text)
+    # ١. ڕێکخستنی یونیکۆدە جیاوازەکانی کیبۆرد (عەرەبی و فارسی بۆ کوردی)
+    clean_text = raw.replace('ي', 'ی').replace('ك', 'ک').replace('ھ', 'ه')
 
-        # ٣. جیاکردنەوەی وشە لێکدراوەکان بۆ دەربڕینێکی زۆر ڕوون و تەواو سۆرانی
-        compounds = [
-            ("KurdAI Pro", "کورد ئەی ئای پرۆ"),
-            ("KurdAI", "کورد ئەی ئای"),
-            ("AI", "ئەی ئای"),
-            ("PDF", "پی دی ئێف"),
-            ("OCR", "ئۆ سی ئاڕ"),
-            ("GPT", "جی پی تی"),
-            ("API", "ئەی پی ئای"),
-            ("دەستخۆش", "دەست خۆش"),
-            ("دەستتخۆش", "دەستت خۆش"),
-            ("ڕۆژباش", "ڕۆژ باش"),
-            ("شەوباش", "شەو باش"),
-            ("بەیانیباش", "بەیانی باش"),
-            ("سەرکەوتووبیت", "سەرکەوتوو بیت"),
-            ("سەرکەوتووبن", "سەرکەوتوو بن"),
-            ("خۆشحاڵم", "خۆش حاڵم"),
-            ("هەروەها", "هەر وەها"),
-            ("لێرەدا", "لێرە دا"),
-        ]
-        for src, dst in compounds:
-            clean_text = re.sub(rf'\b{re.escape(src)}\b', dst, clean_text)
+    # ٢. پاککردنەوەی کۆد، لینک و هێما نەخوێندراوەکان
+    clean_text = re.sub(r'```[\s\S]*?```', ' ', clean_text)
+    clean_text = re.sub(r'`.*?`', ' ', clean_text)
+    clean_text = re.sub(r'https?://\S+', ' ', clean_text)
+    clean_text = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\=\+\-\\\/\|\~]', ' ', clean_text)
 
-        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-        if not clean_text:
-            clean_text = "هیچ دەقێک بەردەست نییە بۆ خوێندنەوە"
+    # ٣. ڕێکخستنی ناوە بیانی و تەکنیکییەکان بە فۆنەتیکی کوردی
+    compounds = [
+        ("KurdAI Pro", "کورد ئەی ئای پرۆ"),
+        ("KurdAI", "کورد ئەی ئای"),
+        ("AI", "ئەی ئای"),
+        ("PDF", "پی دی ئێف"),
+        ("OCR", "ئۆ سی ئاڕ"),
+        ("GPT", "جی پی تی"),
+        ("API", "ئەی پی ئای"),
+    ]
+    for src, dst in compounds:
+        clean_text = re.sub(rf'\b{re.escape(src)}\b', dst, clean_text)
 
-        # 👑 دەنگی دەماریی شاهانەی مێینە (Dilara Neural)
-        # خێرایی -7% بۆ ئەوەی هەر وشە و بزوێنێک زۆر بە ڕوونی و بێ پەلەکردن دەرببڕدرێت
-        communicate = edge_tts.Communicate(
-            clean_text, 
-            "fa-IR-DilaraNeural", 
-            rate="-7%", 
-            pitch="+0Hz",
-            volume="+20%"
-        )
-        audio_data = bytearray()
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data.extend(chunk["data"])
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+    if not clean_text:
+        clean_text = "هیچ دەقێک بەردەست نییە بۆ خوێندنەوە"
 
-        return StreamingResponse(BytesIO(audio_data), media_type="audio/mpeg")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"خەتا لە دروستکردنی دەنگ: {str(e)}")
+    # 👑 هەنگاوی ١: دەنگی ١٠٠٪ ڕەسەنی کوردی سۆرانی لە ڕێگەی KurdishTTS API (Female 1 - sorani_986)
+    if KURDISH_TTS_API_KEY:
+        try:
+            k_res = requests.post(
+                "https://www.kurdishtts.com/api/tts-proxy",
+                json={
+                    "speaker_id": "sorani_986",
+                    "model_version": "v4",
+                    "text": clean_text
+                },
+                headers={
+                    "x-api-key": KURDISH_TTS_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout=15
+            )
+            if k_res.status_code == 200 and len(k_res.content) > 500:
+                return StreamingResponse(BytesIO(k_res.content), media_type="audio/wav")
+        except Exception as k_err:
+            print("⚠️ KurdishTTS connection issue, switching to fallback:", k_err)
+
+    # 👑 هەنگاوی ٢ (جێگرەوە): ئەگەر KurdishTTS کێشەی پەیوەندی هەبوو، ستریمی دەماری خوێندنەوە
+    if edge_tts:
+        try:
+            communicate = edge_tts.Communicate(
+                clean_text, 
+                "fa-IR-DilaraNeural", 
+                rate="-7%", 
+                pitch="+0Hz",
+                volume="+20%"
+            )
+            audio_data = bytearray()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.extend(chunk["data"])
+
+            return StreamingResponse(BytesIO(audio_data), media_type="audio/mpeg")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"خەتا لە دروستکردنی دەنگ: {str(e)}")
+
+    raise HTTPException(status_code=500, detail="هیچ سێرڤەرێکی دەنگ بەردەست نییە")
 
 @app.get("/")
 def read_root():
