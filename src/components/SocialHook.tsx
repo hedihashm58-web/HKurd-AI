@@ -2,6 +2,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { auth } from '../firebase';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface SocialHookProps {
   language: 'ku' | 'ar';
@@ -12,6 +13,7 @@ const SocialHook: React.FC<SocialHookProps> = ({ language }) => {
   const [generatedPost, setGeneratedPost] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGeneratePost = async (e: React.FormEvent) => {
@@ -68,6 +70,22 @@ const SocialHook: React.FC<SocialHookProps> = ({ language }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePlayAudio = async () => {
+    if (!generatedPost) return;
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    await fetchAndPlayKurdishFemaleVoice(
+      generatedPost,
+      () => setIsPlayingAudio(true),
+      () => setIsPlayingAudio(false),
+      () => setIsPlayingAudio(false)
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 px-3" dir="rtl">
       
@@ -120,12 +138,26 @@ const SocialHook: React.FC<SocialHookProps> = ({ language }) => {
             </div>
             
             {generatedPost && !loading && (
-              <button
-                onClick={copyToClipboard}
-                className="absolute bottom-3 left-3 px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 rounded-lg transition-all shadow-md"
-              >
-                {copied ? "✓ کۆپی کرا" : "📋 کۆپی پۆست"}
-              </button>
+              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 rounded-lg transition-all shadow-md"
+                >
+                  {copied ? "✓ کۆپی کرا" : "📋 کۆپی پۆست"}
+                </button>
+
+                <button
+                  onClick={handlePlayAudio}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all shadow-md border ${
+                    isPlayingAudio
+                      ? 'bg-rose-950 border-rose-500/50 text-rose-300 animate-pulse'
+                      : 'bg-indigo-950/70 hover:bg-indigo-900 border-indigo-700/50 text-indigo-300'
+                  }`}
+                  title="خوێندنەوەی پۆست بە دەنگی کوردی"
+                >
+                  <span>{isPlayingAudio ? "⏹️ وەستاندن" : "🔊 گوێگرتن"}</span>
+                </button>
+              </div>
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface KurdishOCRProps {
   language?: 'ku' | 'ar';
@@ -11,6 +12,7 @@ const KurdishOCR: React.FC<KurdishOCRProps> = ({ language = 'ku' }) => {
   const [extractedText, setExtractedText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +125,22 @@ const KurdishOCR: React.FC<KurdishOCRProps> = ({ language = 'ku' }) => {
     navigator.clipboard.writeText(extractedText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePlayAudio = async () => {
+    if (!extractedText) return;
+    if (isPlayingAudio) {
+      stopKurdishFemaleVoice();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    await fetchAndPlayKurdishFemaleVoice(
+      extractedText,
+      () => setIsPlayingAudio(true),
+      () => setIsPlayingAudio(false),
+      () => setIsPlayingAudio(false)
+    );
   };
 
   return (
@@ -275,15 +293,30 @@ const KurdishOCR: React.FC<KurdishOCRProps> = ({ language = 'ku' }) => {
             )}
           </div>
 
-          {/* دوگمەی کۆپیکردن */}
+          {/* دوگمەی کۆپیکردن و خوێندنەوەی دەنگ */}
           {extractedText && !loading && (
-            <button
-              onClick={copyToClipboard}
-              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-md active:scale-98 border border-slate-700"
-            >
-              <span>{copied ? "✓" : "📋"}</span>
-              <span>{copied ? "کۆپی کرا لە کلیپبۆرد" : "کۆپیکردنی دەقەکە"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyToClipboard}
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-md active:scale-98 border border-slate-700"
+              >
+                <span>{copied ? "✓" : "📋"}</span>
+                <span>{copied ? "کۆپی کرا لە کلیپبۆرد" : "کۆپیکردنی دەقەکە"}</span>
+              </button>
+
+              <button
+                onClick={handlePlayAudio}
+                className={`px-4 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-md active:scale-98 border ${
+                  isPlayingAudio
+                    ? 'bg-rose-950/70 border-rose-500/50 text-rose-300 animate-pulse'
+                    : 'bg-emerald-800/60 hover:bg-emerald-700 border-emerald-600/50 text-white'
+                }`}
+                title="خوێندنەوەی دەقەکە بە دەنگی کوردی"
+              >
+                <span>{isPlayingAudio ? "⏹️" : "🔊"}</span>
+                <span>{isPlayingAudio ? "وەستاندن" : "خوێندنەوە"}</span>
+              </button>
+            </div>
           )}
 
         </div>
