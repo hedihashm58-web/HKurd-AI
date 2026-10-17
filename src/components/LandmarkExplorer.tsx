@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 const initialCitiesData: any = {
   slemani: {
@@ -757,6 +758,46 @@ const LandmarkExplorer: React.FC<LandmarkExplorerProps> = ({ onCityChange, langu
   const [activeItem, setActiveItem] = useState<{ name: string; name_ar: string; info: string; info_ar: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'neighborhoods' | 'districts' | 'tourism'>('neighborhoods');
+  const [isSpeakingCity, setIsSpeakingCity] = useState(false);
+  const [isSpeakingItem, setIsSpeakingItem] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      stopKurdishFemaleVoice();
+    };
+  }, []);
+
+  const handleSpeakCity = (text: string) => {
+    if (isSpeakingCity) {
+      stopKurdishFemaleVoice();
+      setIsSpeakingCity(false);
+      return;
+    }
+    stopKurdishFemaleVoice();
+    setIsSpeakingItem(false);
+    fetchAndPlayKurdishFemaleVoice(
+      text,
+      () => setIsSpeakingCity(true),
+      () => setIsSpeakingCity(false),
+      () => setIsSpeakingCity(false)
+    );
+  };
+
+  const handleSpeakItem = (text: string) => {
+    if (isSpeakingItem) {
+      stopKurdishFemaleVoice();
+      setIsSpeakingItem(false);
+      return;
+    }
+    stopKurdishFemaleVoice();
+    setIsSpeakingCity(false);
+    fetchAndPlayKurdishFemaleVoice(
+      text,
+      () => setIsSpeakingItem(true),
+      () => setIsSpeakingItem(false),
+      () => setIsSpeakingItem(false)
+    );
+  };
 
   const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
   const isAdmin = currentUserEmail === 'hedihashm58@gmail.com' || currentUserEmail === 'hedikurdaipro@admin.com';
@@ -897,7 +938,27 @@ const LandmarkExplorer: React.FC<LandmarkExplorerProps> = ({ onCityChange, langu
           
           <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 border-b border-slate-800/40 pb-6">
             <div className="flex-1 space-y-4 text-right">
-              <h2 className="text-3xl sm:text-4xl font-black text-white">{language === 'ku' ? citiesData[selectedCity].name : citiesData[selectedCity].name_ar}</h2>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-3xl sm:text-4xl font-black text-white">{language === 'ku' ? citiesData[selectedCity].name : citiesData[selectedCity].name_ar}</h2>
+                <button
+                  type="button"
+                  onClick={() => handleSpeakCity(citiesData[selectedCity].name + '. ' + (language === 'ku' ? citiesData[selectedCity].description : citiesData[selectedCity].description_ar))}
+                  className="px-3.5 py-1.5 rounded-full bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95"
+                  title="گوێگرتن بە دەنگی کوردی"
+                >
+                  {isSpeakingCity ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
+                      <span>ڕاگرتن</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔊</span>
+                      <span>گوێگرتن بە دەنگ</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <p className="text-slate-300 leading-relaxed text-base sm:text-lg">{language === 'ku' ? citiesData[selectedCity].description : citiesData[selectedCity].description_ar}</p>
             </div>
             <div className="w-full md:w-auto shrink-0 flex justify-center">
@@ -928,17 +989,36 @@ const LandmarkExplorer: React.FC<LandmarkExplorerProps> = ({ onCityChange, langu
 
       {activeItem && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setActiveItem(null)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => { stopKurdishFemaleVoice(); setIsSpeakingItem(false); setActiveItem(null); }}></div>
           <div className="relative bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl text-right animate-in zoom-in-95 duration-300 flex flex-col max-h-[85vh]">
             <div className="flex justify-between items-center pb-4 border-b border-slate-800 shrink-0">
-              <h5 className="text-xl sm:text-2xl font-black text-indigo-400">{language === 'ku' ? activeItem.name : (activeItem.name_ar || activeItem.name)}</h5>
-              <button type="button" onClick={() => setActiveItem(null)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm sm:text-lg font-bold shadow-md">✕</button>
+              <div className="flex items-center gap-3">
+                <h5 className="text-xl sm:text-2xl font-black text-indigo-400">{language === 'ku' ? activeItem.name : (activeItem.name_ar || activeItem.name)}</h5>
+                <button
+                  type="button"
+                  onClick={() => handleSpeakItem(activeItem.name + '. ' + (language === 'ku' ? activeItem.info : (activeItem.info_ar || activeItem.info)))}
+                  className="px-3 py-1.5 rounded-full bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-200 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95"
+                >
+                  {isSpeakingItem ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
+                      <span>ڕاگرتن</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔊</span>
+                      <span>گوێگرتن بە دەنگ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <button type="button" onClick={() => { stopKurdishFemaleVoice(); setIsSpeakingItem(false); setActiveItem(null); }} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm sm:text-lg font-bold shadow-md">✕</button>
             </div>
             <div className="mt-5 overflow-y-auto pr-2 text-slate-200 leading-7 sm:leading-8 text-sm sm:text-[16px] font-medium max-h-[50vh] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full">
               <p className="whitespace-pre-line text-justify">{language === 'ku' ? activeItem.info : (activeItem.info_ar || activeItem.info)}</p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 shrink-0 text-center">
-              <button type="button" onClick={() => setActiveItem(null)} className="px-6 py-2.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all rounded-full font-black text-xs">{language === 'ku' ? 'داخستنی زانیاری' : 'إغلاق المعلومات'}</button>
+              <button type="button" onClick={() => { stopKurdishFemaleVoice(); setIsSpeakingItem(false); setActiveItem(null); }} className="px-6 py-2.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all rounded-full font-black text-xs">{language === 'ku' ? 'داخستنی زانیاری' : 'إغلاق المعلومات'}</button>
             </div>
           </div>
         </div>

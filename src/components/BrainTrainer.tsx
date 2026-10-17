@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { fetchAndPlayKurdishFemaleVoice, stopKurdishFemaleVoice } from '../types';
 
 interface BrainTrainerProps {
   language?: 'ku' | 'ar';
@@ -30,6 +31,29 @@ const BrainTrainer: React.FC<BrainTrainerProps> = ({ language = 'ku' }) => {
   const [knowledgeList, setKnowledgeList] = useState<KnowledgeItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'add' | 'list'>('add');
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopKurdishFemaleVoice();
+    };
+  }, []);
+
+  const handleSpeak = (item: KnowledgeItem) => {
+    if (speakingId === item.id) {
+      stopKurdishFemaleVoice();
+      setSpeakingId(null);
+      return;
+    }
+    stopKurdishFemaleVoice();
+    const textToSpeak = `${item.topic}. ${item.content}`;
+    fetchAndPlayKurdishFemaleVoice(
+      textToSpeak,
+      () => setSpeakingId(item.id),
+      () => setSpeakingId(null),
+      () => setSpeakingId(null)
+    );
+  };
 
   const currentUserEmail = auth.currentUser?.email?.toLowerCase().trim();
   const isAdmin = currentUserEmail === 'hedihashm58@gmail.com';
@@ -322,14 +346,35 @@ const BrainTrainer: React.FC<BrainTrainerProps> = ({ language = 'ku' }) => {
                       <span className="text-[10px] text-zinc-500 font-mono">سەرچاوە: {item.source || 'ئەدمین'}</span>
                     </div>
 
-                    {isAdmin && (
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => handleDelete(item.id, item.topic)}
-                        className="px-2.5 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800/60 text-red-300 rounded-lg text-[11px] font-bold transition-all active:scale-95"
+                        type="button"
+                        onClick={() => handleSpeak(item)}
+                        className="px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 rounded-lg text-[11px] font-bold transition-all active:scale-95 flex items-center gap-1"
+                        title="گوێگرتن بە دەنگی کوردی"
                       >
-                        🗑️ سڕینەوە
+                        {speakingId === item.id ? (
+                          <>
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                            <span>ڕاگرتن</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🔊</span>
+                            <span>گوێگرتن</span>
+                          </>
+                        )}
                       </button>
-                    )}
+
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(item.id, item.topic)}
+                          className="px-2.5 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800/60 text-red-300 rounded-lg text-[11px] font-bold transition-all active:scale-95"
+                        >
+                          🗑️ سڕینەوە
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap font-medium">

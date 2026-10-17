@@ -1412,7 +1412,7 @@ async def generate_kurdish_tts_audio(request: TTSRequest):
                     "speaker_id": "sorani_986",
                     "model_version": "v4",
                     "text": clean_text,
-                    "speed": 1.12
+                    "speed": 1.18
                 },
                 headers={
                     "x-api-key": KURDISH_TTS_API_KEY,
@@ -1431,7 +1431,7 @@ async def generate_kurdish_tts_audio(request: TTSRequest):
             communicate = edge_tts.Communicate(
                 clean_text, 
                 "fa-IR-DilaraNeural", 
-                rate="+3%", 
+                rate="+8%", 
                 pitch="+0Hz",
                 volume="+20%"
             )

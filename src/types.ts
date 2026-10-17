@@ -93,6 +93,7 @@ export const playKurdishFemaleVoice = async (
   try {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
+    audio.playbackRate = 1.05; // ⚡ خوێندنەوەی کەمێک خێراتر و پاراو وەک داواکرا
     activeStandardAudio = audio;
 
     audio.onended = () => {
@@ -172,7 +173,7 @@ export const fetchAndPlayKurdishFemaleVoice = async (
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.pitch = 1.0;
-      utterance.rate = 0.92;
+      utterance.rate = 1.05;
 
       const voices = window.speechSynthesis.getVoices();
       // گەڕان بە دوای دەنگی کوردی، پاشان فارسی/ئاریایی مێینە
