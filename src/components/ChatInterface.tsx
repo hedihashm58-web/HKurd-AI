@@ -499,7 +499,7 @@ const ChatInterface: React.FC = () => {
         // ناردنی کورتەی گفتوگۆی پێشوو بۆ پاراستنی هۆشیاری مۆدێل بەبێ درێژدادڕی
         const pastContext = realMessages.slice(-5, -1);
         pastContext.forEach(msg => {
-          const cleanedText = msg.text.length > 300 ? msg.text.slice(0, 300) + '...' : msg.text;
+          const cleanedText = msg.text.length > 800 ? msg.text.slice(0, 800) + '...' : msg.text;
           conversationPayload += `${msg.role === 'user' ? 'بەکارهێنەر' : 'وەڵام'}: ${cleanedText}\n`;
         });
         conversationPayload += `\nپرسیاری ئێستای بەکارهێنەر: ${currentInput}`;
