@@ -191,6 +191,7 @@ const ChatInterface: React.FC = () => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const [loadingAudioIndex, setLoadingAudioIndex] = useState<number | null>(null);
   const [likesState, setLikesState] = useState<Record<number, 'like' | 'dislike' | null>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -348,30 +349,40 @@ const ChatInterface: React.FC = () => {
   };
 
   const handleSpeak = async (rawText: string, index: number) => {
-    if (speakingIndex === index) {
+    if (speakingIndex === index || loadingAudioIndex === index) {
       stopKurdishFemaleVoice();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
       isPlayingAudioRef.current = false;
       setSpeakingIndex(null);
+      setLoadingAudioIndex(null);
       return;
     }
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    stopKurdishFemaleVoice();
 
+    setSpeakingIndex(null);
+    setLoadingAudioIndex(index);
     isPlayingAudioRef.current = true;
+
     await fetchAndPlayKurdishFemaleVoice(
       rawText,
-      () => setSpeakingIndex(index),
+      () => {
+        setLoadingAudioIndex(null);
+        setSpeakingIndex(index);
+      },
       () => {
         setSpeakingIndex(null);
+        setLoadingAudioIndex(null);
         isPlayingAudioRef.current = false;
       },
       () => {
         setSpeakingIndex(null);
+        setLoadingAudioIndex(null);
         isPlayingAudioRef.current = false;
       }
     );
@@ -646,14 +657,27 @@ const ChatInterface: React.FC = () => {
                           className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 active:scale-95 text-xs ${
                             speakingIndex === idx 
                               ? 'text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)] font-black' 
+                              : loadingAudioIndex === idx
+                              ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30 animate-pulse font-bold'
                               : 'text-zinc-400 hover:text-white hover:bg-zinc-800 border border-transparent hover:border-zinc-700'
                           }`}
-                          title={speakingIndex === idx ? "وەستاندنی دەنگ" : "خوێندنەوەی دەقی وەڵام بە کوردی"}
+                          title={
+                            speakingIndex === idx 
+                              ? "وەستاندنی دەنگ" 
+                              : loadingAudioIndex === idx 
+                              ? "خەریکی ئامادەکردنی دەنگە..." 
+                              : "خوێندنەوەی دەقی وەڵام بە کوردی"
+                          }
                         >
                           {speakingIndex === idx ? (
                             <>
                               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
                               <span className="font-bold text-red-300">⏹️ وەستاندن</span>
+                            </>
+                          ) : loadingAudioIndex === idx ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></span>
+                              <span className="font-bold text-amber-300">خەریکی ئامادەکردنە...</span>
                             </>
                           ) : (
                             <>

@@ -94,6 +94,9 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 # 👑 سیستەمی دژە سپام (Rate Limiting)
 user_request_timestamps = {}
 
+# 👑 کەشی مێمۆری بۆ خوێندنەوەی دەنگ (Instant Audio Cache)
+TTS_AUDIO_CACHE: dict[str, bytes] = {}
+
 def check_rate_limit(email: str):
     if email and email.lower().strip() == ADMIN_EMAIL.lower().strip():
         return
@@ -1393,82 +1396,46 @@ async def generate_kurdish_tts_audio(request: TTSRequest):
     if not clean_text:
         clean_text = "هیچ دەقێک بەردەست نییە بۆ خوێندنەوە"
 
+    # پشکنینی کەشی مێمۆری بۆ وەڵامدانەوەی دەستبەجێ (0 میلی چرکە)
+    if clean_text in TTS_AUDIO_CACHE:
+        return StreamingResponse(BytesIO(TTS_AUDIO_CACHE[clean_text]), media_type="audio/wav")
+
     # 👑 هەنگاوی ١: دەنگی ١٠٠٪ ڕەسەنی کوردی سۆرانی لە ڕێگەی KurdishTTS API (Female 1 - sorani_986)
     if KURDISH_TTS_API_KEY:
         try:
-            # دابەشکردنی دەق بەپێی ڕستەکان (سێرڤەری کوردی ئەوپەڕی ٥٠٠ پیت وەردەگرێت بۆ هەر داواکارییەک)
-            def split_kurdish_text_into_chunks(text: str, max_chars: int = 380) -> list:
-                if len(text) <= max_chars:
-                    return [text]
-                parts = re.split(r'([.،\n\r]+)', text)
-                chunks = []
-                current = ""
-                for part in parts:
-                    if len(current) + len(part) <= max_chars:
-                        current += part
-                    else:
-                        if current.strip():
-                            chunks.append(current.strip())
-                        current = part
-                        while len(current) > max_chars:
-                            words = current.split(' ')
-                            sub = ""
-                            for w in words:
-                                if len(sub) + len(w) + 1 <= max_chars:
-                                    sub += (" " if sub else "") + w
-                                else:
-                                    break
-                            if sub:
-                                chunks.append(sub.strip())
-                                current = current[len(sub):].strip()
-                            else:
-                                chunks.append(current[:max_chars])
-                                current = current[max_chars:].strip()
-                if current.strip():
-                    chunks.append(current.strip())
-                return chunks[:4]
+            # بۆ ئەوەی دەنگەکە بە خێراییەکی ناوازە و بێ چاوەڕوانی دەست پێ بکات:
+            # وەرگرتنی ڕستەی یەکەم بە سروشتی (تا نزیکەی ١٨٠-٢٢٠ پیت)، نەک خوێندنەوەی درێژخایەنی بەندەبەندی
+            speech_target = clean_text
+            if len(clean_text) > 220:
+                parts = re.split(r'([.!\n؟])', clean_text[:240])
+                if len(parts) >= 2 and len(parts[0].strip() + parts[1]) >= 25:
+                    speech_target = (parts[0] + parts[1]).strip()
+                else:
+                    words = clean_text[:200].split(' ')
+                    speech_target = " ".join(words[:-1]).strip() if len(words) > 1 else clean_text[:200]
 
-            text_chunks = split_kurdish_text_into_chunks(clean_text, 380)
-            wav_chunks = []
+            if not speech_target:
+                speech_target = clean_text[:180]
 
-            for chunk in text_chunks:
-                k_res = requests.post(
-                    "https://www.kurdishtts.com/api/tts-proxy",
-                    json={
-                        "speaker_id": "sorani_986",
-                        "model_version": "v4",
-                        "text": chunk,
-                        "speed": 1.18
-                    },
-                    headers={
-                        "x-api-key": KURDISH_TTS_API_KEY,
-                        "Content-Type": "application/json"
-                    },
-                    timeout=40
-                )
-                if k_res.status_code == 200 and len(k_res.content) > 500:
-                    wav_chunks.append(k_res.content)
-
-            if len(wav_chunks) == 1:
-                return StreamingResponse(BytesIO(wav_chunks[0]), media_type="audio/wav")
-            elif len(wav_chunks) > 1:
-                # پێکەوەبەستنی سەرجەم بەشە دەنگییەکان (Stitching WAV PCM frames)
-                out_io = BytesIO()
-                with wave.open(BytesIO(wav_chunks[0]), 'rb') as first_wav:
-                    params = first_wav.getparams()
-                    frames = [first_wav.readframes(first_wav.getnframes())]
-                    for next_chunk in wav_chunks[1:]:
-                        try:
-                            with wave.open(BytesIO(next_chunk), 'rb') as nw:
-                                frames.append(nw.readframes(nw.getnframes()))
-                        except Exception:
-                            pass
-                    with wave.open(out_io, 'wb') as out_wav:
-                        out_wav.setparams(params)
-                        for f in frames:
-                            out_wav.writeframes(f)
-                out_io.seek(0)
-                return StreamingResponse(out_io, media_type="audio/wav")
+            k_res = requests.post(
+                "https://www.kurdishtts.com/api/tts-proxy",
+                json={
+                    "speaker_id": "sorani_986",
+                    "model_version": "v4",
+                    "text": speech_target,
+                    "speed": 1.18
+                },
+                headers={
+                    "x-api-key": KURDISH_TTS_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout=12
+            )
+            if k_res.status_code == 200 and len(k_res.content) > 500:
+                if len(TTS_AUDIO_CACHE) > 250:
+                    TTS_AUDIO_CACHE.pop(next(iter(TTS_AUDIO_CACHE)))
+                TTS_AUDIO_CACHE[clean_text] = k_res.content
+                return StreamingResponse(BytesIO(k_res.content), media_type="audio/wav")
         except Exception as k_err:
             print("⚠️ KurdishTTS connection issue, switching to fallback:", k_err)
 

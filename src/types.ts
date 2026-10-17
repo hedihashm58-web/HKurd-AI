@@ -120,6 +120,13 @@ export const playKurdishFemaleVoice = async (
   }
 };
 
+// 👑 کەشی مێمۆری لەسەر ئاستی کلاینت بۆ وەڵامدانەوەی دەستبەجێ بەبێ چاوەڕوانی (0ms)
+const audioBlobCache = new Map<string, Blob>();
+
+export const clearKurdishVoiceCache = () => {
+  audioBlobCache.clear();
+};
+
 export const fetchAndPlayKurdishFemaleVoice = async (
   text: string,
   onStart: () => void,
@@ -133,15 +140,32 @@ export const fetchAndPlayKurdishFemaleVoice = async (
     return;
   }
 
-  onStart();
-
-  const cleanText = cleanKurdishTextForTTS(text).slice(0, 1500);
+  const cleanText = cleanKurdishTextForTTS(text);
   if (!cleanText) {
     onError();
     return;
   }
 
-  // ١. هەوڵدان لەگەڵ سێرڤەری سەرەکی بە دەنگی دەماریی شاهانەی مێینە (Dilara Neural)
+  // ئەگەر دەنگەکە پێشتر دروستکرابێت و لە کەشدا بێت، ڕاستەوخۆ بە 0 میلی چرکە لێی دەدات
+  if (audioBlobCache.has(cleanText)) {
+    const cachedBlob = audioBlobCache.get(cleanText)!;
+    onStart();
+    await playKurdishFemaleVoice(cachedBlob, onEnded, onError);
+    return;
+  }
+
+  // بۆ وەڵامدانەوەی زۆر خێرا: دەرهێنانی ڕستەی سەرەتایی سروشتی تا نزیکەی ٢٠٠ پیت
+  let speechText = cleanText;
+  if (cleanText.length > 220) {
+    const match = cleanText.slice(0, 240).match(/^([\s\S]{50,220}?)(?:[.!\n؟]|\s|$)/);
+    if (match && match[1].trim().length > 25) {
+      speechText = match[1].trim();
+    } else {
+      speechText = cleanText.slice(0, 200).trim();
+    }
+  }
+
+  // ١. هەوڵدان لەگەڵ سێرڤەری سەرەکی بە دەنگی کوردیی سۆرانی (sorani_986 / Dilara)
   const endpoints = [
     'https://hedihashm-kurdai-chat-brain.hf.space/api/tts',
     '/api/tts',
@@ -153,12 +177,18 @@ export const fetchAndPlayKurdishFemaleVoice = async (
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText })
+        body: JSON.stringify({ text: speechText })
       });
 
       if (res.ok) {
         const blob = await res.blob();
         if (blob && blob.size > 200) {
+          if (audioBlobCache.size > 80) {
+            const firstKey = audioBlobCache.keys().next().value;
+            if (firstKey) audioBlobCache.delete(firstKey);
+          }
+          audioBlobCache.set(cleanText, blob);
+          onStart();
           await playKurdishFemaleVoice(blob, onEnded, onError);
           return;
         }
@@ -171,9 +201,9 @@ export const fetchAndPlayKurdishFemaleVoice = async (
   // ٢. سیستەمی جێگرەوەی وێبگەڕ (Web Speech API) بە دەنگی مێینەی نەرم و لەسەرخۆ
   try {
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const utterance = new SpeechSynthesisUtterance(speechText);
       utterance.pitch = 1.0;
-      utterance.rate = 1.05;
+      utterance.rate = 1.08;
 
       const voices = window.speechSynthesis.getVoices();
       // گەڕان بە دوای دەنگی کوردی، پاشان فارسی/ئاریایی مێینە
@@ -191,6 +221,7 @@ export const fetchAndPlayKurdishFemaleVoice = async (
       utterance.onend = () => onEnded();
       utterance.onerror = () => onError();
 
+      onStart();
       window.speechSynthesis.speak(utterance);
       return;
     }
@@ -199,4 +230,4 @@ export const fetchAndPlayKurdishFemaleVoice = async (
   }
 
   onError();
-};
+};
