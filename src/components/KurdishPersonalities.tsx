@@ -443,6 +443,12 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
     link.click();
   };
 
+  useEffect(() => {
+    return () => {
+      stopKurdishFemaleVoice();
+    };
+  }, []);
+
   const handlePlayAudio = async () => {
     if (!selectedPerson) return;
     if (isPlayingAudio) {
@@ -451,7 +457,14 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
       return;
     }
 
-    const textToRead = `${selectedPerson.name}. ${selectedPerson.title}. ${selectedPerson.shortDesc}. ${selectedPerson.fullText}`;
+    const name = language === 'ku' ? selectedPerson.name : (selectedPerson.name_ar || selectedPerson.name);
+    const title = language === 'ku' ? selectedPerson.title : (selectedPerson.title_ar || selectedPerson.title);
+    const shortDesc = language === 'ku' ? selectedPerson.shortDesc : (selectedPerson.shortDesc_ar || selectedPerson.shortDesc);
+    const fullText = language === 'ku' ? selectedPerson.fullText : (selectedPerson.fullText_ar || selectedPerson.fullText);
+
+    // خوێندنەوەی پوخت و ڕوونی ژیاننامەکە بە دەنگی کوردی سۆرانی
+    const textToRead = `${name}، ${title} . ${shortDesc} . ${fullText}`.slice(0, 380);
+
     await fetchAndPlayKurdishFemaleVoice(
       textToRead,
       () => setIsPlayingAudio(true),
@@ -739,7 +752,11 @@ const KurdishPersonalities: React.FC<KurdishPersonalitiesProps> = ({ language = 
             
             <button
               type="button"
-              onClick={() => setSelectedPerson(null)}
+              onClick={() => {
+                stopKurdishFemaleVoice();
+                setIsPlayingAudio(false);
+                setSelectedPerson(null);
+              }}
               className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border border-slate-700"
             >
               <span>←</span>

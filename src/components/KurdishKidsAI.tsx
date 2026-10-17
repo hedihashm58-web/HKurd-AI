@@ -744,6 +744,12 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  useEffect(() => {
+    return () => {
+      stopKurdishFemaleVoice();
+    };
+  }, []);
+
   const handlePlayAudio = async (textToRead: string) => {
     if (isPlayingAudio) {
       stopKurdishFemaleVoice();
@@ -751,8 +757,9 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
       return;
     }
 
+    const cleanKidsText = textToRead.slice(0, 380);
     await fetchAndPlayKurdishFemaleVoice(
-      textToRead,
+      cleanKidsText,
       () => setIsPlayingAudio(true),
       () => setIsPlayingAudio(false),
       () => setIsPlayingAudio(false)
@@ -1252,15 +1259,24 @@ const KurdishKidsAI: React.FC<KidsAIProps> = ({ language = 'ku' }) => {
               </button>
 
               <button
+                type="button"
                 onClick={() => handlePlayAudio(response)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 border cursor-pointer ${
+                className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 border shadow-lg cursor-pointer active:scale-95 ${
                   isPlayingAudio
-                    ? 'bg-red-950/60 border-red-500/40 text-red-300 animate-pulse'
-                    : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-zinc-300'
+                    ? 'bg-rose-950/80 border-rose-500/70 text-rose-300 animate-pulse shadow-rose-900/30'
+                    : mode === 'story'
+                      ? 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 border-pink-400 text-white shadow-pink-600/30'
+                      : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 border-amber-400 text-white shadow-amber-600/30'
                 }`}
               >
                 <span>{isPlayingAudio ? "⏹️" : "🎙️"}</span>
-                <span>{isPlayingAudio ? "وەستاندن" : "گوێگرتن لە دەنگەکە"}</span>
+                <span>
+                  {isPlayingAudio
+                    ? "وەستاندنی دەنگ"
+                    : mode === 'story'
+                      ? "گوێگرتن لە چیرۆکەکە بە دەنگی کوردی"
+                      : "گوێگرتن لە مەتەڵەکە بە دەنگی کوردی"}
+                </span>
               </button>
             </div>
           </div>
