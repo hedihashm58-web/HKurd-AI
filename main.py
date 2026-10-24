@@ -435,7 +435,7 @@ def retrieve_kurdish_knowledge(query: str, max_results: int = 3) -> str:
     return ""
 
 # 👑 فۆنکشنی جێگیری فۆڵبەک بۆ بەشە جەیسۆنییەکان و دەقی درێژ
-def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False, temperature: Optional[float] = None):
+def generate_content_with_fallback(model_name: str, text_prompt: str, base64_image: Optional[str] = None, mime_type: Optional[str] = "image/jpeg", enable_search: bool = False, temperature: Optional[float] = None, system_instruction: Optional[str] = None, top_p: Optional[float] = None, top_k: Optional[int] = None):
     last_error = None
     contents_payload = [text_prompt]
     if base64_image:
@@ -457,7 +457,7 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
 
     # مۆدێلە یەدەگەکان لە کاتی کێشەدا
     models_to_try = [model_name]
-    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']:
         if alt_model not in models_to_try:
             models_to_try.append(alt_model)
 
@@ -485,7 +485,16 @@ def generate_content_with_fallback(model_name: str, text_prompt: str, base64_ima
             # ٢. تاقیکردنەوەی ئاسایی بەبێ سێرچ (زۆر خێراتر و بەرگەی دەقی درێژ دەگرێت)
             try:
                 temp_client = genai.Client(api_key=key)
-                std_config = types.GenerateContentConfig(temperature=temperature) if temperature is not None else None
+                cfg_kwargs = {}
+                if temperature is not None:
+                    cfg_kwargs["temperature"] = temperature
+                if top_p is not None:
+                    cfg_kwargs["top_p"] = top_p
+                if top_k is not None:
+                    cfg_kwargs["top_k"] = top_k
+                if system_instruction is not None:
+                    cfg_kwargs["system_instruction"] = system_instruction
+                std_config = types.GenerateContentConfig(**cfg_kwargs) if cfg_kwargs else None
                 response = temp_client.models.generate_content(
                     model=current_model, 
                     contents=contents_payload, 
@@ -515,7 +524,7 @@ def generate_stream_fallback(model_name: str, text_prompt: str, base64_image: Op
 
     shuffled_keys = random.sample(API_KEYS, len(API_KEYS)) if len(API_KEYS) > 1 else list(API_KEYS)
     models_to_try = [model_name]
-    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+    for alt_model in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']:
         if alt_model not in models_to_try:
             models_to_try.append(alt_model)
 
@@ -1044,7 +1053,7 @@ class HumanizeRequest(BaseModel):
     text: str
     email: str
 
-def chunk_academic_text(text: str, max_chunk_chars: int = 1400) -> List[str]:
+def chunk_academic_text(text: str, max_chunk_chars: int = 2400) -> List[str]:
     clean = text.strip()
     if len(clean) <= max_chunk_chars:
         return [clean]
@@ -1072,18 +1081,41 @@ def chunk_academic_text(text: str, max_chunk_chars: int = 1400) -> List[str]:
         
     return chunks if chunks else [clean]
 
+# 🧠 هەنگاوی ١: پڕۆمپی تێکشکاندنی پەیکەری نووسین و دەرهێنانی تێبینی خاو
+DECONSTRUCT_SYSTEM_PROMPT = """You are an academic research analyst. Your task is to deconstruct the provided academic text into a clean conceptual outline containing ONLY:
+1. Core findings, arguments, mechanisms, and factual assertions (stated in plain, objective terms without buzzwords or clichés).
+2. Data, statistics, metrics, or technical mechanisms.
+3. Citations (Author, Year) exactly preserved.
+
+Rules:
+- Strip away all conversational filler, stylistic transitions, and rhetorical flourishes.
+- Do NOT use buzzwords or AI clichés (avoid: crucial, pivotal, delve, harness, streamline, foster, robust). State the plain facts.
+- Output ONLY the bulleted conceptual notes."""
+
+# ✍️ هەنگاوی ٢: داڕشتنەوەی ئەکادیمیی نوێ لە سفرەوە بە شێوازی مرۆڤ
+ACADEMIC_PARAPHRASE_SYSTEM_PROMPT = """You are an experienced university researcher rewriting research notes so that the resulting text reads as 100% authentic, human-written academic prose and bypasses AI detectors (Turnitin, GPTZero).
+
+Follow these strict rules to break the AI skeleton while keeping 100% of the original meaning and citations:
+
+1. BREAK SENTENCE-BY-SENTENCE MAPPING (Restructure Paragraphs):
+   - Combine related concepts naturally across multi-clause analytical sentences (24 to 35 words) using conjunctions, semicolons, or subordinate clauses ("while", "although", "because").
+   - Follow or precede with direct, grounded observations (10 to 16 words).
+   - Change how paragraphs open: NEVER start multiple paragraphs with formulaic topic sentences like "[Topic] represents a significant concern" or "[Topic] is an important issue." Jump directly into the specific mechanism, evidence, or argument.
+   - Vary paragraph endings: Do NOT end every paragraph with a moralizing "Therefore, governments/organizations should..." statement. Integrate solutions naturally into the analysis.
+
+2. WRITE IN DIRECT, HUMAN ACADEMIC ENGLISH (Avoid AI-Speak):
+   - Prefer concrete, active phrasing over passive encyclopedic descriptions. Instead of writing "AI offers capabilities such as accelerating task completion," write "In practice, AI speeds up routine work..."
+   - Vary sentence lengths organically. Never write robotic 4-word fragments.
+   - Keep all citations (Author, Year) and genuine technical terms intact.
+
+3. HARD BLOCKLIST (Zero Tolerance):
+   - NEVER output any of these words under any circumstances: represents a significant, crucial, vital, pivotal, paramount, synergy, robust, intricate, encompass, encompasses, delve, tapestry, testament, beacon, underscore, landscape, realm, foster, fostering, harness, leverage, leveraging, holistic, overarching, multifaceted, streamline, streamlining, imperative, indispensable, proliferation, concurrently, moreover, furthermore, additionally, consequently, notably, in summation, overall.
+   - Never use em-dashes (—).
+
+Output ONLY the rewritten text in the exact language of the input. No introductions, labels, or markdown wrappers."""
+
 def build_turnitin_bypass_prompt(source_text: str) -> str:
-    return (
-        "Rewrite this academic text so that AI detectors (GPTZero, Turnitin, CopyLeaks, ZeroGPT) detect it as 100% HUMAN WRITTEN (0% AI).\n\n"
-        "STRICT ANTI-DETECTION MANDATES:\n"
-        "1. STOP TRYING TO SOUND OVERLY SMART OR FORMAL. AI detectors specifically flag pompous, Latinate words. Strictly ban: 'paradigm', 'paradigm shift', 'instigate', 'reordering', 'foundational', 'societal constructs', 'pivotal', 'delve', 'tapestry', 'testament', 'furthermore', 'moreover', 'notably', 'demonstrably', 'pervasive', 'holistic', 'multifaceted', 'in conclusion', 'plays a key role', 'underscores', 'fosters', 'intertwined', 'beacon', 'realm of', 'it is important to note', 'salient', 'manifests', 'pedagogical'.\n"
-        "2. PLAIN, DIRECT SCHOLARLY ENGLISH: Write like a real, intelligent human researcher who values clarity over big words. Use direct verbs: 'shifted', 'rely on', 'struggled with', 'handles', 'breaks down', 'shows', 'proves', 'fixes'.\n"
-        "3. HIGH BURSTINESS (VARY SENTENCE LENGTH): Some sentences must be very short and punchy (5-8 words). Others can be longer and compound (18-25 words). Never write two sentences of equal length in a row.\n"
-        "4. NATURAL HUMAN CADENCE: Begin sentences with varied, natural transitions ('Historically,', 'Yet,', 'In practice,', 'By contrast,', 'Still,', or direct subject nouns). Avoid starting multiple sentences with 'The [noun]...'.\n"
-        "5. CONCEPTUAL FIDELITY: Retain 100% of the technical concepts, factual arguments, domain examples, and logical meaning from the original source.\n"
-        "6. PURE OUTPUT: Output MUST be solely the rewritten English text. Absolutely no conversational filler, labels, or introductory notes.\n\n"
-        f"Original Source Text:\n{source_text}"
-    )
+    return f"{ACADEMIC_PARAPHRASE_SYSTEM_PROMPT}\n\n[Input]:\n{source_text}"
 
 @app.post("/api/academic-humanize")
 async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Request):
@@ -1095,18 +1127,36 @@ async def academic_humanize_endpoint(request: HumanizeRequest, fastapi_req: Requ
     if not raw_text:
         return {"response": ""}
 
-    chunks = chunk_academic_text(raw_text, max_chunk_chars=1400)
+    chunks = chunk_academic_text(raw_text, max_chunk_chars=2400)
     humanized_parts = []
 
     for chunk in chunks:
-        prompt = build_turnitin_bypass_prompt(chunk)
+        # قۆناغی ١: دەرهێنانی خاڵ و زانیارییە خاوەکان و تێکشکاندنی پەیکەری دەقەکە
+        step1_prompt = f"Deconstruct the following academic text into a clean conceptual outline containing ONLY raw findings, mechanisms, technical data, and citations. Strip away all AI filler, transitions, and clichés:\n\n{chunk}"
+        deconstructed_notes = generate_content_with_fallback(
+            model_name='gemini-2.5-flash',
+            text_prompt=step1_prompt,
+            system_instruction=DECONSTRUCT_SYSTEM_PROMPT,
+            temperature=0.2,
+            top_p=0.85
+        )
+
+        notes_input = deconstructed_notes.strip() if deconstructed_notes and deconstructed_notes.strip() else chunk
+
+        # قۆناغی ٢: نووسینەوە لە سفرەوە بە زمانی ئەکادیمیی مرۆڤانەی بێ کەموکوڕی
+        step2_prompt = f"Source Research Notes & Data:\n{notes_input}"
         part_result = generate_content_with_fallback(
             model_name='gemini-2.5-flash',
-            text_prompt=prompt,
-            temperature=1.05
+            text_prompt=step2_prompt,
+            system_instruction=ACADEMIC_PARAPHRASE_SYSTEM_PROMPT,
+            temperature=0.75,
+            top_p=0.95,
+            top_k=40
         )
         if part_result and part_result.strip():
             humanized_parts.append(part_result.strip())
+        elif deconstructed_notes and deconstructed_notes.strip():
+            humanized_parts.append(deconstructed_notes.strip())
 
     final_result = "\n\n".join(humanized_parts)
     return {"response": final_result}
